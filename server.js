@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Configuración desde Railway
+// Variables de Railway
 const clientId = process.env.TUYA_CLIENT_ID;
 const secret = process.env.TUYA_CLIENT_SECRET;
 const deviceId = "3800887034ab9509bc60"; 
@@ -52,9 +52,10 @@ async function requestTuya(method, path, body = null, accessToken = "") {
     return await response.json();
 }
 
-// Ruta principal para los botones
+// Ruta para los botones de tu web
 app.post('/api/control', async (req, res) => {
     const { action } = req.body;
+    // Mapeo según tus interruptores de Tuya: 1:desarmar, 2:parcial, 3:total, 4:sos
     const mapping = { 'disarm': 'switch_1', 'partial': 'switch_2', 'arm': 'switch_3', 'sos': 'switch_4' };
     const code = mapping[action] || 'switch_1';
 
@@ -72,7 +73,9 @@ app.post('/api/control', async (req, res) => {
     }
 });
 
+// Ruta obligatoria para que Railway mantenga el servidor vivo
+app.get('/', (req, res) => res.send('Servidor de Alarma Activo'));
 app.get('/health', (req, res) => res.json({ status: "OK" }));
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Servidor activo en puerto ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Servidor activo en puerto ${PORT}`));
