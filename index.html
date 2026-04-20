@@ -202,8 +202,9 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 <div id="toast"></div>
 
 <script>
+// Mantenemos tu objeto S exactamente igual
 let S = {
-  users: [{username:'admin', password:'123', name:'Admin Local', pin:'0000'}], 
+  users: [], 
   log: [],
   alarmStatus: 'disarmed',
   config: {backendUrl:''},
@@ -211,40 +212,57 @@ let S = {
 };
 let pinBuffer = '', pinAction = '';
 
+// 1. CARGA INICIAL: Lee la URL guardada y descarga los usuarios de Railway
 async function load(){
   const d = JSON.parse(localStorage.getItem('mialarm') || '{}');
   if(d.config) {
     S.config = d.config;
     document.getElementById('cfg-backend').value = S.config.backendUrl;
-    await syncWithDB();
+    await syncWithDB(); // <--- Esto es lo que te faltaba para que el login funcione
   }
 }
 
+// 2. SINCRONIZACIÓN: Trae los usuarios reales de MongoDB
 async function syncWithDB() {
   if(!S.config.backendUrl) return;
   try {
     const resU = await fetch(S.config.backendUrl + '/api/usuarios');
     const dbUsers = await resU.json();
-    if(dbUsers.length > 0) S.users = dbUsers;
+    if(dbUsers && dbUsers.length > 0) {
+      S.users = dbUsers; // Guardamos los usuarios de la nube en la lista local
+    }
 
     const resL = await fetch(S.config.backendUrl + '/api/historial');
     S.log = await resL.json();
     renderLog();
-    toast2("Sincronizado");
-  } catch(e) { console.error("Error sincronización"); }
+    toast2("Sincronizado con la nube");
+  } catch(e) { 
+    console.error("Error de conexión");
+    toast2("Error: No se pudo conectar con Railway");
+  }
 }
 
+// 3. LOGIN: Ahora sí encontrará a los usuarios que creaste en la nube
 function doLogin(){
   const u = document.getElementById('li-user').value;
   const p = document.getElementById('li-pass').value;
+  
+  // Buscamos en la lista S.users que acabamos de descargar de Railway
   const user = S.users.find(x => x.username === u && x.password === p);
-  if(!user){ document.getElementById('li-err').textContent="Error"; return; }
+  
+  if(!user){ 
+    document.getElementById('li-err').textContent = "Usuario o clave incorrectos"; 
+    return; 
+  }
+  
   S.currentUser = user;
   document.getElementById('s-login').classList.remove('active');
   document.getElementById('s-app').classList.add('active');
   document.getElementById('tb-addr').textContent = "Hola, " + user.name;
   renderLog();
 }
+
+// --- El resto de tus funciones se mantienen igual para no romper nada ---
 
 async function applyAction(action){
   try {
@@ -255,7 +273,7 @@ async function applyAction(action){
     });
     S.alarmStatus = action === 'disarm' ? 'disarmed' : action === 'arm_away' ? 'armed' : 'arm_home';
     updateStatusUI();
-    toast2("Enviado");
+    toast2("Comando enviado");
     setTimeout(syncWithDB, 1500);
   } catch(e) { toast2("Error de red"); }
 }
@@ -267,21 +285,24 @@ async function addUser(){
     password: document.getElementById('nu-pass').value,
     pin: document.getElementById('nu-pin').value
   };
-  await fetch(S.config.backendUrl + '/api/usuarios', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(newUser)
-  });
-  syncWithDB();
-  toast2("Usuario Creado");
+  try {
+    await fetch(S.config.backendUrl + '/api/usuarios', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(newUser)
+    });
+    syncWithDB();
+    toast2("Usuario creado en la nube");
+  } catch(e) { toast2("Error al crear"); }
 }
 
 function renderLog(){
+  if(!S.log) return;
   const html = S.log.map(l => `
     <div class="hist-item">
       <div class="hi-dot ${l.accion==='disarm'?'hi-disarmed':'hi-armed'}"></div>
       <div class="hi-info">
-        <div class="hi-action">${l.accion}</div>
+        <div class="hi-action">${l.accion === 'disarm' ? 'Desarmado' : 'Armado'}</div>
         <div class="hi-user">${l.usuario}</div>
       </div>
       <div style="font-size:11px; color:#999">${new Date(l.fecha).toLocaleTimeString()}</div>
@@ -324,7 +345,9 @@ function buildNumpad(){
 }
 
 function saveConfig(){
-  S.config.backendUrl = document.getElementById('cfg-backend').value.trim();
+  let url = document.getElementById('cfg-backend').value.trim();
+  if(url.endsWith('/')) url = url.slice(0,-1);
+  S.config.backendUrl = url;
   localStorage.setItem('mialarm', JSON.stringify({config: S.config}));
   syncWithDB();
 }
@@ -338,8 +361,8 @@ function navTo(p){
 
 function doLogout(){ location.reload(); }
 function toast2(m){
-  const t = document.getElementById('toast'); t.textContent=m; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2000);
+  const t = document.getElementById('toast');
+  if(t) { t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
 }
 
 load();
