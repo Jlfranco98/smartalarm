@@ -1,6 +1,6 @@
 {
-  "name": "VERISURE",
-  "short_name": "VERISURE",
+  "name": "Mialarma",
+  "short_name": "Mialarma",
   "description": "Control de alarma Smart Life / Tuya",
   "start_url": "/",
   "display": "standalone",
