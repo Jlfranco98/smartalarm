@@ -1,27 +1,24 @@
 const express = require('express');
 const crypto = require('crypto');
-const path = require('path');
 const cors = require('cors');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
-app.use(express.static(path.join(__dirname, '.')));
 
 // Configuración desde Railway
-const TUYA_CLIENT_ID = process.env.TUYA_CLIENT_ID;
-const TUYA_CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;
-const TUYA_DEVICE_ID = "3800887034ab9509bc60"; // Tu ID de alarma
-const BASE_URL = "https://openapi.tuyaeu.com";
+const clientId = process.env.TUYA_CLIENT_ID;
+const secret = process.env.TUYA_CLIENT_SECRET;
+const deviceId = "3800887034ab9509bc60"; 
+const baseUrl = "https://openapi.tuyaeu.com";
 const EMPTY_BODY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-// Lógica de Firma de Alta Seguridad (la que te funciona)
 function sha256(value) {
     return crypto.createHash("sha256").update(value).digest("hex");
 }
 
-function hmacSha256Upper(value, secret) {
-    return crypto.createHmac("sha256", secret).update(value).digest("hex").toUpperCase();
+function hmacSha256Upper(value, key) {
+    return crypto.createHmac("sha256", key).update(value).digest("hex").toUpperCase();
 }
 
 async function requestTuya(method, path, body = null, accessToken = "") {
@@ -30,15 +27,15 @@ async function requestTuya(method, path, body = null, accessToken = "") {
     const bodyString = body ? JSON.stringify(body) : "";
     const contentSha = body ? sha256(bodyString) : EMPTY_BODY_SHA256;
     
-    const stringToSign = [method.toUpperCase(), contentSha, "", path].join("\n");
+    const stringToSign = [method, contentSha, "", path].join("\n");
     const signSeed = accessToken 
-        ? TUYA_CLIENT_ID + accessToken + t + nonce + stringToSign
-        : TUYA_CLIENT_ID + t + nonce + stringToSign;
+        ? clientId + accessToken + t + nonce + stringToSign
+        : clientId + t + nonce + stringToSign;
     
-    const sign = hmacSha256Upper(signSeed, TUYA_CLIENT_SECRET);
+    const sign = hmacSha256Upper(signSeed, secret);
 
     const headers = {
-        'client_id': TUYA_CLIENT_ID,
+        'client_id': clientId,
         'sign': sign,
         't': t,
         'nonce': nonce,
@@ -47,7 +44,7 @@ async function requestTuya(method, path, body = null, accessToken = "") {
     };
     if (accessToken) headers['access_token'] = accessToken;
 
-    const response = await fetch(BASE_URL + path, {
+    const response = await fetch(baseUrl + path, {
         method,
         headers,
         body: method === "POST" ? bodyString : undefined
@@ -55,18 +52,17 @@ async function requestTuya(method, path, body = null, accessToken = "") {
     return await response.json();
 }
 
-// Ruta que usan los botones de tu web
+// Ruta principal para los botones
 app.post('/api/control', async (req, res) => {
     const { action } = req.body;
-    // Mapeo según tus interruptores (image_4a9dfd.png)
     const mapping = { 'disarm': 'switch_1', 'partial': 'switch_2', 'arm': 'switch_3', 'sos': 'switch_4' };
     const code = mapping[action] || 'switch_1';
 
     try {
-        const tokenData = await requestTuya("GET", "/v1.0/token?grant_type=1");
-        const token = tokenData.result.access_token;
+        const tokenRes = await requestTuya("GET", "/v1.0/token?grant_type=1");
+        const token = tokenRes.result.access_token;
 
-        const result = await requestTuya("POST", `/v1.0/devices/${TUYA_DEVICE_ID}/commands`, {
+        const result = await requestTuya("POST", `/v1.0/devices/${deviceId}/commands`, {
             commands: [{ code: code, value: true }]
         }, token);
 
@@ -76,7 +72,7 @@ app.post('/api/control', async (req, res) => {
     }
 });
 
-app.get('/health', (req, res) => res.send('OK'));
+app.get('/health', (req, res) => res.json({ status: "OK" }));
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`Servidor activo en puerto ${PORT}`));
