@@ -65,9 +65,9 @@ app.post(['/api/control', '/alarm/command'], async (req, res) => {
     // Mapeo: 1:Desarmar, 2:Parcial, 3:Total, 4:SOS
     const mapping = { 
     'disarm':   'switch_1', // Canal 1 -> Desarmar
-    'arm_home':  'switch_4', // Canal 4 -> En casa 
+    'arm_home':  'switch_2', // Canal 2 -> En casa 
     'arm_away': 'switch_3', // Canal 3 -> Armado TOTAL
-    'sos':      'switch_2'  // Canal 2 -> Botón de Pánico / SOS
+    'sos':      'switch_4'  // Canal 4 -> Botón de Pánico / SOS
     };
     const code = mapping[action] || 'switch_1';
 
