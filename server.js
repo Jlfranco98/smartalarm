@@ -1,20 +1,20 @@
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
-const app = express();
 
+const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '.')));
 
-// --- CONFIGURACIÓN ---
+// Variables desde Railway
 const clientId = process.env.TUYA_CLIENT_ID;
 const secret = process.env.TUYA_CLIENT_SECRET;
-const deviceId = "3800887034ab9509bc60"; // Tu ID de alarma
+const deviceId = "3800887034ab9509bc60"; 
 const baseUrl = "https://openapi.tuyaeu.com";
 
 const EMPTY_BODY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-// --- FUNCIONES DE SEGURIDAD (Tu código adaptado) ---
+// Lógica de firma de tu otra app
 function sha256(value) {
     return crypto.createHash("sha256").update(value).digest("hex");
 }
@@ -28,25 +28,23 @@ async function requestTuya(method, path, body = null, accessToken = "") {
     const nonce = crypto.randomUUID();
     const bodyString = body ? JSON.stringify(body) : "";
     const contentSha = body ? sha256(bodyString) : EMPTY_BODY_SHA256;
-    
     const stringToSign = [method, contentSha, "", path].join("\n");
     const signSeed = accessToken 
-        ? `${clientId}${accessToken}${t}${nonce}${stringToSign}`
-        : `${clientId}${t}${nonce}${stringToSign}`;
-    
+        ? clientId + accessToken + t + nonce + stringToSign
+        : clientId + t + nonce + stringToSign;
     const sign = hmacSha256Upper(signSeed, secret);
 
     const headers = {
-        client_id: clientId,
-        sign,
-        t,
-        nonce,
-        sign_method: "HMAC-SHA256",
-        "Content-Type": "application/json",
+        'client_id': clientId,
+        'sign': sign,
+        't': t,
+        'nonce': nonce,
+        'sign_method': "HMAC-SHA256",
+        'Content-Type': "application/json"
     };
-    if (accessToken) headers.access_token = accessToken;
+    if (accessToken) headers['access_token'] = accessToken;
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetch(baseUrl + path, {
         method,
         headers,
         body: method === "POST" ? bodyString : undefined,
@@ -54,25 +52,18 @@ async function requestTuya(method, path, body = null, accessToken = "") {
     return await response.json();
 }
 
-// --- RUTA DE CONTROL ---
 app.post('/api/control', async (req, res) => {
     const { action } = req.body;
-    
-    // Mapeo: 1:desarmar, 2:parcial, 3:total, 4:sos
     const mapping = { 'disarm': 'switch_1', 'partial': 'switch_2', 'arm': 'switch_3', 'sos': 'switch_4' };
     const code = mapping[action] || 'switch_1';
 
     try {
-        // 1. Obtener Token
+        console.log(`Enviando ${code} a Tuya...`);
         const tokenData = await requestTuya("GET", "/v1.0/token?grant_type=1");
         const token = tokenData.result.access_token;
-
-        // 2. Enviar Comando
         const result = await requestTuya("POST", `/v1.0/devices/${deviceId}/commands`, {
             commands: [{ code: code, value: true }]
         }, token);
-
-        console.log(`Orden ${code} enviada. Resultado:`, result.success);
         res.json({ success: result.success });
     } catch (error) {
         console.error("Error:", error.message);
@@ -80,5 +71,7 @@ app.post('/api/control', async (req, res) => {
     }
 });
 
-app.get('/health', (req, res) => res.send('Servidor OK'));
-app.listen(process.env.PORT || 8080);
+app.get('/health', (req, res) => res.send('OK'));
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
