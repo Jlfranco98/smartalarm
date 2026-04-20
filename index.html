@@ -14,19 +14,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --red:#e8192c;
-  --red-dark:#c0121f;
-  --red-light:#fff0f1;
-  --green:#00b562;
-  --green-light:#f0fdf6;
-  --orange:#ff8c00;
-  --orange-light:#fff8f0;
-  --bg:#f5f5f7;
-  --white:#ffffff;
-  --text:#1a1a1a;
-  --muted:#6e6e73;
-  --border:#e5e5ea;
-  --nav-h:72px;
+  --red:#e8192c; --red-dark:#c0121f; --red-light:#fff0f1;
+  --green:#00b562; --green-light:#f0fdf6;
+  --orange:#ff8c00; --orange-light:#fff8f0;
+  --bg:#f5f5f7; --white:#ffffff; --text:#1a1a1a;
+  --muted:#6e6e73; --border:#e5e5ea; --nav-h:72px;
   --safe-bot:env(safe-area-inset-bottom,0px);
   --safe-top:env(safe-area-inset-top,0px);
 }
@@ -38,39 +30,38 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
 #s-login{display:flex;flex-direction:column;background:var(--white)}
 .login-top{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2rem 1.5rem}
-.login-logo-wrap{margin-bottom:2.5rem;text-align:center}
 .login-brand{font-size:32px;font-weight:900;color:var(--red);letter-spacing:-1px}
 .login-tagline{font-size:13px;color:var(--muted);margin-top:2px}
 .login-form{width:100%;max-width:340px}
 .lf-group{margin-bottom:14px}
-.lf-label{display:block;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px}
-.lf-input{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s;background:var(--white)}
-.lf-input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,25,44,.1)}
+.lf-label{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:5px}
+.lf-input{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:14px;font-size:15px;outline:none;background:var(--white)}
 .lf-err{font-size:12px;color:var(--red);min-height:16px;margin-top:4px}
-.btn-red{width:100%;padding:15px;background:var(--red);border:none;border-radius:14px;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;cursor:pointer;transition:background .15s,transform .1s;letter-spacing:.01em}
-.btn-red:active{background:var(--red-dark);transform:scale(0.98)}
+.btn-red{width:100%;padding:15px;background:var(--red);border:none;border-radius:14px;color:#fff;font-size:16px;font-weight:800;cursor:pointer}
 
 #s-app{background:var(--bg);display:flex;flex-direction:column}
-.topbar{background:var(--white);padding:calc(var(--safe-top) + 12px) 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:relative;z-index:10}
-.tb-brand{font-size:22px;font-weight:900;color:var(--red);letter-spacing:-0.5px}
-.tb-address{font-size:11px;color:var(--muted);font-weight:600;text-align:center;flex:1}
-.tb-icon-btn{width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
-.page-area{flex:1;overflow:hidden;position:relative}
-.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .22s,transform .22s;padding-bottom:calc(var(--nav-h) + var(--safe-bot) + 12px)}
+.topbar{background:var(--white);padding:calc(var(--safe-top) + 12px) 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);z-index:10}
+.tb-brand{font-size:22px;font-weight:900;color:var(--red)}
+.tb-address{font-size:11px;color:var(--muted);flex:1;text-align:center}
+.tb-icon-btn{width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;font-size:18px}
+
+.page-area{flex:1;position:relative;overflow:hidden}
+.page{position:absolute;inset:0;overflow-y:auto;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .22s,transform .22s;padding-bottom:calc(var(--nav-h) + var(--safe-bot) + 12px)}
 .page.active{opacity:1;pointer-events:all;transform:translateY(0)}
-.bottomnav{position:absolute;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bot));background:var(--white);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:8px;padding-bottom:var(--safe-bot);z-index:10}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 2px;border:none;background:none;font-family:'Nunito',sans-serif}
-.nav-icon{font-size:22px;line-height:1;transition:transform .15s}
+
+.bottomnav{position:absolute;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bot));background:var(--white);border-top:1px solid var(--border);display:flex;padding-top:8px;padding-bottom:var(--safe-bot);z-index:10}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none}
+.nav-icon{font-size:22px}
 .nav-label{font-size:10px;font-weight:700;color:var(--muted)}
 .nav-item.active .nav-label{color:var(--red)}
 
 .home-status-card{margin:16px 16px 0;background:var(--white);border-radius:20px;padding:28px 20px;text-align:center;box-shadow:0 2px 16px rgba(0,0,0,.06)}
-.hs-circle{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;position:relative;transition:background .4s}
+.hs-circle{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;transition:background .4s}
 .hs-circle-armed{background:var(--red)}
 .hs-circle-disarmed{background:var(--green)}
 .hs-circle-home{background:var(--orange)}
-.hs-status{font-size:20px;font-weight:900;margin-bottom:2px}
-.hs-btn{padding:9px 18px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer}
+.hs-status{font-size:20px;font-weight:900}
+.hs-btn{padding:9px 18px;border-radius:20px;border:none;font-size:13px;font-weight:800;margin:5px}
 .hs-btn-red{background:var(--red);color:#fff}
 .hs-btn-green{background:var(--green);color:#fff}
 .hs-btn-orange{background:var(--orange);color:#fff}
@@ -80,25 +71,24 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .hi-dot{width:10px;height:10px;border-radius:50%}
 .hi-armed{background:var(--red)}
 .hi-disarmed{background:var(--green)}
-.hi-home{background:var(--orange)}
 .hi-info{flex:1}
 .hi-action{font-size:14px;font-weight:800}
 .hi-user{font-size:12px;color:var(--muted)}
 
 .pin-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
 .pin-modal-bg.open{opacity:1;pointer-events:all}
-.pin-modal{background:var(--white);border-radius:24px 24px 0 0;padding:24px 24px calc(24px + var(--safe-bot));width:100%;transform:translateY(100%);transition:transform .3s}
+.pin-modal{background:var(--white);border-radius:24px 24px 0 0;padding:24px;width:100%;transform:translateY(100%);transition:transform .3s}
 .pin-modal-bg.open .pin-modal{transform:translateY(0)}
 .pm-dots{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
 .pm-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border)}
 .pm-dot.on{background:var(--red);border-color:var(--red)}
 .pm-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto}
-.pm-key{padding:16px;background:var(--bg);border-radius:14px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:700;text-align:center;cursor:pointer;border:none}
+.pm-key{padding:16px;background:var(--bg);border-radius:14px;font-size:20px;font-weight:700;border:none}
 
 .admin-card{background:var(--white);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 8px rgba(0,0,0,.05)}
 .form-field{margin-bottom:12px}
-.form-field input, .form-field select{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;background:var(--white)}
-.btn-add{width:100%;padding:12px;background:var(--red);border:none;border-radius:12px;color:#fff;font-weight:800}
+.form-field input, .form-field select{width:100%;padding:11px;border:1.5px solid var(--border);border-radius:12px}
+.btn-add{width:100%;padding:12px;background:var(--red);color:#fff;border:none;border-radius:12px;font-weight:800}
 
 #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;border-radius:12px;padding:10px 22px;opacity:0;transition:opacity .2s;z-index:999}
 #toast.show{opacity:1}
@@ -108,21 +98,13 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
 <div id="s-login" class="screen active">
   <div class="login-top">
-    <div class="login-logo-wrap">
-      <div class="login-brand">MiAlarma</div>
-      <div class="login-tagline">Control total de tu seguridad</div>
-    </div>
+    <div class="login-brand">MiAlarma</div>
+    <div class="login-tagline">Seguridad Sincronizada</div>
     <div class="login-form">
-      <div class="lf-group">
-        <label class="lf-label">Usuario</label>
-        <input class="lf-input" id="li-user" type="text" placeholder="Tu usuario">
-        <div class="lf-err" id="li-err"></div>
-      </div>
-      <div class="lf-group">
-        <label class="lf-label">Contraseña</label>
-        <input class="lf-input" id="li-pass" type="password" placeholder="••••••••">
-      </div>
-      <button class="btn-red" onclick="doLogin()">Iniciar sesión</button>
+      <div class="lf-group"><label class="lf-label">Usuario</label><input class="lf-input" id="li-user"></div>
+      <div class="lf-group"><label class="lf-label">Contraseña</label><input class="lf-input" id="li-pass" type="password"></div>
+      <div class="lf-err" id="li-err"></div>
+      <button class="btn-red" onclick="doLogin()">Entrar</button>
     </div>
   </div>
 </div>
@@ -130,54 +112,44 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 <div id="s-app" class="screen">
   <div class="topbar">
     <div class="tb-brand">MiAlarma</div>
-    <div class="tb-address" id="tb-addr">Mi casa</div>
+    <div class="tb-address" id="tb-addr">Cargando...</div>
     <div class="tb-icons">
       <button class="tb-icon-btn" onclick="syncWithDB()">🔄</button>
-      <button class="tb-icon-btn" onclick="navTo('cuenta')">👤</button>
     </div>
   </div>
 
   <div class="page-area">
     <div class="page active" id="pg-inicio">
       <div class="home-status-card">
-        <div class="hs-circle hs-circle-disarmed" id="hs-circle">
-          <div style="font-size:38px" id="hs-icon">🔓</div>
-        </div>
+        <div class="hs-circle hs-circle-disarmed" id="hs-circle"><div style="font-size:38px" id="hs-icon">🔓</div></div>
         <div class="hs-status" id="hs-status">Desconectada</div>
-        <div class="hs-sub" id="hs-sub">Sistema en reposo</div>
         <div class="hs-actions">
-          <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">Armar total</button>
-          <button class="hs-btn hs-btn-orange" onclick="openPin('arm_home')">En casa</button>
+          <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">Armar</button>
           <button class="hs-btn hs-btn-green" onclick="openPin('disarm')">Desarmar</button>
         </div>
       </div>
-      <div style="padding:20px 16px 10px; font-weight:900">Últimos eventos</div>
+      <div style="padding:20px 16px 10px; font-weight:900">Historial Reciente</div>
       <div class="hist-list" id="home-log"></div>
     </div>
 
     <div class="page" id="pg-historial">
-      <div style="padding:20px 16px 10px; font-weight:900">Historial completo</div>
-      <div class="hist-list" id="full-log"></div>
-    </div>
-
-    <div class="page" id="pg-cuenta">
-      <div style="padding:16px">
-        <div class="admin-card">
-          <div class="form-field"><label>URL Backend Railway</label><input id="cfg-backend" placeholder="https://...railway.app"></div>
-          <button class="btn-add" onclick="saveConfig()">Guardar Configuración</button>
-        </div>
-        <button class="btn-red" style="margin-top:10px" onclick="doLogout()">Cerrar sesión</button>
-      </div>
+        <div style="padding:20px 16px 10px; font-weight:900">Historial Completo</div>
+        <div class="hist-list" id="full-log"></div>
     </div>
 
     <div class="page" id="pg-admin">
       <div class="admin-card" style="margin:16px">
-        <div style="font-weight:900; margin-bottom:10px">Agregar Usuario</div>
-        <div class="form-field"><input id="nu-name" placeholder="Nombre completo"></div>
-        <div class="form-field"><input id="nu-user" placeholder="Usuario login"></div>
+        <div style="font-weight:900; margin-bottom:10px">Nuevo Usuario</div>
+        <div class="form-field"><input id="nu-name" placeholder="Nombre"></div>
+        <div class="form-field"><input id="nu-user" placeholder="Login"></div>
         <div class="form-field"><input id="nu-pass" type="password" placeholder="Contraseña"></div>
         <div class="form-field"><input id="nu-pin" type="password" maxlength="4" placeholder="PIN 4 dígitos"></div>
-        <button class="btn-add" onclick="addUser()">Crear en Nube</button>
+        <button class="btn-add" onclick="addUser()">Guardar en la Nube</button>
+      </div>
+      <div class="admin-card" style="margin:16px">
+        <div style="font-weight:900; margin-bottom:10px">Configuración Servidor</div>
+        <div class="form-field"><input id="cfg-url" placeholder="https://...railway.app"></div>
+        <button class="btn-add" style="background:#666" onclick="saveURL()">Guardar URL</button>
       </div>
     </div>
   </div>
@@ -185,95 +157,91 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
   <div class="bottomnav">
     <button class="nav-item active" id="nav-inicio" onclick="navTo('inicio')"><div class="nav-icon">🏠</div><div class="nav-label">Inicio</div></button>
     <button class="nav-item" id="nav-historial" onclick="navTo('historial')"><div class="nav-icon">📋</div><div class="nav-label">Historial</div></button>
-    <button class="nav-item" id="nav-admin" onclick="navTo('admin')"><div class="nav-icon">👥</div><div class="nav-label">Usuarios</div></button>
-    <button class="nav-item" id="nav-cuenta" onclick="navTo('cuenta')"><div class="nav-icon">👤</div><div class="nav-label">Config</div></button>
+    <button class="nav-item" id="nav-admin" onclick="navTo('admin')"><div class="nav-icon">⚙️</div><div class="nav-label">Admin</div></button>
   </div>
 </div>
 
 <div class="pin-modal-bg" id="pin-modal-bg">
   <div class="pin-modal">
-    <div style="text-align:center; font-weight:900; margin-bottom:20px" id="pm-title">PIN Requerido</div>
+    <div style="text-align:center; font-weight:900; margin-bottom:20px">PIN de Seguridad</div>
     <div class="pm-dots" id="pm-dots"></div>
     <div class="pm-numpad" id="pm-numpad"></div>
-    <button class="btn-add" style="background:#ccc; margin-top:15px" onclick="closePin()">Cancelar</button>
+    <button class="btn-add" style="background:#ccc; margin-top:15px" onclick="closePin()">Cerrar</button>
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-let S = {
-  users: [{username:'admin', password:'123', name:'Admin Local', pin:'0000'}], 
-  log: [],
-  alarmStatus: 'disarmed',
-  config: {backendUrl:''},
-  currentUser: null
-};
+let S = { users: [], log: [], alarmStatus: 'disarmed', config: {url:''}, currentUser: null };
 let pinBuffer = '', pinAction = '';
 
 async function load(){
-  const d = JSON.parse(localStorage.getItem('mialarm') || '{}');
-  if(d.config) {
-    S.config = d.config;
-    document.getElementById('cfg-backend').value = S.config.backendUrl;
-    await syncWithDB();
+  const d = JSON.parse(localStorage.getItem('mialarm_cfg') || '{}');
+  if(d.url) { 
+    S.config.url = d.url; 
+    document.getElementById('cfg-url').value = d.url;
+    await syncWithDB(); 
   }
 }
 
-async function syncWithDB() {
-  if(!S.config.backendUrl) return;
+async function syncWithDB(){
+  if(!S.config.url) return;
   try {
-    const resU = await fetch(S.config.backendUrl + '/api/usuarios');
-    const dbUsers = await resU.json();
-    if(dbUsers.length > 0) S.users = dbUsers;
-
-    const resL = await fetch(S.config.backendUrl + '/api/historial');
+    const [resU, resL] = await Promise.all([
+        fetch(S.config.url + '/api/usuarios'),
+        fetch(S.config.url + '/api/historial')
+    ]);
+    S.users = await resU.json();
     S.log = await resL.json();
     renderLog();
     toast2("Sincronizado");
-  } catch(e) { console.error("Error sincronización"); }
+  } catch(e){ console.error("Error de red"); }
 }
 
 function doLogin(){
   const u = document.getElementById('li-user').value;
   const p = document.getElementById('li-pass').value;
-  const user = S.users.find(x => x.username === u && x.password === p);
-  if(!user){ document.getElementById('li-err').textContent="Error"; return; }
-  S.currentUser = user;
+  // Primero intentamos con el admin maestro por si no hay DB
+  if(u === 'admin' && p === 'admin123'){ 
+    S.currentUser = {name: 'Admin', pin: '0000'};
+  } else {
+    const user = S.users.find(x => x.username === u && x.password === p);
+    if(!user){ document.getElementById('li-err').textContent="Fallo de login"; return; }
+    S.currentUser = user;
+  }
   document.getElementById('s-login').classList.remove('active');
   document.getElementById('s-app').classList.add('active');
-  document.getElementById('tb-addr').textContent = "Hola, " + user.name;
-  renderLog();
+  document.getElementById('tb-addr').textContent = "Hola, " + S.currentUser.name;
 }
 
 async function applyAction(action){
   try {
-    await fetch(S.config.backendUrl + '/api/control', {
+    await fetch(S.config.url + '/api/control', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ action, user: S.currentUser.name })
     });
-    S.alarmStatus = action === 'disarm' ? 'disarmed' : action === 'arm_away' ? 'armed' : 'arm_home';
-    updateStatusUI();
-    toast2("Enviado");
-    setTimeout(syncWithDB, 1500);
-  } catch(e) { toast2("Error de red"); }
+    S.alarmStatus = action === 'disarm' ? 'disarmed' : 'armed';
+    updateUI();
+    setTimeout(syncWithDB, 1000);
+  } catch(e){ toast2("Error al enviar"); }
 }
 
 async function addUser(){
-  const newUser = {
+  const body = {
     name: document.getElementById('nu-name').value,
     username: document.getElementById('nu-user').value,
     password: document.getElementById('nu-pass').value,
     pin: document.getElementById('nu-pin').value
   };
-  await fetch(S.config.backendUrl + '/api/usuarios', {
+  await fetch(S.config.url + '/api/usuarios', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(newUser)
+    body: JSON.stringify(body)
   });
   syncWithDB();
-  toast2("Usuario Creado");
+  toast2("Usuario Guardado");
 }
 
 function renderLog(){
@@ -281,41 +249,39 @@ function renderLog(){
     <div class="hist-item">
       <div class="hi-dot ${l.accion==='disarm'?'hi-disarmed':'hi-armed'}"></div>
       <div class="hi-info">
-        <div class="hi-action">${l.accion}</div>
+        <div class="hi-action">${l.accion === 'disarm' ? 'Desarmado' : 'Armado'}</div>
         <div class="hi-user">${l.usuario}</div>
       </div>
-      <div style="font-size:11px; color:#999">${new Date(l.fecha).toLocaleTimeString()}</div>
+      <div style="font-size:10px; color:#999">${new Date(l.fecha).toLocaleTimeString()}</div>
     </div>`).join('');
   document.getElementById('home-log').innerHTML = html;
   document.getElementById('full-log').innerHTML = html;
 }
 
-function updateStatusUI(){
+function updateUI(){
   const c = document.getElementById('hs-circle');
   const i = document.getElementById('hs-icon');
   const s = document.getElementById('hs-status');
-  if(S.alarmStatus==='disarmed'){ c.className='hs-circle hs-circle-disarmed'; i.textContent='🔓'; s.textContent='Desconectada'; }
-  else if(S.alarmStatus==='armed'){ c.className='hs-circle hs-circle-armed'; i.textContent='🔒'; s.textContent='Conectada'; }
-  else { c.className='hs-circle hs-circle-home'; i.textContent='🏠'; s.textContent='En Casa'; }
+  c.className = S.alarmStatus === 'disarmed' ? 'hs-circle hs-circle-disarmed' : 'hs-circle hs-circle-armed';
+  i.textContent = S.alarmStatus === 'disarmed' ? '🔓' : '🔒';
+  s.textContent = S.alarmStatus === 'disarmed' ? 'Desconectada' : 'Conectada';
 }
 
-function openPin(a){ pinAction=a; pinBuffer=''; buildPinDots(); buildNumpad(); document.getElementById('pin-modal-bg').classList.add('open'); }
+function openPin(a){ pinAction=a; pinBuffer=''; buildPinUI(); document.getElementById('pin-modal-bg').classList.add('open'); }
 function closePin(){ document.getElementById('pin-modal-bg').classList.remove('open'); }
-function buildPinDots(){
+function buildPinUI(){
   const d = document.getElementById('pm-dots'); d.innerHTML = '';
-  for(let i=0;i<4;i++) d.innerHTML += `<div class="pm-dot" id="pd${i}"></div>`;
-}
-function buildNumpad(){
+  for(let i=0;i<4;i++) d.innerHTML += `<div class="pm-dot" id="dot${i}"></div>`;
   const n = document.getElementById('pm-numpad'); n.innerHTML = '';
   [1,2,3,4,5,6,7,8,9,0].forEach(v => {
     const b = document.createElement('button'); b.className='pm-key'; b.textContent=v;
     b.onclick = () => {
       if(pinBuffer.length < 4){
         pinBuffer += v;
-        document.getElementById('pd'+(pinBuffer.length-1)).classList.add('on');
+        document.getElementById('dot'+(pinBuffer.length-1)).classList.add('on');
         if(pinBuffer.length === 4){
           if(pinBuffer === S.currentUser.pin){ applyAction(pinAction); closePin(); }
-          else { pinBuffer = ''; buildPinDots(); }
+          else { pinBuffer = ''; buildPinUI(); }
         }
       }
     };
@@ -323,9 +289,10 @@ function buildNumpad(){
   });
 }
 
-function saveConfig(){
-  S.config.backendUrl = document.getElementById('cfg-backend').value.trim();
-  localStorage.setItem('mialarm', JSON.stringify({config: S.config}));
+function saveURL(){
+  const url = document.getElementById('cfg-url').value.trim().replace(/\/$/, "");
+  localStorage.setItem('mialarm_cfg', JSON.stringify({url}));
+  S.config.url = url;
   syncWithDB();
 }
 
@@ -336,7 +303,6 @@ function navTo(p){
   document.getElementById('nav-'+p).classList.add('active');
 }
 
-function doLogout(){ location.reload(); }
 function toast2(m){
   const t = document.getElementById('toast'); t.textContent=m; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2000);
