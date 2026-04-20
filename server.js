@@ -1,61 +1,64 @@
 const express = require('express');
 const crypto = require('crypto');
 const cors = require('cors');
-const path = require('path');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
-app.use(express.static(path.join(__dirname, '.')));
 
-// 1. CONEXIÓN A MONGODB
-mongoose.connect(process.env.MONGO_URL)
-  .then(() => console.log("¡Conectado a MongoDB con éxito!"))
-  .catch(err => console.error("Error crítico de conexión DB:", err));
+// 1. CONEXIÓN REFORZADA A MONGODB
+// Asegúrate de que tu variable MONGO_URL en Railway termine en /nombre_de_tu_bd
+mongoose.connect(process.env.MONGO_URL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log("¡AUTENTICADO EN MONGODB!"))
+.catch(err => console.error("Fallo de autenticación:", err));
 
-// Esquemas de las Tablas
-const User = mongoose.model('User', new mongoose.Schema({
+// Definimos el modelo explícitamente
+const userSchema = new mongoose.Schema({
   name: String,
-  username: { type: String, unique: true },
-  password: { type: String },
+  username: { type: String, unique: true, required: true },
+  password: { type: String, required: true },
   pin: String
-}, { collection: 'users' }));
+}, { collection: 'users' });
 
-const Log = mongoose.model('Log', new mongoose.Schema({
-  usuario: String,
-  accion: String,
-  fecha: { type: Date, default: Date.now }
-}, { collection: 'logs' }));
+const User = mongoose.model('User', userSchema);
 
-// 2. RUTAS DE USUARIOS
-// RUTA PARA CREAR (REGISTRO)
+// 2. RUTA DE CREACIÓN (Con comprobación real)
 app.post('/api/usuarios', async (req, res) => {
     try {
         const { name, username, password, pin } = req.body;
         
-        // Encriptamos la clave
+        // Verificamos si la base de datos está conectada antes de seguir
+        if (mongoose.connection.readyState !== 1) {
+            throw new Error("La base de datos no está lista");
+        }
+
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const newUser = new User({
-            name: name,
-            username: username,
+            name,
+            username,
             password: hashedPassword,
-            pin: pin
+            pin
         });
 
-        await newUser.save();
-        console.log("Usuario guardado con éxito:", username);
+        // 'await' asegura que el código no siga hasta que MongoDB confirme el guardado
+        const savedUser = await newUser.save();
+        console.log("CONFIRMADO: Usuario guardado en la DB física:", savedUser.username);
+        
         res.json({ success: true });
     } catch (e) {
-        console.error("Error al guardar usuario:", e);
+        console.error("ERROR REAL AL GUARDAR:", e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// RUTA PARA LEER (LOGIN)
+// Ruta para el login (lee de la DB)
 app.get('/api/usuarios', async (req, res) => {
     try {
         const users = await User.find();
