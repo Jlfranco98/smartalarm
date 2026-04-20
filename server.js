@@ -9,58 +9,87 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, '.')));
 
-// 1. CONEXIÓN REAL A TU MONGODB
+// --- 1. CONEXIÓN A MONGO (Indispensable para que el login funcione) ---
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("Conectado a MongoDB"))
-  .catch(err => console.error("Error Grave DB:", err));
+  .catch(err => console.error("Error DB:", err));
 
-// 2. DEFINICIÓN DEL USUARIO (Sacado de tu captura)
+// Esquema exacto de tu tabla 'users'
 const User = mongoose.model('User', new mongoose.Schema({
   name: String,
   username: { type: String, unique: true },
   password: { type: String },
   pin: String
-}, { collection: 'users' })); // <--- Forzamos la tabla 'users' que ya tienes
+}, { collection: 'users' }));
 
+// Esquema para los logs de desarmado
 const Log = mongoose.model('Log', new mongoose.Schema({
   usuario: String,
   accion: String,
   fecha: { type: Date, default: Date.now }
 }, { collection: 'logs' }));
 
-// 3. ESTO ES LO QUE TU APP NECESITA PARA EL LOGIN
+// --- 2. CONFIGURACIÓN TUYA (Tus datos originales) ---
+const TUYA_CLIENT_ID     = process.env.TUYA_CLIENT_ID;
+const TUYA_CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;
+const TUYA_DEVICE_ID     = "3800887034ab9509bc60"; 
+const TUYA_HOST          = 'https://openapi.tuyaeu.com';
+
+// --- 3. RUTAS PARA USUARIOS E HISTORIAL ---
 app.get('/api/usuarios', async (req, res) => {
     try {
         const users = await User.find();
-        // Si esto sale en el log de Railway, es que funciona
-        console.log("Enviando usuarios a la app:", users); 
         res.json(users);
-    } catch (e) {
-        res.status(500).json([]);
-    }
+    } catch (e) { res.status(500).json([]); }
 });
 
-// 4. CONTROL DE LA ALARMA
-app.post('/api/control', async (req, res) => {
-    const { action, user } = req.body;
-    const mapping = { 'disarm':'switch_1', 'arm_home':'switch_2', 'arm_away':'switch_3', 'sos':'switch_4' };
-    
+app.get('/api/historial', async (req, res) => {
     try {
-        // Lógica de token y comando Tuya
-        const t = Date.now().toString();
-        const resToken = await fetch('https://openapi.tuyaeu.com/v1.0/token?grant_type=1', {
-            headers: {
-                'client_id': process.env.TUYA_CLIENT_ID,
-                'sign': 'TU_FIRMA_AQUI', // El servidor gestiona esto internamente
-                't': t,
-                'sign_method': 'HMAC-SHA256'
-            }
-        });
-        // (Simplificado para asegurar que el login sea lo primero que funcione)
-        await new Log({ usuario: user, accion: action }).save();
-        res.json({ success: true });
+        const logs = await Log.find().sort({ fecha: -1 }).limit(20);
+        res.json(logs);
+    } catch (e) { res.status(500).json([]); }
+});
+
+// --- 4. TU LÓGICA DE FIRMA TUYA (Recuperada al 100%) ---
+async function tuyaRequest(method, urlPath, body = null, token = "") {
+    const t = Date.now().toString();
+    const nonce = crypto.randomUUID();
+    const bodyStr = body ? JSON.stringify(body) : '';
+    const strToSign = [method.toUpperCase(), crypto.createHash('sha256').update(bodyStr).digest('hex'), '', urlPath].join('\n');
+    const signSeed = token ? (TUYA_CLIENT_ID + token + t + nonce + strToSign) : (TUYA_CLIENT_ID + t + nonce + strToSign);
+    const signature = crypto.createHmac('sha256', TUYA_CLIENT_SECRET).update(signSeed).digest('hex').toUpperCase();
+
+    const headers = { 'client_id': TUYA_CLIENT_ID, 'sign': signature, 't': t, 'nonce': nonce, 'sign_method': 'HMAC-SHA256', 'Content-Type': 'application/json' };
+    if (token) headers['access_token'] = token;
+
+    const res = await fetch(TUYA_HOST + urlPath, { method, headers, body: bodyStr || undefined });
+    return res.json();
+}
+
+// --- 5. RUTA DE CONTROL CON TUS MAPEOS ---
+app.post(['/api/control', '/alarm/command'], async (req, res) => {
+    const { action, user } = req.body;
+    const mapping = { 
+        'disarm':   'switch_1', 
+        'arm_home':  'switch_2', 
+        'arm_away': 'switch_3', 
+        'sos':      'switch_4' 
+    };
+    const code = mapping[action] || 'switch_1';
+
+    try {
+        const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
+        const result = await tuyaRequest('POST', `/v1.0/devices/${TUYA_DEVICE_ID}/commands`, {
+            commands: [{ code: code, value: true }]
+        }, tokenData.result.access_token);
+
+        if(result.success) {
+            // Aquí se guardan los logs de desarmado/armado
+            await new Log({ usuario: user || 'Sistema', accion: action }).save();
+        }
+        res.json({ success: result.success });
     } catch (e) {
-        res.status(500).json({ success: false });
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
