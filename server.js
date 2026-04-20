@@ -15,13 +15,46 @@ mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("¡CONECTADO A MONGODB CON ÉXITO!"))
   .catch(err => console.error("ERROR CRÍTICO DB:", err));
 
-// Esquema de Usuario (Mapeado a tu imagen)
+// Esquema de Usuario
 const User = mongoose.model('User', new mongoose.Schema({
   name: String,
   username: { type: String, unique: true },
   password: { type: String },
   pin: String
 }, { collection: 'users' }));
+
+// 2. RUTA PARA CREAR USUARIOS (Lo que te faltaba)
+app.post('/api/usuarios', async (req, res) => {
+    try {
+        const { name, username, password, pin } = req.body;
+        
+        // Encriptamos la contraseña antes de guardarla
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const newUser = new User({
+            name,
+            username,
+            password: hashedPassword, // Se guarda como código secreto
+            pin
+        });
+
+        await newUser.save();
+        console.log("Nuevo usuario guardado en MongoDB:", username);
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Error al crear usuario:", e);
+        res.status(500).json({ success: false, error: "El usuario ya existe o falta conexión" });
+    }
+});
+
+// 3. ACTUALIZACIÓN DEL LOGIN (Para que entienda contraseñas encriptadas)
+app.get('/api/usuarios', async (req, res) => {
+    try {
+        const users = await User.find();
+        res.json(users);
+    } catch (e) { res.status(500).json([]); }
+});
 
 // Esquema de Logs (Para el historial de la alarma)
 const Log = mongoose.model('Log', new mongoose.Schema({
