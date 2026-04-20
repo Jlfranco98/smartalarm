@@ -1,7 +1,6 @@
 {
   "name": "smartalarm",
   "version": "1.0.0",
-  "description": "Backend para alarma Tuya Cloud",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
