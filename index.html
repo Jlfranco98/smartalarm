@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MiAlarma">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>MiAlarma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#e8192c;
+  --red-dark:#c0121f;
+  --red-light:#fff0f1;
+  --green:#00b562;
+  --green-light:#f0fdf6;
+  --orange:#ff8c00;
+  --orange-light:#fff8f0;
+  --bg:#f5f5f7;
+  --white:#ffffff;
+  --text:#1a1a1a;
+  --muted:#6e6e73;
+  --border:#e5e5ea;
+  --nav-h:72px;
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --safe-top:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);overflow:hidden}
+
+/* ── Screens ─────────────────────────────────────────────── */
+.screen{position:fixed;inset:0;background:var(--white);opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .28s cubic-bezier(.4,0,.2,1),transform .28s cubic-bezier(.4,0,.2,1);z-index:1}
+.screen.active{opacity:1;pointer-events:all;transform:translateY(0);z-index:2}
+
+/* ══════════════════════════════════════════════════════════
+   LOGIN
+══════════════════════════════════════════════════════════ */
+#s-login{display:flex;flex-direction:column;background:var(--white)}
+.login-top{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2rem 1.5rem}
+.login-logo-wrap{margin-bottom:2.5rem;text-align:center}
+.login-brand{font-size:32px;font-weight:900;color:var(--red);letter-spacing:-1px}
+.login-tagline{font-size:13px;color:var(--muted);margin-top:2px}
+.login-form{width:100%;max-width:340px}
+.lf-group{margin-bottom:14px}
+.lf-label{display:block;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px}
+.lf-input{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s;background:var(--white)}
+.lf-input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,25,44,.1)}
+.lf-err{font-size:12px;color:var(--red);min-height:16px;margin-top:4px}
+.lf-forgot{text-align:right;margin-bottom:20px}
+.lf-forgot a{font-size:12px;color:var(--red);font-weight:700;text-decoration:none}
+.btn-red{width:100%;padding:15px;background:var(--red);border:none;border-radius:14px;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;cursor:pointer;transition:background .15s,transform .1s;letter-spacing:.01em}
+.btn-red:active{background:var(--red-dark);transform:scale(0.98)}
+.login-bottom{padding:1.5rem 2rem calc(1.5rem + var(--safe-bot));text-align:center}
+.login-register{font-size:13px;color:var(--muted)}
+.login-register a{color:var(--red);font-weight:700;text-decoration:none}
+
+/* ══════════════════════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════════════════════ */
+#s-app{background:var(--bg);display:flex;flex-direction:column}
+
+/* Top bar */
+.topbar{background:var(--white);padding:calc(var(--safe-top) + 12px) 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:relative;z-index:10}
+.tb-brand{font-size:22px;font-weight:900;color:var(--red);letter-spacing:-0.5px}
+.tb-address{font-size:11px;color:var(--muted);font-weight:600;text-align:center;flex:1}
+.tb-icons{display:flex;gap:4px}
+.tb-icon-btn{width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
+
+/* Page area */
+.page-area{flex:1;overflow:hidden;position:relative}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .22s,transform .22s;padding-bottom:calc(var(--nav-h) + var(--safe-bot) + 12px)}
+.page.active{opacity:1;pointer-events:all;transform:translateY(0)}
+
+/* Bottom nav */
+.bottomnav{position:absolute;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bot));background:var(--white);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:8px;padding-bottom:var(--safe-bot);z-index:10}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 2px;border:none;background:none;font-family:'Nunito',sans-serif}
+.nav-icon{font-size:22px;line-height:1;transition:transform .15s}
+.nav-label{font-size:10px;font-weight:700;color:var(--muted);transition:color .15s}
+.nav-item.active .nav-label{color:var(--red)}
+.nav-item.active .nav-icon{transform:scale(1.1)}
+
+/* ══════════════════════════════════════════════════════════
+   PAGE: INICIO
+══════════════════════════════════════════════════════════ */
+.home-status-card{margin:16px 16px 0;background:var(--white);border-radius:20px;padding:28px 20px;text-align:center;box-shadow:0 2px 16px rgba(0,0,0,.06)}
+.hs-label{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em}
+.hs-circle{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;position:relative;transition:background .4s}
+.hs-circle-armed{background:var(--red)}
+.hs-circle-disarmed{background:var(--green)}
+.hs-circle-home{background:var(--orange)}
+.hs-circle::after{content:'';position:absolute;inset:-10px;border-radius:50%;border:2px solid;opacity:.18;transition:border-color .4s}
+.hs-circle-armed::after{border-color:var(--red)}
+.hs-circle-disarmed::after{border-color:var(--green)}
+.hs-circle-home::after{border-color:var(--orange)}
+.hs-icon{font-size:38px;filter:brightness(10)}
+.hs-status{font-size:20px;font-weight:900;margin-bottom:2px;transition:color .3s}
+.hs-sub{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:18px}
+.hs-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.hs-btn{padding:9px 18px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s}
+.hs-btn:active{transform:scale(0.96);opacity:.8}
+.hs-btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text)}
+.hs-btn-red{background:var(--red);color:#fff}
+.hs-btn-green{background:var(--green);color:#fff}
+.hs-btn-orange{background:var(--orange);color:#fff}
+
+/* Section header */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 16px 10px}
+.sec-title{font-size:15px;font-weight:900;color:var(--text)}
+.sec-more{font-size:13px;font-weight:700;color:var(--red)}
+
+/* Quick actions */
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px}
+.qa-card{background:var(--white);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 8px rgba(0,0,0,.05);cursor:pointer;transition:transform .15s}
+.qa-card:active{transform:scale(0.97)}
+.qa-icon{font-size:26px}
+.qa-label{font-size:13px;font-weight:800;color:var(--text)}
+.qa-sub{font-size:11px;color:var(--muted);font-weight:600}
+
+/* PIN modal */
+.pin-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+.pin-modal-bg.open{opacity:1;pointer-events:all}
+.pin-modal{background:var(--white);border-radius:24px 24px 0 0;padding:24px 24px calc(24px + var(--safe-bot));width:100%;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.pin-modal-bg.open .pin-modal{transform:translateY(0)}
+.pm-title{font-size:18px;font-weight:900;text-align:center;margin-bottom:4px}
+.pm-sub{font-size:13px;color:var(--muted);text-align:center;font-weight:600;margin-bottom:20px}
+.pm-dots{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
+.pm-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:background .15s,border-color .15s}
+.pm-dot.on{background:var(--red);border-color:var(--red)}
+.pm-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto 16px}
+.pm-key{padding:16px;background:var(--bg);border-radius:14px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:700;color:var(--text);text-align:center;cursor:pointer;border:none;transition:background .1s,transform .1s;user-select:none}
+.pm-key:active{background:var(--border);transform:scale(0.93)}
+.pm-key.del{font-size:17px}
+.pm-key.empty{opacity:0;pointer-events:none}
+.pm-err{font-size:13px;color:var(--red);text-align:center;min-height:18px;font-weight:700}
+.pm-cancel{width:100%;padding:14px;background:transparent;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer;margin-top:4px}
+
+/* ══════════════════════════════════════════════════════════
+   PAGE: HISTORIAL
+══════════════════════════════════════════════════════════ */
+.hist-list{padding:0 16px}
+.hist-day{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:16px 0 8px}
+.hist-item{display:flex;align-items:center;gap:12px;background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+.hi-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.hi-armed{background:var(--red)}
+.hi-disarmed{background:var(--green)}
+.hi-home{background:var(--orange)}
+.hi-info{flex:1}
+.hi-action{font-size:14px;font-weight:800}
+.hi-user{font-size:12px;color:var(--muted);font-weight:600;margin-top:1px}
+.hi-time{font-size:12px;color:var(--muted);font-weight:700;text-align:right}
+
+/* ══════════════════════════════════════════════════════════
+   PAGE: MI CUENTA
+══════════════════════════════════════════════════════════ */
+.account-hero{background:var(--white);padding:28px 20px;margin:16px 16px 0;border-radius:20px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.acc-avatar{width:72px;height:72px;border-radius:50%;background:var(--red-light);border:3px solid var(--red);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:var(--red);margin:0 auto 12px}
+.acc-name{font-size:20px;font-weight:900}
+.acc-email{font-size:13px;color:var(--muted);font-weight:600;margin-top:2px}
+.acc-role{display:inline-block;margin-top:10px;padding:4px 14px;background:var(--red-light);border-radius:20px;font-size:11px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.05em}
+.settings-list{padding:0 16px;margin-top:16px}
+.sl-item{background:var(--white);border-radius:14px;padding:15px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.04);transition:background .1s}
+.sl-item:active{background:var(--bg)}
+.sl-icon{font-size:20px;width:36px;height:36px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sl-label{font-size:14px;font-weight:800;flex:1}
+.sl-arrow{color:var(--muted);font-size:14px}
+.sl-item.danger .sl-label{color:var(--red)}
+
+/* ══════════════════════════════════════════════════════════
+   PAGE: ADMIN
+══════════════════════════════════════════════════════════ */
+.admin-section{padding:0 16px;margin-top:16px}
+.admin-card{background:var(--white);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 8px rgba(0,0,0,.05)}
+.ac-title{font-size:14px;font-weight:900;margin-bottom:12px;color:var(--text)}
+.user-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.user-row:last-child{border-bottom:none}
+.ur-av{width:38px;height:38px;border-radius:50%;background:var(--red-light);border:2px solid var(--red);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:var(--red);flex-shrink:0}
+.ur-name{font-size:14px;font-weight:800;flex:1}
+.ur-role{font-size:11px;color:var(--muted);font-weight:600}
+.ur-del{background:none;border:1.5px solid #fcc;color:var(--red);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;padding:5px 10px;border-radius:8px;cursor:pointer}
+.form-field{margin-bottom:12px}
+.form-field label{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.form-field input,.form-field select{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;background:var(--white)}
+.form-field input:focus,.form-field select:focus{border-color:var(--red)}
+.btn-add{width:100%;padding:12px;background:var(--red);border:none;border-radius:12px;color:#fff;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer}
+.btn-add:active{opacity:.85}
+.cfg-saved{font-size:12px;color:var(--green);text-align:center;min-height:14px;margin-top:6px;font-weight:700}
+.err-small{font-size:12px;color:var(--red);min-height:14px;margin-top:4px;font-weight:700}
+
+/* Toast */
+#toast{position:fixed;top:calc(var(--safe-top) + 70px);left:50%;transform:translateX(-50%) translateY(-10px);background:#1a1a1a;color:#fff;border-radius:12px;padding:10px 22px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:999;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ════════════════ LOGIN ════════════════ -->
+<div id="s-login" class="screen active">
+  <div class="login-top">
+    <div class="login-logo-wrap">
+      <div class="login-brand">MiAlarma</div>
+      <div class="login-tagline">Control total de tu seguridad</div>
+    </div>
+    <div class="login-form">
+      <div class="lf-group">
+        <label class="lf-label">Usuario o email</label>
+        <input class="lf-input" id="li-user" type="text" placeholder="tu@email.com" autocomplete="username">
+        <div class="lf-err" id="li-err"></div>
+      </div>
+      <div class="lf-group">
+        <label class="lf-label">Contraseña</label>
+        <input class="lf-input" id="li-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="lf-forgot"><a href="#">¿Olvidaste tu contraseña?</a></div>
+      <button class="btn-red" onclick="doLogin()">Iniciar sesión</button>
+    </div>
+  </div>
+  <div class="login-bottom">
+    <div class="login-register">¿No tienes cuenta? <a href="#">Registrarse</a></div>
+  </div>
+</div>
+
+<!-- ════════════════ APP ════════════════ -->
+<div id="s-app" class="screen">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="tb-brand">MiAlarma</div>
+    <div class="tb-address" id="tb-addr">Mi casa</div>
+    <div class="tb-icons">
+      <button class="tb-icon-btn" onclick="refreshStatus()" title="Actualizar">🔄</button>
+      <button class="tb-icon-btn" onclick="navTo('cuenta')" title="Cuenta">👤</button>
+    </div>
+  </div>
+
+  <!-- Pages -->
+  <div class="page-area">
+
+    <!-- ── INICIO ── -->
+    <div class="page active" id="pg-inicio">
+      <div class="home-status-card">
+        <div class="hs-label">Estado de alarma</div>
+        <div class="hs-circle hs-circle-disarmed" id="hs-circle">
+          <div class="hs-icon" id="hs-icon">🔓</div>
+        </div>
+        <div class="hs-status" id="hs-status">Desconectada</div>
+        <div class="hs-sub" id="hs-sub">Sistema en reposo</div>
+        <div class="hs-actions" id="hs-actions">
+          <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">Armar total</button>
+          <button class="hs-btn hs-btn-orange" onclick="openPin('arm_home')">En casa</button>
+          <button class="hs-btn hs-btn-green" onclick="openPin('disarm')">Desarmar</button>
+        </div>
+      </div>
+
+      <div class="sec-hdr">
+        <span class="sec-title">Acciones rápidas</span>
+      </div>
+      <div class="quick-grid">
+        <div class="qa-card" onclick="navTo('historial')">
+          <div class="qa-icon">📋</div>
+          <div class="qa-label">Historial</div>
+          <div class="qa-sub">Ver actividad</div>
+        </div>
+        <div class="qa-card" onclick="navTo('admin')">
+          <div class="qa-icon">👥</div>
+          <div class="qa-label">Usuarios</div>
+          <div class="qa-sub">Gestionar accesos</div>
+        </div>
+        <div class="qa-card" onclick="navTo('cuenta')">
+          <div class="qa-icon">⚙️</div>
+          <div class="qa-label">Configuración</div>
+          <div class="qa-sub">Backend &amp; API</div>
+        </div>
+        <div class="qa-card" onclick="toast2('Próximamente')">
+          <div class="qa-icon">🔔</div>
+          <div class="qa-label">Notificaciones</div>
+          <div class="qa-sub">Alertas push</div>
+        </div>
+      </div>
+
+      <div class="sec-hdr">
+        <span class="sec-title">Últimos eventos</span>
+        <span class="sec-more" onclick="navTo('historial')">Ver todos →</span>
+      </div>
+      <div class="hist-list" id="home-log"></div>
+    </div>
+
+    <!-- ── HISTORIAL ── -->
+    <div class="page" id="pg-historial">
+      <div class="sec-hdr"><span class="sec-title">Historial de actividad</span></div>
+      <div class="hist-list" id="full-log"></div>
+    </div>
+
+    <!-- ── CUENTA / CONFIGURACIÓN ── -->
+    <div class="page" id="pg-cuenta">
+      <div class="account-hero">
+        <div class="acc-avatar" id="acc-av">--</div>
+        <div class="acc-name" id="acc-name">Usuario</div>
+        <div class="acc-email" id="acc-email">usuario@email.com</div>
+        <div class="acc-role" id="acc-role">Usuario</div>
+      </div>
+
+      <div class="settings-list">
+        <div class="sl-item" onclick="toggleCfgPanel()">
+          <div class="sl-icon">🔗</div>
+          <div class="sl-label">Conexión backend Tuya</div>
+          <div class="sl-arrow">›</div>
+        </div>
+        <div id="cfg-panel" style="display:none">
+          <div class="admin-card" style="margin-bottom:8px">
+            <div class="form-field"><label>URL Backend</label><input id="cfg-backend" placeholder="https://tu-backend.railway.app"></div>
+            <div class="form-field"><label>App Secret</label><input id="cfg-secret" type="password" placeholder="••••••••"></div>
+            <div class="form-field"><label>Device ID</label><input id="cfg-device" placeholder="ID del dispositivo"></div>
+            <div class="form-field"><label>Región</label>
+              <select id="cfg-region"><option value="eu">Europa (España)</option><option value="us">América</option><option value="cn">China</option></select>
+            </div>
+            <button class="btn-add" onclick="saveConfig()">Guardar configuración</button>
+            <div class="cfg-saved" id="cfg-ok"></div>
+          </div>
+        </div>
+
+        <div class="sl-item" onclick="togglePinPanel()">
+          <div class="sl-icon">🔑</div>
+          <div class="sl-label">Cambiar contraseña</div>
+          <div class="sl-arrow">›</div>
+        </div>
+        <div id="pin-panel" style="display:none">
+          <div class="admin-card" style="margin-bottom:8px">
+            <div class="form-field"><label>Contraseña actual</label><input id="old-pass" type="password" placeholder="••••••••"></div>
+            <div class="form-field"><label>Nueva contraseña</label><input id="new-pass" type="password" placeholder="••••••••"></div>
+            <button class="btn-add" onclick="changePass()">Cambiar contraseña</button>
+            <div class="err-small" id="pass-err"></div>
+          </div>
+        </div>
+
+        <div class="sl-item" onclick="doLogout()">
+          <div class="sl-icon">🚪</div>
+          <div class="sl-label danger" style="color:var(--red)">Cerrar sesión</div>
+          <div class="sl-arrow">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN ── -->
+    <div class="page" id="pg-admin">
+      <div class="sec-hdr"><span class="sec-title">Gestión de usuarios</span></div>
+      <div class="admin-section">
+        <div class="admin-card">
+          <div class="ac-title">Usuarios registrados</div>
+          <div id="users-admin-list"></div>
+        </div>
+        <div class="admin-card" id="add-user-form">
+          <div class="ac-title">Agregar usuario</div>
+          <div class="form-field"><label>Nombre</label><input id="nu-name" placeholder="Nombre completo"></div>
+          <div class="form-field"><label>Usuario (login)</label><input id="nu-user" placeholder="usuario123"></div>
+          <div class="form-field"><label>Contraseña</label><input id="nu-pass" type="password" placeholder="••••••••"></div>
+          <div class="form-field"><label>PIN alarma (4 dígitos)</label><input id="nu-pin" type="password" maxlength="4" placeholder="••••"></div>
+          <div class="form-field"><label>Rol</label>
+            <select id="nu-role"><option value="user">Usuario</option><option value="admin">Admin</option></select>
+          </div>
+          <button class="btn-add" onclick="addUser()">Agregar usuario</button>
+          <div class="err-small" id="add-err"></div>
+        </div>
+        <div id="add-user-form-admin" style="display:none">
+          <div class="admin-card" style="background:var(--red-light);border:1.5px solid #fcc">
+            <div style="font-size:13px;color:var(--muted);font-weight:700">Solo el Admin puede agregar usuarios.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-area -->
+
+  <!-- Bottom nav -->
+  <div class="bottomnav">
+    <button class="nav-item active" id="nav-inicio" onclick="navTo('inicio')">
+      <div class="nav-icon">🏠</div>
+      <div class="nav-label">Inicio</div>
+    </button>
+    <button class="nav-item" id="nav-historial" onclick="navTo('historial')">
+      <div class="nav-icon">📋</div>
+      <div class="nav-label">Historial</div>
+    </button>
+    <button class="nav-item" id="nav-admin" onclick="navTo('admin')">
+      <div class="nav-icon">👥</div>
+      <div class="nav-label">Usuarios</div>
+    </button>
+    <button class="nav-item" id="nav-cuenta" onclick="navTo('cuenta')">
+      <div class="nav-icon">👤</div>
+      <div class="nav-label">Mi cuenta</div>
+    </button>
+  </div>
+
+</div><!-- /s-app -->
+
+<!-- PIN Modal -->
+<div class="pin-modal-bg" id="pin-modal-bg" onclick="closePinOutside(event)">
+  <div class="pin-modal">
+    <div class="pm-title" id="pm-title">Confirmar acción</div>
+    <div class="pm-sub" id="pm-sub">Ingresa tu PIN de alarma</div>
+    <div class="pm-dots" id="pm-dots"></div>
+    <div class="pm-numpad" id="pm-numpad"></div>
+    <div class="pm-err" id="pm-err"></div>
+    <button class="pm-cancel" onclick="closePin()">Cancelar</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let S = {
+  users: [
+    {id:'admin', name:'Administrador', username:'admin', password:'admin123', pin:'1234', role:'admin'},
+    {id:'u1',    name:'María García',  username:'maria', password:'maria123',  pin:'5678', role:'user'},
+    {id:'u2',    name:'Carlos López',  username:'carlos',password:'carlos123', pin:'9012', role:'user'},
+  ],
+  log: [],
+  alarmStatus: 'disarmed',
+  config: {backendUrl:'',appSecret:'',deviceId:'',region:'eu'},
+  currentUser: null,
+};
+let pinBuffer = '', pinAction = '';
+
+const STATUS_CFG = {
+  disarmed: {label:'Desconectada', sub:'Sistema en reposo',      icon:'🔓', cirCls:'hs-circle-disarmed', color:'var(--green)'},
+  armed:    {label:'Conectada total',sub:'Protección máxima activa',icon:'🔒', cirCls:'hs-circle-armed',    color:'var(--red)'},
+  arm_home: {label:'Conectada en casa',sub:'Modo en casa activo',  icon:'🏠', cirCls:'hs-circle-home',     color:'var(--orange)'},
+};
+const ACTION_NAMES = {arm_away:'Armado total', arm_home:'Armado en casa', disarm:'Desarmado'};
+
+// ── Persist ────────────────────────────────────────────────────────────────
+function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem('mialarm')||'{}');
+    if(d.users)S.users=d.users;
+    if(d.log)S.log=d.log;
+    if(d.alarmStatus)S.alarmStatus=d.alarmStatus;
+    if(d.config)S.config={...S.config,...d.config};
+  }catch(e){}
+}
+function save(){
+  try{localStorage.setItem('mialarm',JSON.stringify({users:S.users,log:S.log,alarmStatus:S.alarmStatus,config:S.config}));}catch(e){}
+}
+
+// ── Login / Logout ─────────────────────────────────────────────────────────
+function doLogin(){
+  const u=document.getElementById('li-user').value.trim();
+  const p=document.getElementById('li-pass').value;
+  const err=document.getElementById('li-err');
+  const user=S.users.find(x=>x.username===u||x.name.toLowerCase()===u.toLowerCase());
+  if(!user||user.password!==p){err.textContent='Usuario o contraseña incorrectos';return;}
+  err.textContent='';
+  S.currentUser=user;
+  renderApp();
+  document.getElementById('s-login').classList.remove('active');
+  document.getElementById('s-app').classList.add('active');
+}
+function doLogout(){
+  S.currentUser=null;
+  document.getElementById('s-app').classList.remove('active');
+  document.getElementById('s-login').classList.add('active');
+  document.getElementById('li-user').value='';
+  document.getElementById('li-pass').value='';
+}
+
+// ── App render ─────────────────────────────────────────────────────────────
+function renderApp(){
+  const u=S.currentUser;
+  // Account page
+  document.getElementById('acc-av').textContent=u.name.slice(0,2).toUpperCase();
+  document.getElementById('acc-name').textContent=u.name;
+  document.getElementById('acc-email').textContent=u.username;
+  document.getElementById('acc-role').textContent=u.role==='admin'?'Administrador':'Usuario';
+  document.getElementById('tb-addr').textContent='Hola, '+u.name.split(' ')[0];
+  // Show/hide admin add-user form
+  document.getElementById('add-user-form').style.display=u.role==='admin'?'block':'none';
+  document.getElementById('add-user-form-admin').style.display=u.role==='admin'?'none':'block';
+  // Admin nav tab visible to all but content gated
+  updateStatusUI();
+  renderLog();
+  renderUsersAdmin();
+  loadConfigForm();
+  refreshStatus();
+}
+
+// ── Nav ────────────────────────────────────────────────────────────────────
+let currentPage = 'inicio';
+function navTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('pg-'+page).classList.add('active');
+  const nb=document.getElementById('nav-'+page);
+  if(nb)nb.classList.add('active');
+  currentPage=page;
+  if(page==='historial')renderLog();
+  if(page==='admin')renderUsersAdmin();
+  if(page==='cuenta')loadConfigForm();
+}
+
+// ── Status ─────────────────────────────────────────────────────────────────
+function updateStatusUI(){
+  const cfg=STATUS_CFG[S.alarmStatus]||STATUS_CFG.disarmed;
+  const cir=document.getElementById('hs-circle');
+  cir.className='hs-circle '+cfg.cirCls;
+  document.getElementById('hs-icon').textContent=cfg.icon.replace(/&#\d+;/,cfg.icon);
+  document.getElementById('hs-icon').innerHTML=cfg.icon;
+  document.getElementById('hs-status').textContent=cfg.label;
+  document.getElementById('hs-sub').textContent=cfg.sub;
+}
+
+// ── PIN Modal ──────────────────────────────────────────────────────────────
+function buildPinDots(){
+  const d=document.getElementById('pm-dots');
+  d.innerHTML='';
+  for(let i=0;i<4;i++){const el=document.createElement('div');el.className='pm-dot';el.id='pmd'+i;d.appendChild(el);}
+}
+function buildNumpad(){
+  const g=document.getElementById('pm-numpad');g.innerHTML='';
+  [1,2,3,4,5,6,7,8,9,'',0,'⌫'].forEach(v=>{
+    const b=document.createElement('button');
+    b.className='pm-key'+(v===''?' empty':v==='⌫'?' del':'');
+    b.textContent=String(v);
+    if(v!==''){b.onclick=()=>{
+      if(v==='⌫'){pinBuffer=pinBuffer.slice(0,-1);}
+      else if(pinBuffer.length<4){pinBuffer+=String(v);}
+      syncPinDots();
+      if(pinBuffer.length===4)setTimeout(checkPin,180);
+    };}
+    g.appendChild(b);
+  });
+}
+function syncPinDots(){
+  for(let i=0;i<4;i++){const d=document.getElementById('pmd'+i);if(d)d.className='pm-dot'+(i<pinBuffer.length?' on':'');}
+}
+function openPin(action){
+  pinAction=action;pinBuffer='';
+  const names={arm_away:'Armar total',arm_home:'Armar en casa',disarm:'Desarmar'};
+  document.getElementById('pm-title').textContent=names[action]||action;
+  document.getElementById('pm-sub').textContent='Ingresa tu PIN de alarma';
+  document.getElementById('pm-err').textContent='';
+  buildPinDots();buildNumpad();syncPinDots();
+  document.getElementById('pin-modal-bg').classList.add('open');
+}
+function closePin(){pinBuffer='';document.getElementById('pin-modal-bg').classList.remove('open');}
+function closePinOutside(e){if(e.target===document.getElementById('pin-modal-bg'))closePin();}
+function checkPin(){
+  const err=document.getElementById('pm-err');
+  if(pinBuffer!==S.currentUser.pin){
+    err.textContent='PIN incorrecto. Intenta de nuevo.';
+    pinBuffer='';syncPinDots();return;
+  }
+  closePin();
+  applyAction(pinAction,S.currentUser.name);
+  sendToBackend(pinAction);
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+function applyAction(action,userName){
+  S.alarmStatus=action==='disarm'?'disarmed':action==='arm_away'?'armed':'arm_home';
+  const now=new Date();
+  const time=pad(now.getHours())+':'+pad(now.getMinutes())+' · '+now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
+  S.log.unshift({action:ACTION_NAMES[action]||action,user:userName,time,status:S.alarmStatus});
+  if(S.log.length>50)S.log.pop();
+  save();updateStatusUI();renderLog();
+  toast2(ACTION_NAMES[action]);
+}
+function pad(n){return String(n).padStart(2,'0');}
+
+// ── Backend ────────────────────────────────────────────────────────────────
+async function sendToBackend(action){
+  const {backendUrl,appSecret,deviceId}=S.config;
+  if(!backendUrl)return;
+  try{
+    await fetch(backendUrl+'/alarm/command',{method:'POST',headers:{'Content-Type':'application/json','x-app-secret':appSecret},body:JSON.stringify({action,deviceId})});
+  }catch(e){}
+}
+async function refreshStatus(){
+  const {backendUrl,appSecret,deviceId}=S.config;
+  if(!backendUrl)return;
+  try{
+    const r=await fetch(backendUrl+'/alarm/status?deviceId='+deviceId,{headers:{'x-app-secret':appSecret}});
+    const d=await r.json();
+    if(d.ok&&d.status){const m={'arm':'armed','home':'arm_home','disarmed':'disarmed'};if(m[d.status])S.alarmStatus=m[d.status];updateStatusUI();}
+  }catch(e){}
+}
+
+// ── Log ────────────────────────────────────────────────────────────────────
+const DOT_CLS={disarmed:'hi-disarmed',armed:'hi-armed',arm_home:'hi-home'};
+function logHTML(items){
+  if(!items.length)return '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;font-weight:700">Sin actividad registrada</div>';
+  return items.map(l=>`<div class="hist-item"><div class="hi-dot ${DOT_CLS[l.status]||''}"></div><div class="hi-info"><div class="hi-action">${l.action}</div><div class="hi-user">${l.user}</div></div><div class="hi-time">${l.time}</div></div>`).join('');
+}
+function renderLog(){
+  const isAdmin=S.currentUser?.role==='admin';
+  const items=isAdmin?S.log:S.log.filter(l=>l.user===S.currentUser?.name);
+  const el1=document.getElementById('home-log');
+  const el2=document.getElementById('full-log');
+  if(el1)el1.innerHTML=logHTML(items.slice(0,4));
+  if(el2)el2.innerHTML=logHTML(items);
+}
+
+// ── Users admin ────────────────────────────────────────────────────────────
+function renderUsersAdmin(){
+  const el=document.getElementById('users-admin-list');
+  if(!el)return;
+  el.innerHTML=S.users.map(u=>`
+    <div class="user-row">
+      <div class="ur-av">${u.name.slice(0,2).toUpperCase()}</div>
+      <div style="flex:1"><div class="ur-name">${u.name}</div><div class="ur-role">@${u.username} · ${u.role==='admin'?'Admin':'Usuario'} · PIN: ${'•'.repeat(u.pin?.length||4)}</div></div>
+      ${u.id!=='admin'&&S.currentUser?.role==='admin'?`<button class="ur-del" onclick="removeUser('${u.id}')">Eliminar</button>`:''}
+    </div>`).join('');
+}
+function addUser(){
+  const name=document.getElementById('nu-name').value.trim();
+  const username=document.getElementById('nu-user').value.trim();
+  const password=document.getElementById('nu-pass').value;
+  const pin=document.getElementById('nu-pin').value.trim();
+  const role=document.getElementById('nu-role').value;
+  const err=document.getElementById('add-err');
+  if(!name||!username||!password){err.textContent='Completa todos los campos';return;}
+  if(!/^\d{4}$/.test(pin)){err.textContent='El PIN debe ser exactamente 4 dígitos';return;}
+  if(S.users.find(u=>u.username===username)){err.textContent='Ese usuario ya existe';return;}
+  S.users.push({id:'u'+Date.now(),name,username,password,pin,role});
+  save();renderUsersAdmin();
+  ['nu-name','nu-user','nu-pass','nu-pin'].forEach(id=>document.getElementById(id).value='');
+  err.textContent='';toast2('Usuario agregado');
+}
+function removeUser(id){
+  if(!confirm('¿Eliminar este usuario?'))return;
+  S.users=S.users.filter(u=>u.id!==id);save();renderUsersAdmin();toast2('Usuario eliminado');
+}
+
+// ── Config ─────────────────────────────────────────────────────────────────
+function loadConfigForm(){
+  document.getElementById('cfg-backend').value=S.config.backendUrl||'';
+  document.getElementById('cfg-secret').value=S.config.appSecret||'';
+  document.getElementById('cfg-device').value=S.config.deviceId||'';
+  document.getElementById('cfg-region').value=S.config.region||'eu';
+}
+function saveConfig(){
+  S.config.backendUrl=document.getElementById('cfg-backend').value.trim().replace(/\/$/,'');
+  S.config.appSecret=document.getElementById('cfg-secret').value.trim();
+  S.config.deviceId=document.getElementById('cfg-device').value.trim();
+  S.config.region=document.getElementById('cfg-region').value;
+  save();
+  const ok=document.getElementById('cfg-ok');ok.textContent='Guardado ✓';setTimeout(()=>ok.textContent='',2500);
+}
+function toggleCfgPanel(){const p=document.getElementById('cfg-panel');p.style.display=p.style.display==='none'?'block':'none';}
+function togglePinPanel(){const p=document.getElementById('pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
+function changePass(){
+  const old=document.getElementById('old-pass').value;
+  const nw=document.getElementById('new-pass').value;
+  const err=document.getElementById('pass-err');
+  if(old!==S.currentUser.password){err.textContent='Contraseña actual incorrecta';return;}
+  if(nw.length<6){err.textContent='La nueva contraseña debe tener al menos 6 caracteres';return;}
+  S.currentUser.password=nw;
+  const u=S.users.find(x=>x.id===S.currentUser.id);if(u)u.password=nw;
+  save();err.textContent='';toast2('Contraseña actualizada');
+  document.getElementById('old-pass').value='';document.getElementById('new-pass').value='';
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+let toastT;
+function toast2(msg){
+  const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+// ── Enter key on login ─────────────────────────────────────────────────────
+document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+load();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
