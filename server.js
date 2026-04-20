@@ -9,11 +9,12 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, '.')));
 
+// 1. CONEXIÓN A MONGODB (Usando tu variable de Railway)
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("Conectado a MongoDB"))
   .catch(err => console.error("Error DB:", err));
 
-// Esquema exacto para tu tabla 'users'
+// 2. MODELO DE USUARIO (Forzamos la tabla 'users' que ya tienes)
 const User = mongoose.model('User', new mongoose.Schema({
   name: String,
   username: { type: String, unique: true },
@@ -27,30 +28,23 @@ const Log = mongoose.model('Log', new mongoose.Schema({
   fecha: { type: Date, default: Date.now }
 }, { collection: 'logs' }));
 
-// Rutas API
+// 3. ESTA RUTA ES LA QUE TE DEJARÁ ENTRAR
+// Cuando abras la app, ella pedirá los usuarios aquí y ya los tendrá listos
 app.get('/api/usuarios', async (req, res) => {
     try {
         const users = await User.find();
-        console.log("Usuarios enviados a la app:", users); // Esto saldrá en tu log de Railway
         res.json(users);
     } catch (e) { res.status(500).json([]); }
 });
 
-app.get('/api/historial', async (req, res) => {
-    try {
-        const logs = await Log.find().sort({ fecha: -1 }).limit(10);
-        res.json(logs);
-    } catch (e) { res.status(500).json([]); }
-});
-
-// Control Tuya
+// 4. CONTROL DE LA ALARMA (Con tu dispositivo y mapeo)
 async function tuyaRequest(method, urlPath, body = null, token = "") {
     const t = Date.now().toString();
     const nonce = crypto.randomUUID();
     const bodyStr = body ? JSON.stringify(body) : '';
     const strToSign = [method.toUpperCase(), crypto.createHash('sha256').update(bodyStr).digest('hex'), '', urlPath].join('\n');
-    const signSeed = token ? (TUYA_CLIENT_ID + token + t + nonce + strToSign) : (TUYA_CLIENT_ID + t + nonce + strToSign);
-    const signature = crypto.createHmac('sha256', TUYA_CLIENT_SECRET).update(signSeed).digest('hex').toUpperCase();
+    const signSeed = token ? (process.env.TUYA_CLIENT_ID + token + t + nonce + strToSign) : (process.env.TUYA_CLIENT_ID + t + nonce + strToSign);
+    const signature = crypto.createHmac('sha256', process.env.TUYA_CLIENT_SECRET).update(signSeed).digest('hex').toUpperCase();
     const headers = { 'client_id': process.env.TUYA_CLIENT_ID, 'sign': signature, 't': t, 'nonce': nonce, 'sign_method': 'HMAC-SHA256', 'Content-Type': 'application/json' };
     if (token) headers['access_token'] = token;
     const res = await fetch('https://openapi.tuyaeu.com' + urlPath, { method, headers, body: bodyStr || undefined });
