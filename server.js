@@ -29,7 +29,8 @@ const userSchema = new mongoose.Schema({
     name: String,
     username: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    pin: String
+    pin: String,
+    role: { type: String, default: 'user' }
 }, { collection: 'users', timestamps: true });
 
 const logSchema = new mongoose.Schema({
@@ -44,7 +45,9 @@ const Log = mongoose.model('Log', logSchema);
 // --- 3. RUTAS DE USUARIOS ---
 app.post('/api/usuarios', async (req, res) => {
     try {
-        const { name, username, password, pin } = req.body;
+        // 1. Extraemos 'role' del body
+        const { name, username, password, pin, role } = req.body; 
+        
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -52,7 +55,8 @@ app.post('/api/usuarios', async (req, res) => {
             name,
             username,
             password: hashedPassword,
-            pin
+            pin,
+            role: role || 'user' // 2. Lo asignamos aquí
         });
 
         await newUser.save();
@@ -63,19 +67,14 @@ app.post('/api/usuarios', async (req, res) => {
     }
 });
 
-app.get('/api/usuarios', async (req, res) => {
+app.delete('/api/usuarios/:username', async (req, res) => {
     try {
-        const users = await User.find({}, '-password'); // No enviamos la contraseña al frontend
-        res.json(users);
-    } catch (e) { res.status(500).json([]); }
-});
-
-app.get('/api/historial', async (req, res) => {
-    try {
-        const logs = await Log.find().sort({ fecha: -1 }).limit(20);
-        res.json(logs);
+        const { username } = req.params;
+        if (username === 'admin') return res.status(403).send("No borrable");
+        await User.findOneAndDelete({ username });
+        res.json({ success: true });
     } catch (e) {
-        res.status(500).json([]);
+        res.status(500).json({ success: false });
     }
 });
 
