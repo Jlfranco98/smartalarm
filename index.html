@@ -494,6 +494,46 @@ async function doLogin() {
   }
 }
 
+  async function changePassword() {
+  const currentPassword = document.getElementById('cp-old').value;
+  const newPassword = document.getElementById('cp-new').value;
+  const err = document.getElementById('cp-err');
+
+  // Validación básica
+  if (!currentPassword || !newPassword) {
+    err.textContent = 'Por favor, rellena ambos campos';
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        username: S.currentUser.username, 
+        currentPassword, 
+        newPassword 
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Si todo sale bien, limpiamos los inputs y avisamos
+      document.getElementById('cp-old').value = '';
+      document.getElementById('cp-new').value = '';
+      err.textContent = '';
+      toast2('Contraseña cambiada correctamente');
+    } else {
+      // Aquí es donde el servidor te avisará si la contraseña vieja no coincide
+      err.textContent = data.message || 'Error al cambiar la contraseña';
+    }
+  } catch (e) {
+    console.error(e);
+    err.textContent = 'Error de conexión con el servidor';
+  }
+}
+
 async function fetchHistory() {
   try {
     const response = await fetch('/api/historial');
