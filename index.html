@@ -675,39 +675,44 @@ function renderLog(){
   if(el2)el2.innerHTML=logHTML(items);
 }
 
-// ── Users admin ────────────────────────────────────────────────────────────
-function renderUsersAdmin(){
-  const el=document.getElementById('users-admin-list');
-  if(!el)return;
-  el.innerHTML=S.users.map(u=>`
-    <div class="user-row">
-      <div class="ur-av">${u.name.slice(0,2).toUpperCase()}</div>
-      <div style="flex:1"><div class="ur-name">${u.name}</div><div class="ur-role">@${u.username} · ${u.role==='admin'?'Admin':'Usuario'} · PIN: ${'•'.repeat(u.pin?.length||4)}</div></div>
-      ${u.id!=='admin'&&S.currentUser?.role==='admin'?`<button class="ur-del" onclick="removeUser('${u.id}')">Eliminar</button>`:''}
-    </div>`).join('');
-}
-async function removeUser(username) { // Usamos username como identificador único
-  if (!confirm('¿Eliminar este usuario de la base de datos?')) return;
+// ── Users admin (LECTURA REAL DE DB) ─────────────────────────────────────────
+async function renderUsersAdmin(){
+  const el = document.getElementById('users-admin-list');
+  if(!el) return;
+
   try {
-    const response = await fetch(`/api/usuarios/${username}`, { method: 'DELETE' });
-    if (response.ok) {
-      renderUsersAdmin();
-      toast2('Usuario eliminado');
-    }
+    // Pedimos los usuarios al servidor
+    const res = await fetch('/api/usuarios');
+    const users = await res.json();
+
+    el.innerHTML = users.map(u => `
+      <div class="user-row">
+        <div class="ur-av">${u.name.slice(0,2).toUpperCase()}</div>
+        <div style="flex:1">
+          <div class="ur-name">${u.name}</div>
+          <div class="ur-role">@${u.username} · ${u.role === 'admin' ? 'Admin' : 'Usuario'} · PIN: ••••</div>
+        </div>
+        ${u.username !== 'admin' ? `<button class="ur-del" onclick="removeUser('${u.username}')">Eliminar</button>` : ''}
+      </div>`).join('');
   } catch (e) {
-    toast2('Error al eliminar');
+    console.error("Error cargando usuarios:", e);
+    el.innerHTML = '<p style="color:red; padding:10px;">Error al cargar usuarios de la base de datos</p>';
   }
 }
-async function removeUser(username) { // Usamos username como identificador único
-  if (!confirm('¿Eliminar este usuario de la base de datos?')) return;
+
+// ── Eliminar usuario de la Base de Datos ─────────────────────────────────────
+async function removeUser(username) {
+  if (!confirm(`¿Eliminar al usuario @${username} de la base de datos?`)) return;
   try {
     const response = await fetch(`/api/usuarios/${username}`, { method: 'DELETE' });
     if (response.ok) {
-      renderUsersAdmin();
-      toast2('Usuario eliminado');
+      renderUsersAdmin(); // Recargamos la lista
+      toast2('Usuario eliminado de la nube');
+    } else {
+      toast2('Error al eliminar en el servidor');
     }
   } catch (e) {
-    toast2('Error al eliminar');
+    toast2('Error de conexión');
   }
 }
 
