@@ -707,7 +707,38 @@ function toast2(msg){
 
 document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 load();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+// ── Init e Interceptor de Actualizaciones ───────────────────────────────────
+load(); // Cargamos configuración local si existe
+
+let newWorker;
+
+// REEMPLAZO DE LA LÍNEA 710: Registro avanzado con detección de cambios
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    // Si el navegador detecta un sw.js diferente en Railway...
+    reg.addEventListener('updatefound', () => {
+      newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // Lanzamos el aviso al usuario
+          if (confirm("¡Hay una nueva versión disponible! ¿Quieres actualizar ahora?")) {
+            if (newWorker) newWorker.postMessage({ action: 'skipWaiting' });
+          }
+        }
+      });
+    });
+  });
+}
+
+// Escuchador que refresca la pantalla cuando el nuevo sw.js toma el control
+navigator.serviceWorker.addEventListener('controllerchange', () => {
+  window.location.reload();
+});
+
+// Listener para el login con la tecla Enter
+document.getElementById('li-pass').addEventListener('keydown', e => { 
+  if (e.key === 'Enter') doLogin(); 
+});
 </script>
 </body>
 </html>
