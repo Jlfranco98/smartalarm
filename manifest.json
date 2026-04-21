@@ -1,16 +1,17 @@
 {
-  "name": "MiAlarma",
-  "short_name": "MiAlarma",
-  "description": "Control de alarma Smart Life / Tuya",
+  "name": "SecureHome",
+  "short_name": "SecureHome",
+  "description": "Sistema de seguridad inteligente con control Tuya",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#e8192c",
+  "background_color": "#080c14",
+  "theme_color": "#080c14",
+  "orientation": "portrait-primary",
   "lang": "es",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
-  "categories": ["utilities", "security"]
+  "categories": ["utilities", "security"],
+  "screenshots": []
 }
