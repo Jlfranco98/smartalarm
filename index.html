@@ -497,13 +497,16 @@ async function doLogin() {
 }
 
   async function changePassword() {
-  const currentPassword = document.getElementById('cp-old').value;
-  const newPassword = document.getElementById('cp-new').value;
-  const err = document.getElementById('cp-err');
+  const elOld = document.getElementById('old-pass');
+  const elNew = document.getElementById('new-pass');
+  const elErr = document.getElementById('pass-err');
 
-  // Validación básica
-  if (!currentPassword || !newPassword) {
-    err.textContent = 'Por favor, rellena ambos campos';
+  // Limpiamos mensaje anterior
+  elErr.textContent = '';
+
+  if (!elOld.value || !elNew.value) {
+    elErr.style.color = "#ff4d4d"; // Rojo
+    elErr.textContent = 'Por favor, rellena ambos campos';
     return;
   }
 
@@ -513,10 +516,35 @@ async function doLogin() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         username: S.currentUser.username, 
-        currentPassword, 
-        newPassword 
+        currentPassword: elOld.value, 
+        newPassword: elNew.value 
       })
     });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // --- MENSAJE DE ÉXITO ---
+      elErr.style.color = "#28a745"; // Verde
+      elErr.textContent = data.message || '¡Contraseña cambiada correctamente!';
+      
+      // Limpiamos los cuadros de texto
+      elOld.value = '';
+      elNew.value = '';
+
+      // Si tienes la función de toast, úsala para que quede más pro
+      if (typeof toast2 === 'function') toast2('Contraseña actualizada');
+
+    } else {
+      // --- MENSAJE DE ERROR (ej: contraseña actual mal) ---
+      elErr.style.color = "#ff4d4d"; // Rojo
+      elErr.textContent = data.message; 
+    }
+  } catch (e) {
+    elErr.style.color = "#ff4d4d";
+    elErr.textContent = 'Error de conexión con el servidor';
+  }
+}
 
     const data = await response.json();
 
