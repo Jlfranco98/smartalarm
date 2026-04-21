@@ -496,9 +496,13 @@ async function doLogin() {
 
 async function fetchHistory() {
   try {
-    // Usamos ruta RELATIVA /api/historial
     const response = await fetch('/api/historial');
+    
+    // Si el servidor falla, no intentamos procesar el JSON
+    if (!response.ok) return console.error("Error 404: Ruta no encontrada");
+
     const data = await response.json();
+    
     if (Array.isArray(data)) {
       S.log = data.map(l => ({
         action: l.accion, 
@@ -506,12 +510,15 @@ async function fetchHistory() {
         time: l.fecha 
       }));
       console.log("Historial sincronizado");
+      
+      // ¡ESTO ES LO QUE FALTA! 
+      // Llama a la función que dibuja el historial en el HTML
+      renderLog(); 
     }
   } catch (e) {
     console.error("No se pudo cargar el historial", e);
   }
 }
-
 // ── App render ─────────────────────────────────────────────────────────────
 function renderApp(){
   const u = S.currentUser;
