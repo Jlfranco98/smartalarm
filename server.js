@@ -145,15 +145,9 @@ app.post('/api/control', async (req, res) => {
     }
 });
 
-// --- 5. INICIO DEL SERVIDOR ---
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor activo en puerto ${PORT}`);
-});
+// --- RUTAS DE MONGODB ---
 
-// --- NUEVAS RUTAS DE BASE DE DATOS (Añadir aquí) ---
-
-// 1. Ruta de Setup (Usar una vez y luego borrar)
+// Ruta para crear el usuario inicial (visitar una vez y borrar)
 app.get('/setup-inicial', async (req, res) => {
     try {
         const existente = await User.findOne({ username: 'admin' });
@@ -170,13 +164,13 @@ app.get('/setup-inicial', async (req, res) => {
         });
 
         await admin.save();
-        res.send("Usuario 'admin' creado con éxito en MongoDB.");
+        res.send("Usuario 'admin' creado con éxito.");
     } catch (e) {
         res.status(500).send("Error: " + e.message);
     }
 });
 
-// 2. Ruta de Login Real para el Frontend
+// Ruta de Login Real
 app.post('/api/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -200,7 +194,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// --- 5. INICIO DEL SERVIDOR (Esto siempre debe ser lo último) ---
+// --- INICIO DEL SERVIDOR (Solo una vez al final) ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor activo en puerto ${PORT}`);
