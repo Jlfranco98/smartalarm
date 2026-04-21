@@ -67,14 +67,20 @@ app.post('/api/usuarios', async (req, res) => {
     }
 });
 
+// ELIMINAR: Borra un usuario de la base de datos
 app.delete('/api/usuarios/:username', async (req, res) => {
     try {
         const { username } = req.params;
-        if (username === 'admin') return res.status(403).send("No borrable");
+        
+        // Evitamos que se borre al admin principal por accidente
+        if (username === 'admin') {
+            return res.status(403).json({ success: false, message: 'No se puede eliminar al admin principal' });
+        }
+
         await User.findOneAndDelete({ username });
         res.json({ success: true });
     } catch (e) {
-        res.status(500).json({ success: false });
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
@@ -189,6 +195,35 @@ app.post('/api/usuarios', async (req, res) => {
         });
 
         await newUser.save();
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// CAMBIAR CONTRASEÑA: Valida la vieja y encripta la nueva
+app.post('/api/change-password', async (req, res) => {
+    try {
+        const { username, currentPassword, newPassword } = req.body;
+        const user = await User.findOne({ username });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+        }
+
+        // 1. Verificamos si la contraseña actual es correcta usando bcrypt
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.json({ success: false, message: 'Contraseña actual incorrecta' });
+        }
+
+        // 2. Encriptamos la NUEVA contraseña antes de guardarla
+        const salt = await bcrypt.getSalt(10);
+        const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+        user.password = hashedNewPassword;
+        await user.save();
+
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
