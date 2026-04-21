@@ -457,23 +457,40 @@ function save(){
 
 // ── Login / Logout ─────────────────────────────────────────────────────────
 function doLogin(){
-  const u=document.getElementById('li-user').value.trim();
-  const p=document.getElementById('li-pass').value;
-  const err=document.getElementById('li-err');
-  const user=S.users.find(x=>x.username===u||x.name.toLowerCase()===u.toLowerCase());
-  if(!user||user.password!==p){err.textContent='Usuario o contraseña incorrectos';return;}
-  err.textContent='';
-  S.currentUser=user;
+  console.log("Botón pulsado"); // Esto te confirmará en F12 que el botón responde
+  const u = document.getElementById('li-user').value.trim();
+  const p = document.getElementById('li-pass').value;
+  const err = document.getElementById('li-err');
+  
+  // Verificamos que S y S.users existan
+  if (!S || !S.users) {
+    console.error("Error: La base de datos de usuarios (S.users) no está cargada.");
+    return;
+  }
+
+  const user = S.users.find(x => x.username === u || x.name.toLowerCase() === u.toLowerCase());
+  
+  if(!user || user.password !== p){
+    err.textContent = 'Usuario o contraseña incorrectos';
+    return;
+  }
+
+  err.textContent = '';
+  S.currentUser = user;
+  
+  // Primero renderizamos y luego cambiamos de pantalla
   renderApp();
+  
   document.getElementById('s-login').classList.remove('active');
   document.getElementById('s-app').classList.add('active');
 }
+
 function doLogout(){
-  S.currentUser=null;
+  S.currentUser = null;
   document.getElementById('s-app').classList.remove('active');
   document.getElementById('s-login').classList.add('active');
-  document.getElementById('li-user').value='';
-  document.getElementById('li-pass').value='';
+  document.getElementById('li-user').value = '';
+  document.getElementById('li-pass').value = '';
 }
 
 // ── App render ─────────────────────────────────────────────────────────────
