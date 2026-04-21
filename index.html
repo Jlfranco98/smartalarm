@@ -686,24 +686,29 @@ function renderUsersAdmin(){
       ${u.id!=='admin'&&S.currentUser?.role==='admin'?`<button class="ur-del" onclick="removeUser('${u.id}')">Eliminar</button>`:''}
     </div>`).join('');
 }
-function addUser(){
-  const name=document.getElementById('nu-name').value.trim();
-  const username=document.getElementById('nu-user').value.trim();
-  const password=document.getElementById('nu-pass').value;
-  const pin=document.getElementById('nu-pin').value.trim();
-  const role=document.getElementById('nu-role').value;
-  const err=document.getElementById('add-err');
-  if(!name||!username||!password){err.textContent='Completa todos los campos';return;}
-  if(!/^\d{4}$/.test(pin)){err.textContent='El PIN debe ser exactamente 4 dígitos';return;}
-  if(S.users.find(u=>u.username===username)){err.textContent='Ese usuario ya existe';return;}
-  S.users.push({id:'u'+Date.now(),name,username,password,pin,role});
-  save();renderUsersAdmin();
-  ['nu-name','nu-user','nu-pass','nu-pin'].forEach(id=>document.getElementById(id).value='');
-  err.textContent='';toast2('Usuario agregado');
+async function removeUser(username) { // Usamos username como identificador único
+  if (!confirm('¿Eliminar este usuario de la base de datos?')) return;
+  try {
+    const response = await fetch(`/api/usuarios/${username}`, { method: 'DELETE' });
+    if (response.ok) {
+      renderUsersAdmin();
+      toast2('Usuario eliminado');
+    }
+  } catch (e) {
+    toast2('Error al eliminar');
+  }
 }
-function removeUser(id){
-  if(!confirm('¿Eliminar este usuario?'))return;
-  S.users=S.users.filter(u=>u.id!==id);save();renderUsersAdmin();toast2('Usuario eliminado');
+async function removeUser(username) { // Usamos username como identificador único
+  if (!confirm('¿Eliminar este usuario de la base de datos?')) return;
+  try {
+    const response = await fetch(`/api/usuarios/${username}`, { method: 'DELETE' });
+    if (response.ok) {
+      renderUsersAdmin();
+      toast2('Usuario eliminado');
+    }
+  } catch (e) {
+    toast2('Error al eliminar');
+  }
 }
 
 // ── Config ─────────────────────────────────────────────────────────────────
