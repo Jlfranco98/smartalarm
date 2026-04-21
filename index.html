@@ -580,21 +580,29 @@ function applyAction(action,userName){
 function pad(n){return String(n).padStart(2,'0');}
 
 // ── Backend ────────────────────────────────────────────────────────────────
-async function sendToBackend(action){
-  const {backendUrl,appSecret,deviceId}=S.config;
-  if(!backendUrl)return;
-  try{
-    await fetch(backendUrl+'/alarm/command',{method:'POST',headers:{'Content-Type':'application/json','x-app-secret':appSecret},body:JSON.stringify({action,deviceId})});
-  }catch(e){}
-}
-async function refreshStatus(){
-  const {backendUrl,appSecret,deviceId}=S.config;
-  if(!backendUrl)return;
-  try{
-    const r=await fetch(backendUrl+'/alarm/status?deviceId='+deviceId,{headers:{'x-app-secret':appSecret}});
-    const d=await r.json();
-    if(d.ok&&d.status){const m={'arm':'armed','home':'arm_home','disarmed':'disarmed'};if(m[d.status])S.alarmStatus=m[d.status];updateStatusUI();}
-  }catch(e){}
+async function sendToBackend(action) {
+  const { backendUrl, deviceId } = S.config; // Obtenemos la URL y el ID de la configuración
+  if (!backendUrl) return;
+
+  try {
+    const response = await fetch(backendUrl + '/api/control', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: action, // 'disarm', 'arm_home', o 'arm_away'
+        user: S.currentUser.name,
+        deviceId: deviceId
+      })
+    });
+
+    const data = await response.json();
+    if (!data.success) {
+      toast2("Error: " + (data.error || "No se pudo ejecutar"));
+    }
+  } catch (e) {
+    console.error("Error conectando al backend:", e);
+    toast2("Error de conexión con el servidor");
+  }
 }
 
 // ── Log ────────────────────────────────────────────────────────────────────
