@@ -340,8 +340,10 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           <div class="admin-card" style="margin-bottom:8px">
             <div class="form-field"><label>Contraseña actual</label><input id="old-pass" type="password" placeholder="••••••••"></div>
             <div class="form-field"><label>Nueva contraseña</label><input id="new-pass" type="password" placeholder="••••••••"></div>
-            <button onclick="changePassword()">Cambiar contraseña</button>
-            <div class="err-small" id="pass-err"></div>
+            <button class="btn-add" onclick="changePassword()" style="margin-top:10px; width:100%">
+            Cambiar contraseña
+           </button>
+           <div class="err-small" id="pass-err" style="text-align:center; margin-top:5px"></div>
           </div>
         </div>
 
@@ -793,6 +795,42 @@ async function removeUser(username) {
     }
   } catch (e) {
     toast2('Error de conexión');
+  }
+}
+
+  async function changePassword() {
+  // 1. Buscamos los inputs con los IDs que pusiste en el HTML
+  const currentPassword = document.getElementById('old-pass').value;
+  const newPassword = document.getElementById('new-pass').value;
+  const err = document.getElementById('pass-err');
+
+  try {
+    // 2. Enviamos los datos a la ruta que creaste en server.js
+    const response = await fetch('/api/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        username: S.currentUser.username, 
+        currentPassword, 
+        newPassword 
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Si el servidor (server.js) dice que OK:
+      document.getElementById('old-pass').value = '';
+      document.getElementById('new-pass').value = '';
+      err.style.color = "#28a745";
+      err.textContent = 'Contraseña actualizada correctamente';
+    } else {
+      // Si el servidor dice que la contraseña actual no coincide:
+      err.style.color = "#ff4d4d";
+      err.textContent = data.message || 'Error al cambiar';
+    }
+  } catch (e) {
+    err.textContent = 'Error de conexión';
   }
 }
 
