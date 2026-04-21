@@ -147,36 +147,26 @@ app.post('/api/control', async (req, res) => {
 
 // --- RUTAS DE MONGODB ---
 
-// Ruta para crear el usuario inicial (visitar una vez y borrar)
-app.get('/setup-inicial', async (req, res) => {
+// LOGIN: Verifica credenciales
+app.post('/api/login', async (req, res) => {
     try {
-        const existente = await User.findOne({ username: 'admin' });
-        if (existente) return res.send("El usuario admin ya existe.");
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedLogin = await bcrypt.hash('admin123', salt);
-
-        const admin = new User({
-            name: 'Administrador',
-            username: 'admin',
-            password: hashedLogin,
-            pin: '1234'
-        });
-
-        await admin.save();
-        res.send("Usuario 'admin' creado con éxito.");
+        const { username, password } = req.body;
+        const user = await User.findOne({ username });
+        if (user && await bcrypt.compare(password, user.password)) {
+            res.json({ success: true, user: { name: user.name, username: user.username, role: user.role, pin: user.pin } });
+        } else {
+            res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
+        }
     } catch (e) {
-        res.status(500).send("Error: " + e.message);
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// Ruta de Login Real
+// CREAR: Guarda nuevo usuario con rol
 app.post('/api/usuarios', async (req, res) => {
     try {
-        // 1. Añadimos 'role' aquí para que el servidor lo lea del cuerpo del mensaje
-        const { name, username, password, pin, role } = req.body; 
-        
-        const salt = await bcrypt.genSalt(10);
+        const { name, username, password, pin, role } = req.body;
+        const salt = await bcrypt.getSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const newUser = new User({
@@ -184,15 +174,23 @@ app.post('/api/usuarios', async (req, res) => {
             username,
             password: hashedPassword,
             pin,
-            role: role || 'user' // 2. Se lo pasamos al modelo (por defecto 'user')
+            role: role || 'user'
         });
 
         await newUser.save();
-        console.log("Usuario guardado en Mongo:", username); // Esto saldrá en los logs de Railway
         res.json({ success: true });
     } catch (e) {
-        console.error("Error al crear usuario:", e);
         res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// LISTAR: Obtiene todos los usuarios para la tabla
+app.get('/api/usuarios', async (req, res) => {
+    try {
+        const users = await User.find({}, '-password');
+        res.json(users);
+    } catch (e) {
+        res.status(500).json([]);
     }
 });
 
