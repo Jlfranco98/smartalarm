@@ -456,50 +456,77 @@ function save(){
 }
 
 // ── Login / Logout ─────────────────────────────────────────────────────────
-function doLogin(){
-  console.log("Iniciando validación...");
+async function doLogin() {
+  console.log("Iniciando validación con MongoDB...");
   const u = document.getElementById('li-user').value.trim();
   const p = document.getElementById('li-pass').value;
   const err = document.getElementById('li-err');
-  
-  const user = S.users.find(x => x.username === u || x.name.toLowerCase() === u.toLowerCase());
-  
-  if(!user || user.password !== p){
-    err.textContent = 'Usuario o contraseña incorrectos';
+
+  if (!u || !p) {
+    err.textContent = 'Introduce usuario y contraseña';
     return;
   }
-  
-  console.log("Usuario correcto, entrando...");
-  err.textContent = '';
-  S.currentUser = user;
-  
+
   try {
-    // Intentamos renderizar. Si esto falla, el log nos lo dirá.
-    renderApp();
-    console.log("Renderizado ok");
+    // 1. Enviamos los datos al servidor (al nuevo endpoint /api/login)
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      console.log("Login exitoso desde DB");
+      err.textContent = '';
+      
+      // 2. Guardamos el usuario real que nos devuelve la base de datos
+      S.currentUser = data.user; 
+      
+      // 3. Cargamos el historial real de MongoDB antes de entrar
+      await fetchHistory(); 
+      
+      renderApp();
+      
+      // 4. Cambiamos de pantalla
+      document.getElementById('s-login').classList.remove('active');
+      document.getElementById('s-app').classList.add('active');
+    } else {
+      // Si el servidor dice que el usuario/clave está mal
+      err.textContent = data.message || 'Credenciales incorrectas';
+    }
   } catch (e) {
-    console.error("Error en renderApp:", e);
-  }
-  
-  // Cambio de pantallas
-  const loginScreen = document.getElementById('s-login');
-  const appScreen = document.getElementById('s-app');
-  
-  if(loginScreen && appScreen) {
-    loginScreen.classList.remove('active');
-    appScreen.classList.add('active');
-    console.log("Cambio de pantalla completado");
-  } else {
-    console.error("No se encontraron los IDs s-login o s-app en el HTML");
+    console.error("Error en login:", e);
+    err.textContent = 'Error de conexión con el servidor';
   }
 }
 
-function doLogout(){
+function doLogout() {
   S.currentUser = null;
   document.getElementById('s-app').classList.remove('active');
   document.getElementById('s-login').classList.add('active');
   document.getElementById('li-user').value = '';
   document.getElementById('li-pass').value = '';
+  console.log("Sesión cerrada");
+}
+
+  async function fetchHistory() {
+  try {
+    const response = await fetch('/api/historial');
+    const data = await response.json();
+    if (Array.isArray(data)) {
+      // Convertimos los datos de MongoDB al formato de tu App
+      S.log = data.map(l => ({
+        action: l.accion, // 'disarm', 'arm_away', etc.
+        user: l.usuario,
+        fecha: l.fecha // La fecha real de la DB
+      }));
+      console.log("Historial sincronizado");
+    }
+  } catch (e) {
+    console.error("No se pudo cargar el historial:", e);
+  }
 }
 
 // ── App render ─────────────────────────────────────────────────────────────
