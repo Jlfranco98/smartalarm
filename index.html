@@ -512,15 +512,15 @@ function doLogout() {
 
 async function fetchHistory() {
   try {
-    // Usamos también la URL completa para el historial
+    // Usamos también la URL completa de Railway para el historial
     const response = await fetch('https://smartalarm-production.up.railway.app/api/historial');
     const data = await response.json();
     if (Array.isArray(data)) {
       // Sincronizamos los datos de MongoDB con el formato de la App
       S.log = data.map(l => ({
-        action: l.accion, // 'disarm', 'arm_away', etc.
+        action: l.accion, 
         user: l.usuario,
-        time: l.fecha // Cambiado a 'time' para que coincida con tu función renderLog
+        time: l.fecha 
       }));
       console.log("Historial sincronizado correctamente");
     }
