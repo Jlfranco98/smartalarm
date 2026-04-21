@@ -232,48 +232,83 @@ let S = {
   log: [],
   alarmStatus: 'disarmed',
   config: {backendUrl:''},
-  currentUser: null
+  currentUser: null,
+  version: '1.0.1' // Cambia esto cada vez que subas cambios
 };
 let pinBuffer = '', pinAction = '';
 
-async function load(){
-  const d = JSON.parse(localStorage.getItem('mialarm') || '{}');
-  if(d.config) {
-    S.config = d.config;
-    document.getElementById('cfg-backend').value = S.config.backendUrl;
-    await syncWithDB();
+// --- NUEVO: GESTIÓN DE VERSIONES ---
+async function checkUpdate() {
+  if ('serviceWorker' in navigator) {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) reg.update();
   }
 }
 
+// 1. CARGA INICIAL
+async function load(){
+  checkUpdate();
+  const d = JSON.parse(localStorage.getItem('mialarm') || '{}');
+  if(d.config && d.config.backendUrl) {
+    S.config = d.config;
+    document.getElementById('cfg-backend').value = S.config.backendUrl;
+    // Cambiamos el texto de error por un estado de carga
+    document.getElementById('li-err').style.color = "var(--muted)";
+    document.getElementById('li-err').textContent = "Conectando con la nube...";
+    await syncWithDB();
+  } else {
+    document.getElementById('li-err').textContent = "Configure la URL en 'Config'";
+  }
+}
+
+// 2. SINCRONIZACIÓN MEJORADA
 async function syncWithDB() {
   if(!S.config.backendUrl) return;
+  const errEl = document.getElementById('li-err');
+  
   try {
     const resU = await fetch(S.config.backendUrl + '/api/usuarios');
+    if(!resU.ok) throw new Error();
     const dbUsers = await resU.json();
-    if(dbUsers && dbUsers.length > 0) S.users = dbUsers;
+    
+    if(dbUsers && dbUsers.length > 0) {
+      S.users = dbUsers;
+      errEl.textContent = "✅ Servidor conectado";
+      errEl.style.color = "var(--green)";
+    }
 
     const resL = await fetch(S.config.backendUrl + '/api/historial');
     S.log = await resL.json();
     renderLog();
-  } catch(e) { console.error("Error de sincronización"); }
+  } catch(e) { 
+    console.error("Error de sincronización");
+    errEl.textContent = "❌ Error: Servidor no alcanzable";
+    errEl.style.color = "var(--red)";
+  }
 }
 
-// LOGIN MODIFICADO CON ROLES Y PIN OBLIGATORIO
-function doLogin(){
-  const u = document.getElementById('li-user').value;
-  const p = document.getElementById('li-pass').value;
+// 3. LOGIN CORREGIDO (Ahora es async para esperar a los usuarios)
+async function doLogin(){
+  const u = document.getElementById('li-user').value.trim();
+  const p = document.getElementById('li-pass').value.trim();
   const err = document.getElementById('li-err');
+
+  // Si la lista está vacía, intentamos una última descarga antes de dar error
+  if(S.users.length === 0) {
+    err.textContent = "Sincronizando datos...";
+    await syncWithDB();
+  }
   
   const user = S.users.find(x => x.username === u && x.password === p);
   
   if(!user){ 
     err.textContent = "Usuario o clave incorrectos"; 
+    err.style.color = "var(--red)";
     return; 
   }
   
   S.currentUser = user;
 
-  // VERIFICAR PIN OBLIGATORIO
   if(user.mustChangePin) {
     document.getElementById('s-force-pin').style.display = 'flex';
     return;
@@ -287,7 +322,6 @@ function entrarApp() {
   document.getElementById('s-app').classList.add('active');
   document.getElementById('tb-addr').textContent = "Hola, " + S.currentUser.name;
   
-  // GESTIÓN DE ROLES: Ocultar botón "Usuarios" si no es admin
   if(S.currentUser.role !== 'admin') {
     document.getElementById('nav-admin').style.display = 'none';
   } else {
@@ -296,7 +330,6 @@ function entrarApp() {
   renderLog();
 }
 
-// GUARDAR NUEVO PIN EN RAILWAY
 async function saveNewPin() {
   const nuevoPin = document.getElementById('new-pin-setup').value;
   if(nuevoPin.length !== 4) return toast2("El PIN debe ser de 4 cifras");
@@ -336,7 +369,7 @@ async function addUser(){
     password: document.getElementById('nu-pass').value,
     pin: document.getElementById('nu-pin').value,
     role: document.getElementById('nu-role').value,
-    mustChangePin: true // Forzamos el cambio al nuevo usuario
+    mustChangePin: true
   };
   try {
     await fetch(S.config.backendUrl + '/api/usuarios', {
@@ -345,7 +378,7 @@ async function addUser(){
       body: JSON.stringify(newUser)
     });
     syncWithDB();
-    toast2("Usuario creado en la nube");
+    toast2("Usuario creado");
   } catch(e) { toast2("Error al crear"); }
 }
 
