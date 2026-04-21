@@ -3,16 +3,114 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Verisure</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MiAlarma">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>MiAlarma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-/* AÑADIR ESTO A TU CSS: Pantalla de bloqueo para PIN obligatorio */
+:root{
+  --red:#e8192c;
+  --red-dark:#c0121f;
+  --red-light:#fff0f1;
+  --green:#00b562;
+  --green-light:#f0fdf6;
+  --orange:#ff8c00;
+  --orange-light:#fff8f0;
+  --bg:#f5f5f7;
+  --white:#ffffff;
+  --text:#1a1a1a;
+  --muted:#6e6e73;
+  --border:#e5e5ea;
+  --nav-h:72px;
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --safe-top:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);overflow:hidden}
+
+.screen{position:fixed;inset:0;background:var(--white);opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .28s cubic-bezier(.4,0,.2,1),transform .28s cubic-bezier(.4,0,.2,1);z-index:1}
+.screen.active{opacity:1;pointer-events:all;transform:translateY(0);z-index:2}
+
+#s-login{display:flex;flex-direction:column;background:var(--white)}
+.login-top{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2rem 1.5rem}
+.login-logo-wrap{margin-bottom:2.5rem;text-align:center}
+.login-brand{font-size:32px;font-weight:900;color:var(--red);letter-spacing:-1px}
+.login-tagline{font-size:13px;color:var(--muted);margin-top:2px}
+.login-form{width:100%;max-width:340px}
+.lf-group{margin-bottom:14px}
+.lf-label{display:block;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px}
+.lf-input{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s;background:var(--white)}
+.lf-input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,25,44,.1)}
+.lf-err{font-size:12px;color:var(--red);min-height:16px;margin-top:4px}
+.btn-red{width:100%;padding:15px;background:var(--red);border:none;border-radius:14px;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;cursor:pointer;transition:background .15s,transform .1s;letter-spacing:.01em}
+.btn-red:active{background:var(--red-dark);transform:scale(0.98)}
+
+#s-app{background:var(--bg);display:flex;flex-direction:column}
+.topbar{background:var(--white);padding:calc(var(--safe-top) + 12px) 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:relative;z-index:10}
+.tb-brand{font-size:22px;font-weight:900;color:var(--red);letter-spacing:-0.5px}
+.tb-address{font-size:11px;color:var(--muted);font-weight:600;text-align:center;flex:1}
+.tb-icon-btn{width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
+.page-area{flex:1;overflow:hidden;position:relative}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .22s,transform .22s;padding-bottom:calc(var(--nav-h) + var(--safe-bot) + 12px)}
+.page.active{opacity:1;pointer-events:all;transform:translateY(0)}
+.bottomnav{position:absolute;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bot));background:var(--white);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:8px;padding-bottom:var(--safe-bot);z-index:10}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 2px;border:none;background:none;font-family:'Nunito',sans-serif}
+.nav-icon{font-size:22px;line-height:1;transition:transform .15s}
+.nav-label{font-size:10px;font-weight:700;color:var(--muted)}
+.nav-item.active .nav-label{color:var(--red)}
+
+.home-status-card{margin:16px 16px 0;background:var(--white);border-radius:20px;padding:28px 20px;text-align:center;box-shadow:0 2px 16px rgba(0,0,0,.06)}
+.hs-circle{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;position:relative;transition:background .4s}
+.hs-circle-armed{background:var(--red)}
+.hs-circle-disarmed{background:var(--green)}
+.hs-circle-home{background:var(--orange)}
+.hs-status{font-size:20px;font-weight:900;margin-bottom:2px}
+.hs-btn{padding:9px 18px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer}
+.hs-btn-red{background:var(--red);color:#fff}
+.hs-btn-green{background:var(--green);color:#fff}
+.hs-btn-orange{background:var(--orange);color:#fff}
+
+.hist-list{padding:0 16px}
+.hist-item{display:flex;align-items:center;gap:12px;background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+.hi-dot{width:10px;height:10px;border-radius:50%}
+.hi-armed{background:var(--red)}
+.hi-disarmed{background:var(--green)}
+.hi-home{background:var(--orange)}
+.hi-info{flex:1}
+.hi-action{font-size:14px;font-weight:800}
+.hi-user{font-size:12px;color:var(--muted)}
+
+.pin-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+.pin-modal-bg.open{opacity:1;pointer-events:all}
+.pin-modal{background:var(--white);border-radius:24px 24px 0 0;padding:24px 24px calc(24px + var(--safe-bot));width:100%;transform:translateY(100%);transition:transform .3s}
+.pin-modal-bg.open .pin-modal{transform:translateY(0)}
+.pm-dots{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
+.pm-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border)}
+.pm-dot.on{background:var(--red);border-color:var(--red)}
+.pm-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto}
+.pm-key{padding:16px;background:var(--bg);border-radius:14px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:700;text-align:center;cursor:pointer;border:none}
+
+.admin-card{background:var(--white);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 8px rgba(0,0,0,.05)}
+.form-field{margin-bottom:12px}
+.form-field input, .form-field select{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;background:var(--white)}
+.btn-add{width:100%;padding:12px;background:var(--red);border:none;border-radius:12px;color:#fff;font-weight:800}
+
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;border-radius:12px;padding:10px 22px;opacity:0;transition:opacity .2s;z-index:999}
+#toast.show{opacity:1}
+
+/* NUEVOS ESTILOS PARA PIN OBLIGATORIO */
 #s-force-pin {
   display:none; position:fixed; inset:0; background:var(--white); 
   z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:2rem;
 }
 .pin-setup-input {
   width:100%; max-width:260px; padding:15px; border:2px solid var(--border);
-  border-radius:18px; text-align:center; font-size:32px; letter-spacing:0.5em; font-weight:900;
+  border-radius:18px; text-align:center; font-size:32px; letter-spacing:0.5em; font-weight:900; outline:none;
 }
 </style>
 </head>
@@ -41,12 +139,92 @@
 
 <div id="s-force-pin">
   <div style="text-align:center; margin-bottom:2rem">
-    <div style="color:var(--orange); font-weight:900; font-size:20px">NUEVO PIN REQUERIDO</div>
-    <p style="font-size:13px; color:var(--muted)">Por seguridad, debes configurar tu PIN personal.</p>
+    <div style="color:var(--orange); font-weight:900; font-size:22px">NUEVO PIN REQUERIDO</div>
+    <p style="font-size:14px; color:var(--muted); margin-top:8px">Por seguridad, configura tu PIN de 4 dígitos.</p>
   </div>
   <input type="password" id="new-pin-setup" maxlength="4" class="pin-setup-input" placeholder="0000">
   <button class="btn-red" style="margin-top:2rem; max-width:260px" onclick="saveNewPin()">Guardar y Entrar</button>
 </div>
+
+<div id="s-app" class="screen">
+  <div class="topbar">
+    <div class="tb-brand">MiAlarma</div>
+    <div class="tb-address" id="tb-addr">Mi casa</div>
+    <div class="tb-icons">
+      <button class="tb-icon-btn" onclick="syncWithDB()">🔄</button>
+      <button class="tb-icon-btn" onclick="navTo('cuenta')">👤</button>
+    </div>
+  </div>
+
+  <div class="page-area">
+    <div class="page active" id="pg-inicio">
+      <div class="home-status-card">
+        <div class="hs-circle hs-circle-disarmed" id="hs-circle">
+          <div style="font-size:38px" id="hs-icon">🔓</div>
+        </div>
+        <div class="hs-status" id="hs-status">Desconectada</div>
+        <div class="hs-sub" id="hs-sub">Sistema en reposo</div>
+        <div class="hs-actions">
+          <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">Armar total</button>
+          <button class="hs-btn hs-btn-orange" onclick="openPin('arm_home')">En casa</button>
+          <button class="hs-btn hs-btn-green" onclick="openPin('disarm')">Desarmar</button>
+        </div>
+      </div>
+      <div style="padding:20px 16px 10px; font-weight:900">Últimos eventos</div>
+      <div class="hist-list" id="home-log"></div>
+    </div>
+
+    <div class="page" id="pg-historial">
+      <div style="padding:20px 16px 10px; font-weight:900">Historial completo</div>
+      <div class="hist-list" id="full-log"></div>
+    </div>
+
+    <div class="page" id="pg-cuenta">
+      <div style="padding:16px">
+        <div class="admin-card">
+          <div class="form-field"><label>URL Backend Railway</label><input id="cfg-backend" placeholder="https://...railway.app"></div>
+          <button class="btn-add" onclick="saveConfig()">Guardar Configuración</button>
+        </div>
+        <button class="btn-red" style="margin-top:10px" onclick="doLogout()">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <div class="page" id="pg-admin">
+      <div class="admin-card" style="margin:16px">
+        <div style="font-weight:900; margin-bottom:10px">Agregar Usuario</div>
+        <div class="form-field"><input id="nu-name" placeholder="Nombre completo"></div>
+        <div class="form-field"><input id="nu-user" placeholder="Usuario login"></div>
+        <div class="form-field"><input id="nu-pass" type="password" placeholder="Contraseña"></div>
+        <div class="form-field"><input id="nu-pin" type="password" maxlength="4" placeholder="PIN 4 dígitos"></div>
+        <div class="form-field">
+          <select id="nu-role" class="lf-input" style="width:100%; border:1.5px solid var(--border); border-radius:12px; padding:11px;">
+            <option value="user">Usuario Estándar</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <button class="btn-add" onclick="addUser()">Dar de alta nuevo usuario</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottomnav">
+    <button class="nav-item active" id="nav-inicio" onclick="navTo('inicio')"><div class="nav-icon">🏠</div><div class="nav-label">Inicio</div></button>
+    <button class="nav-item" id="nav-historial" onclick="navTo('historial')"><div class="nav-icon">📋</div><div class="nav-label">Historial</div></button>
+    <button class="nav-item" id="nav-admin" onclick="navTo('admin')"><div class="nav-icon">👥</div><div class="nav-label">Usuarios</div></button>
+    <button class="nav-item" id="nav-cuenta" onclick="navTo('cuenta')"><div class="nav-icon">👤</div><div class="nav-label">Config</div></button>
+  </div>
+</div>
+
+<div class="pin-modal-bg" id="pin-modal-bg">
+  <div class="pin-modal">
+    <div style="text-align:center; font-weight:900; margin-bottom:20px" id="pm-title">PIN Requerido</div>
+    <div class="pm-dots" id="pm-dots"></div>
+    <div class="pm-numpad" id="pm-numpad"></div>
+    <button class="btn-add" style="background:#ccc; margin-top:15px" onclick="closePin()">Cancelar</button>
+  </div>
+</div>
+
+<div id="toast"></div>
 
 <script>
 let S = {
@@ -56,61 +234,69 @@ let S = {
   config: {backendUrl:''},
   currentUser: null
 };
+let pinBuffer = '', pinAction = '';
 
-// ... (Tus funciones de carga y navegación se mantienen) ...
-
-// 3. LOGIN MODIFICADO: Ahora valida contra tu MongoDB en Railway
-async function doLogin(){
-  const u = document.getElementById('li-user').value;
-  const p = document.getElementById('li-pass').value;
-  const err = document.getElementById('li-err');
-
-  try {
-    const res = await fetch(S.config.backendUrl + '/api/login', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ username: u, password: p })
-    });
-    
-    const data = await res.json();
-
-    if(!res.ok) {
-      err.textContent = data.message || "Credenciales incorrectas";
-      return;
-    }
-
-    S.currentUser = data.user;
-
-    // A) VERIFICAR SI DEBE CAMBIAR EL PIN
-    if(S.currentUser.mustChangePin) {
-      document.getElementById('s-force-pin').style.display = 'flex';
-      return;
-    }
-
-    // B) SI NO DEBE CAMBIARLO, ENTRAR
-    finalizeLogin();
-
-  } catch(e) {
-    err.textContent = "Error de conexión con Railway";
+async function load(){
+  const d = JSON.parse(localStorage.getItem('mialarm') || '{}');
+  if(d.config) {
+    S.config = d.config;
+    document.getElementById('cfg-backend').value = S.config.backendUrl;
+    await syncWithDB();
   }
 }
 
-function finalizeLogin() {
+async function syncWithDB() {
+  if(!S.config.backendUrl) return;
+  try {
+    const resU = await fetch(S.config.backendUrl + '/api/usuarios');
+    const dbUsers = await resU.json();
+    if(dbUsers && dbUsers.length > 0) S.users = dbUsers;
+
+    const resL = await fetch(S.config.backendUrl + '/api/historial');
+    S.log = await resL.json();
+    renderLog();
+  } catch(e) { console.error("Error de sincronización"); }
+}
+
+// LOGIN MODIFICADO CON ROLES Y PIN OBLIGATORIO
+function doLogin(){
+  const u = document.getElementById('li-user').value;
+  const p = document.getElementById('li-pass').value;
+  const err = document.getElementById('li-err');
+  
+  const user = S.users.find(x => x.username === u && x.password === p);
+  
+  if(!user){ 
+    err.textContent = "Usuario o clave incorrectos"; 
+    return; 
+  }
+  
+  S.currentUser = user;
+
+  // VERIFICAR PIN OBLIGATORIO
+  if(user.mustChangePin) {
+    document.getElementById('s-force-pin').style.display = 'flex';
+    return;
+  }
+
+  entrarApp();
+}
+
+function entrarApp() {
   document.getElementById('s-login').classList.remove('active');
   document.getElementById('s-app').classList.add('active');
   document.getElementById('tb-addr').textContent = "Hola, " + S.currentUser.name;
   
-  // CONTROL DE ROL: Si no es admin, ocultamos la pestaña de usuarios
+  // GESTIÓN DE ROLES: Ocultar botón "Usuarios" si no es admin
   if(S.currentUser.role !== 'admin') {
     document.getElementById('nav-admin').style.display = 'none';
   } else {
     document.getElementById('nav-admin').style.display = 'flex';
   }
-  
   renderLog();
 }
 
-// 4. NUEVA FUNCIÓN: Guardar el PIN en MongoDB
+// GUARDAR NUEVO PIN EN RAILWAY
 async function saveNewPin() {
   const nuevoPin = document.getElementById('new-pin-setup').value;
   if(nuevoPin.length !== 4) return toast2("El PIN debe ser de 4 cifras");
@@ -119,42 +305,15 @@ async function saveNewPin() {
     const res = await fetch(S.config.backendUrl + '/api/usuarios/update-pin', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ 
-        userId: S.currentUser._id, 
-        nuevoPin: nuevoPin 
-      })
+      body: JSON.stringify({ userId: S.currentUser._id, nuevoPin: nuevoPin })
     });
 
     if(res.ok) {
-      toast2("PIN actualizado con éxito");
-      location.reload(); // Reiniciamos para que entre con los nuevos datos
+      toast2("PIN actualizado");
+      location.reload(); 
     }
-  } catch(e) {
-    toast2("Error al conectar con el servidor");
-  }
+  } catch(e) { toast2("Error de servidor"); }
 }
-
-// 3. LOGIN: Ahora sí encontrará a los usuarios que creaste en la nube
-function doLogin(){
-  const u = document.getElementById('li-user').value;
-  const p = document.getElementById('li-pass').value;
-  
-  // Buscamos en la lista S.users que acabamos de descargar de Railway
-  const user = S.users.find(x => x.username === u && x.password === p);
-  
-  if(!user){ 
-    document.getElementById('li-err').textContent = "Usuario o clave incorrectos"; 
-    return; 
-  }
-  
-  S.currentUser = user;
-  document.getElementById('s-login').classList.remove('active');
-  document.getElementById('s-app').classList.add('active');
-  document.getElementById('tb-addr').textContent = "Hola, " + user.name;
-  renderLog();
-}
-
-// --- El resto de tus funciones se mantienen igual para no romper nada ---
 
 async function applyAction(action){
   try {
@@ -175,7 +334,9 @@ async function addUser(){
     name: document.getElementById('nu-name').value,
     username: document.getElementById('nu-user').value,
     password: document.getElementById('nu-pass').value,
-    pin: document.getElementById('nu-pin').value
+    pin: document.getElementById('nu-pin').value,
+    role: document.getElementById('nu-role').value,
+    mustChangePin: true // Forzamos el cambio al nuevo usuario
   };
   try {
     await fetch(S.config.backendUrl + '/api/usuarios', {
