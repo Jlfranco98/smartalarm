@@ -484,6 +484,27 @@ async function doLogin() {
   }
 }
 
+function doLogout() {
+  // 1. Borramos el usuario de la memoria del estado
+  S.currentUser = null;
+  
+  // 2. Limpiamos los campos del formulario de login por seguridad
+  document.getElementById('li-user').value = '';
+  document.getElementById('li-pass').value = '';
+  
+  // 3. Quitamos la clase 'active' de la App y se la ponemos al Login
+  document.getElementById('s-app').classList.remove('active');
+  document.getElementById('s-login').classList.add('active');
+  
+  // 4. Resetear a la pestaña de inicio para la próxima sesión
+  navTo('inicio');
+  
+  // 5. Aviso visual
+  if (typeof toast2 === 'function') toast2('Sesión cerrada correctamente');
+  
+  console.log("Sesión cerrada y estado reiniciado");
+}
+  
 // ── Cambio de Contraseña (Único y Corregido) ───────────────────────────────
 async function changePassword() {
   const elOld = document.getElementById('old-pass');
