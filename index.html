@@ -457,32 +457,41 @@ function save(){
 
 // ── Login / Logout ─────────────────────────────────────────────────────────
 function doLogin(){
-  console.log("Botón pulsado"); // Esto te confirmará en F12 que el botón responde
+  console.log("Iniciando validación...");
   const u = document.getElementById('li-user').value.trim();
   const p = document.getElementById('li-pass').value;
   const err = document.getElementById('li-err');
   
-  // Verificamos que S y S.users existan
-  if (!S || !S.users) {
-    console.error("Error: La base de datos de usuarios (S.users) no está cargada.");
-    return;
-  }
-
   const user = S.users.find(x => x.username === u || x.name.toLowerCase() === u.toLowerCase());
   
   if(!user || user.password !== p){
     err.textContent = 'Usuario o contraseña incorrectos';
     return;
   }
-
+  
+  console.log("Usuario correcto, entrando...");
   err.textContent = '';
   S.currentUser = user;
   
-  // Primero renderizamos y luego cambiamos de pantalla
-  renderApp();
+  try {
+    // Intentamos renderizar. Si esto falla, el log nos lo dirá.
+    renderApp();
+    console.log("Renderizado ok");
+  } catch (e) {
+    console.error("Error en renderApp:", e);
+  }
   
-  document.getElementById('s-login').classList.remove('active');
-  document.getElementById('s-app').classList.add('active');
+  // Cambio de pantallas
+  const loginScreen = document.getElementById('s-login');
+  const appScreen = document.getElementById('s-app');
+  
+  if(loginScreen && appScreen) {
+    loginScreen.classList.remove('active');
+    appScreen.classList.add('active');
+    console.log("Cambio de pantalla completado");
+  } else {
+    console.error("No se encontraron los IDs s-login o s-app en el HTML");
+  }
 }
 
 function doLogout(){
