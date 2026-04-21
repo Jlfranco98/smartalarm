@@ -205,28 +205,33 @@ app.post('/api/usuarios', async (req, res) => {
 app.post('/api/change-password', async (req, res) => {
     try {
         const { username, currentPassword, newPassword } = req.body;
-        const user = await User.findOne({ username });
 
+        // 1. Buscamos al usuario en MongoDB
+        const user = await User.findOne({ username });
         if (!user) {
             return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
         }
 
-        // 1. Verificamos si la contraseña actual es correcta usando bcrypt
+        // 2. ¡CLAVE! Comparamos la contraseña que escribes con la encriptada de la DB
         const isMatch = await bcrypt.compare(currentPassword, user.password);
+        
         if (!isMatch) {
+            // Si no coinciden, avisamos al frontend
             return res.json({ success: false, message: 'Contraseña actual incorrecta' });
         }
 
-        // 2. Encriptamos la NUEVA contraseña antes de guardarla
-        const salt = await bcrypt.getSalt(10);
+        // 3. Si todo está bien, encriptamos la NUEVA contraseña
+        const salt = await bcrypt.genSalt(10);
         const hashedNewPassword = await bcrypt.hash(newPassword, salt);
 
+        // 4. Guardamos en la base de datos
         user.password = hashedNewPassword;
         await user.save();
 
-        res.json({ success: true });
+        res.json({ success: true, message: 'Contraseña actualizada correctamente' });
     } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
+        console.error(e);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 });
 
