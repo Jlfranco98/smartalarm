@@ -150,3 +150,58 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor activo en puerto ${PORT}`);
 });
+
+// --- NUEVAS RUTAS DE BASE DE DATOS (Añadir aquí) ---
+
+// 1. Ruta de Setup (Usar una vez y luego borrar)
+app.get('/setup-inicial', async (req, res) => {
+    try {
+        const existente = await User.findOne({ username: 'admin' });
+        if (existente) return res.send("El usuario admin ya existe.");
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedLogin = await bcrypt.hash('admin123', salt);
+
+        const admin = new User({
+            name: 'Administrador',
+            username: 'admin',
+            password: hashedLogin,
+            pin: '1234'
+        });
+
+        await admin.save();
+        res.send("Usuario 'admin' creado con éxito en MongoDB.");
+    } catch (e) {
+        res.status(500).send("Error: " + e.message);
+    }
+});
+
+// 2. Ruta de Login Real para el Frontend
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = await User.findOne({ username: username.toLowerCase() });
+
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
+        }
+
+        res.json({ 
+            success: true, 
+            user: { name: user.name, username: user.username, role: 'admin', pin: user.pin } 
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// --- 5. INICIO DEL SERVIDOR (Esto siempre debe ser lo último) ---
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor activo en puerto ${PORT}`);
+});
