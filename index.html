@@ -675,28 +675,67 @@ function renderLog(){
   if(el2)el2.innerHTML=logHTML(items);
 }
 
-// ── Users admin (LECTURA REAL DE DB) ─────────────────────────────────────────
-async function renderUsersAdmin(){
-  const el = document.getElementById('users-admin-list');
-  if(!el) return;
+// ── Agregar usuario a la Base de Datos (Railway) ────────────────────────────
+async function addUser() {
+  const name = document.getElementById('nu-name').value.trim();
+  const username = document.getElementById('nu-user').value.trim();
+  const password = document.getElementById('nu-pass').value;
+  const pin = document.getElementById('nu-pin').value.trim();
+  const role = document.getElementById('nu-role').value;
+  const err = document.getElementById('add-err');
+
+  if (!name || !username || !password) { 
+    err.textContent = 'Completa todos los campos'; 
+    return; 
+  }
+  if (!/^\d{4}$/.test(pin)) { 
+    err.textContent = 'El PIN debe ser exactamente 4 dígitos'; 
+    return; 
+  }
 
   try {
-    // Pedimos los usuarios al servidor
+    const response = await fetch('/api/usuarios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, username, password, pin, role })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // Limpiar formulario
+      ['nu-name', 'nu-user', 'nu-pass', 'nu-pin'].forEach(id => document.getElementById(id).value = '');
+      err.textContent = '';
+      toast2('Usuario guardado en la nube');
+      // Refrescar la lista leyendo de la DB
+      renderUsersAdmin(); 
+    } else {
+      err.textContent = data.error || 'Error al guardar';
+    }
+  } catch (e) {
+    err.textContent = 'Error de conexión con el servidor';
+    console.error(e);
+  }
+}
+  
+// ── Users admin (LECTURA REAL DE DB) ─────────────────────────────────────────
+async function renderUsersAdmin(){
+  const el=document.getElementById('users-admin-list');
+  if(!el)return;
+  try {
     const res = await fetch('/api/usuarios');
     const users = await res.json();
-
-    el.innerHTML = users.map(u => `
+    el.innerHTML=users.map(u=>`
       <div class="user-row">
         <div class="ur-av">${u.name.slice(0,2).toUpperCase()}</div>
         <div style="flex:1">
           <div class="ur-name">${u.name}</div>
-          <div class="ur-role">@${u.username} · ${u.role === 'admin' ? 'Admin' : 'Usuario'} · PIN: ••••</div>
+          <div class="ur-role">@${u.username} · ${u.role==='admin'?'Admin':'Usuario'}</div>
         </div>
-        ${u.username !== 'admin' ? `<button class="ur-del" onclick="removeUser('${u.username}')">Eliminar</button>` : ''}
+        ${u.username!=='admin'?`<button class="ur-del" onclick="removeUser('${u.username}')">Eliminar</button>`:''}
       </div>`).join('');
-  } catch (e) {
-    console.error("Error cargando usuarios:", e);
-    el.innerHTML = '<p style="color:red; padding:10px;">Error al cargar usuarios de la base de datos</p>';
+  } catch(e) {
+    el.innerHTML = "Error al cargar usuarios";
   }
 }
 
