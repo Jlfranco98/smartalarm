@@ -424,11 +424,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let S = {
-  users: [
-    {id:'admin', name:'Administrador', username:'admin', password:'admin123', pin:'1234', role:'admin'},
-    {id:'u1',    name:'María García',  username:'maria', password:'maria123',  pin:'5678', role:'user'},
-    {id:'u2',    name:'Carlos López',  username:'carlos',password:'carlos123', pin:'9012', role:'user'},
-  ],
+  users: [],
   log: [],
   alarmStatus: 'disarmed',
   config: {backendUrl:'',appSecret:'',deviceId:'',region:'eu'},
@@ -437,7 +433,7 @@ let S = {
 let pinBuffer = '', pinAction = '';
 
 const STATUS_CFG = {
-  disarmed: {label:'Desconectada', sub:'Sistema en reposo',      icon:'🔓', cirCls:'hs-circle-disarmed', color:'var(--green)'},
+  disarmed: {label:'Desconectada', sub:'Sistema en reposo',       icon:'🔓', cirCls:'hs-circle-disarmed', color:'var(--green)'},
   armed:    {label:'Conectada total',sub:'Protección máxima activa',icon:'🔒', cirCls:'hs-circle-armed',    color:'var(--red)'},
   arm_home: {label:'Conectada en casa',sub:'Modo en casa activo',  icon:'🏠', cirCls:'hs-circle-home',     color:'var(--orange)'},
 };
@@ -447,19 +443,15 @@ const ACTION_NAMES = {arm_away:'Armado total', arm_home:'Armado en casa', disarm
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('mialarm')||'{}');
-    if(d.users)S.users=d.users;
-    if(d.log)S.log=d.log;
-    if(d.alarmStatus)S.alarmStatus=d.alarmStatus;
     if(d.config)S.config={...S.config,...d.config};
   }catch(e){}
 }
 function save(){
-  try{localStorage.setItem('mialarm',JSON.stringify({users:S.users,log:S.log,alarmStatus:S.alarmStatus,config:S.config}));}catch(e){}
+  try{localStorage.setItem('mialarm',JSON.stringify({config:S.config}));}catch(e){}
 }
 
-// ── Login / Logout (CORREGIDO PARA RAILWAY) ──────────────────────────────────
+// ── Login / Logout ─────────────────────────────────────────────────────────
 async function doLogin() {
-  console.log("Iniciando validación con MongoDB...");
   const u = document.getElementById('li-user').value.trim();
   const p = document.getElementById('li-pass').value;
   const err = document.getElementById('li-err');
@@ -470,17 +462,14 @@ async function doLogin() {
   }
 
   try {
-    // Usamos ruta RELATIVA /api/login para evitar errores 404
     const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: u, password: p })
     });
-
     const data = await response.json();
 
     if (data.success) {
-      console.log("Login exitoso");
       err.textContent = '';
       S.currentUser = data.user; 
       await fetchHistory(); 
@@ -491,22 +480,19 @@ async function doLogin() {
       err.textContent = data.message || 'Credenciales incorrectas';
     }
   } catch (e) {
-    console.error("Error en login:", e);
-    err.textContent = 'Error de conexión con el servidor';
+    err.textContent = 'Error de conexión';
   }
 }
 
-  async function changePassword() {
+// ── Cambio de Contraseña (Único y Corregido) ───────────────────────────────
+async function changePassword() {
   const elOld = document.getElementById('old-pass');
   const elNew = document.getElementById('new-pass');
   const elErr = document.getElementById('pass-err');
 
-  // Limpiamos mensaje anterior
-  elErr.textContent = '';
-
   if (!elOld.value || !elNew.value) {
-    elErr.style.color = "#ff4d4d"; // Rojo
-    elErr.textContent = 'Por favor, rellena ambos campos';
+    elErr.style.color = "#ff4d4d";
+    elErr.textContent = 'Rellena ambos campos';
     return;
   }
 
@@ -520,276 +506,35 @@ async function doLogin() {
         newPassword: elNew.value 
       })
     });
-
     const data = await response.json();
 
     if (data.success) {
-      // --- MENSAJE DE ÉXITO ---
-      elErr.style.color = "#28a745"; // Verde
-      elErr.textContent = data.message || '¡Contraseña cambiada correctamente!';
-      
-      // Limpiamos los cuadros de texto
-      elOld.value = '';
-      elNew.value = '';
-
-      // Si tienes la función de toast, úsala para que quede más pro
+      elErr.style.color = "#28a745";
+      elErr.textContent = data.message || 'Contraseña actualizada correctamente';
+      elOld.value = ''; elNew.value = '';
       if (typeof toast2 === 'function') toast2('Contraseña actualizada');
-
     } else {
-      // --- MENSAJE DE ERROR (ej: contraseña actual mal) ---
-      elErr.style.color = "#ff4d4d"; // Rojo
-      elErr.textContent = data.message; 
+      elErr.style.color = "#ff4d4d";
+      elErr.textContent = data.message || 'Error al cambiar';
     }
   } catch (e) {
-    elErr.style.color = "#ff4d4d";
-    elErr.textContent = 'Error de conexión con el servidor';
+    elErr.textContent = 'Error de conexión';
   }
 }
 
-    const data = await response.json();
-
-    if (data.success) {
-      // Si todo sale bien, limpiamos los inputs y avisamos
-      document.getElementById('cp-old').value = '';
-      document.getElementById('cp-new').value = '';
-      err.textContent = '';
-      toast2('Contraseña cambiada correctamente');
-    } else {
-      // Aquí es donde el servidor te avisará si la contraseña vieja no coincide
-      err.textContent = data.message || 'Error al cambiar la contraseña';
-    }
-  } catch (e) {
-    console.error(e);
-    err.textContent = 'Error de conexión con el servidor';
-  }
-}
-
+// ── Historial y Usuarios ────────────────────────────────────────────────────
 async function fetchHistory() {
   try {
     const response = await fetch('/api/historial');
-    
-    // Si el servidor falla, no intentamos procesar el JSON
-    if (!response.ok) return console.error("Error 404: Ruta no encontrada");
-
+    if (!response.ok) return;
     const data = await response.json();
-    
     if (Array.isArray(data)) {
-      S.log = data.map(l => ({
-        action: l.accion, 
-        user: l.usuario,
-        time: l.fecha 
-      }));
-      console.log("Historial sincronizado");
-      
-      // ¡ESTO ES LO QUE FALTA! 
-      // Llama a la función que dibuja el historial en el HTML
+      S.log = data.map(l => ({ action: l.accion, user: l.usuario, time: l.fecha, status: l.estado }));
       renderLog(); 
     }
-  } catch (e) {
-    console.error("No se pudo cargar el historial", e);
-  }
-}
-// ── App render ─────────────────────────────────────────────────────────────
-function renderApp(){
-  const u = S.currentUser;
-  if (!u) return;
-
-  // REGLA DE ORO: Si el username es 'admin' O el campo role es 'admin', es administrador
-  const isAdmin = (u.username === 'admin' || (u.role && u.role.toLowerCase() === 'admin'));
-
-  // Actualizamos los textos de la interfaz
-  document.getElementById('acc-av').textContent = u.name.slice(0,2).toUpperCase();
-  document.getElementById('acc-name').textContent = u.name;
-  document.getElementById('acc-email').textContent = u.username;
-  document.getElementById('acc-role').textContent = isAdmin ? 'Administrador' : 'Usuario';
-  document.getElementById('tb-addr').textContent = 'Hola, ' + u.name.split(' ')[0];
-
-  // Mostrar u ocultar el formulario de agregar usuarios
-  const addForm = document.getElementById('add-user-form');
-  const addMsg = document.getElementById('add-user-form-admin');
-  
-  if (isAdmin) {
-    addForm.style.display = 'block';
-    addMsg.style.display = 'none';
-  } else {
-    addForm.style.display = 'none';
-    addMsg.style.display = 'block';
-  }
-  
-  updateStatusUI();
-  renderLog();
-  renderUsersAdmin();
-  loadConfigForm();
-}
-  
-// ── Nav ────────────────────────────────────────────────────────────────────
-let currentPage = 'inicio';
-function navTo(page){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('pg-'+page).classList.add('active');
-  const nb=document.getElementById('nav-'+page);
-  if(nb)nb.classList.add('active');
-  currentPage=page;
-  if(page==='historial')renderLog();
-  if(page==='admin')renderUsersAdmin();
-  if(page==='cuenta')loadConfigForm();
+  } catch (e) {}
 }
 
-// ── Status ─────────────────────────────────────────────────────────────────
-function updateStatusUI(){
-  const cfg=STATUS_CFG[S.alarmStatus]||STATUS_CFG.disarmed;
-  const cir=document.getElementById('hs-circle');
-  cir.className='hs-circle '+cfg.cirCls;
-  document.getElementById('hs-icon').textContent=cfg.icon.replace(/&#\d+;/,cfg.icon);
-  document.getElementById('hs-icon').innerHTML=cfg.icon;
-  document.getElementById('hs-status').textContent=cfg.label;
-  document.getElementById('hs-sub').textContent=cfg.sub;
-}
-
-// ── PIN Modal ──────────────────────────────────────────────────────────────
-function buildPinDots(){
-  const d=document.getElementById('pm-dots');
-  d.innerHTML='';
-  for(let i=0;i<4;i++){const el=document.createElement('div');el.className='pm-dot';el.id='pmd'+i;d.appendChild(el);}
-}
-function buildNumpad(){
-  const g=document.getElementById('pm-numpad');g.innerHTML='';
-  [1,2,3,4,5,6,7,8,9,'',0,'⌫'].forEach(v=>{
-    const b=document.createElement('button');
-    b.className='pm-key'+(v===''?' empty':v==='⌫'?' del':'');
-    b.textContent=String(v);
-    if(v!==''){b.onclick=()=>{
-      if(v==='⌫'){pinBuffer=pinBuffer.slice(0,-1);}
-      else if(pinBuffer.length<4){pinBuffer+=String(v);}
-      syncPinDots();
-      if(pinBuffer.length===4)setTimeout(checkPin,180);
-    };}
-    g.appendChild(b);
-  });
-}
-function syncPinDots(){
-  for(let i=0;i<4;i++){const d=document.getElementById('pmd'+i);if(d)d.className='pm-dot'+(i<pinBuffer.length?' on':'');}
-}
-function openPin(action){
-  pinAction=action;pinBuffer='';
-  const names={arm_away:'Armar total',arm_home:'Armar en casa',disarm:'Desarmar'};
-  document.getElementById('pm-title').textContent=names[action]||action;
-  document.getElementById('pm-sub').textContent='Ingresa tu PIN de alarma';
-  document.getElementById('pm-err').textContent='';
-  buildPinDots();buildNumpad();syncPinDots();
-  document.getElementById('pin-modal-bg').classList.add('open');
-}
-function closePin(){pinBuffer='';document.getElementById('pin-modal-bg').classList.remove('open');}
-function closePinOutside(e){if(e.target===document.getElementById('pin-modal-bg'))closePin();}
-function checkPin(){
-  const err=document.getElementById('pm-err');
-  if(pinBuffer!==S.currentUser.pin){
-    err.textContent='PIN incorrecto. Intenta de nuevo.';
-    pinBuffer='';syncPinDots();return;
-  }
-  closePin();
-  applyAction(pinAction,S.currentUser.name);
-  sendToBackend(pinAction);
-}
-
-// ── Actions ────────────────────────────────────────────────────────────────
-function applyAction(action,userName){
-  S.alarmStatus=action==='disarm'?'disarmed':action==='arm_away'?'armed':'arm_home';
-  const now=new Date();
-  const time=pad(now.getHours())+':'+pad(now.getMinutes())+' · '+now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
-  S.log.unshift({action:ACTION_NAMES[action]||action,user:userName,time,status:S.alarmStatus});
-  if(S.log.length>50)S.log.pop();
-  save();updateStatusUI();renderLog();
-  toast2(ACTION_NAMES[action]);
-}
-function pad(n){return String(n).padStart(2,'0');}
-
-// ── Backend ────────────────────────────────────────────────────────────────
-async function sendToBackend(action) {
-  const { backendUrl, deviceId } = S.config; // Obtenemos la URL y el ID de la configuración
-  if (!backendUrl) return;
-
-  try {
-    const response = await fetch(backendUrl + '/api/control', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: action, // 'disarm', 'arm_home', o 'arm_away'
-        user: S.currentUser.name,
-        deviceId: deviceId
-      })
-    });
-
-    const data = await response.json();
-    if (!data.success) {
-      toast2("Error: " + (data.error || "No se pudo ejecutar"));
-    }
-  } catch (e) {
-    console.error("Error conectando al backend:", e);
-    toast2("Error de conexión con el servidor");
-  }
-}
-
-// ── Log ────────────────────────────────────────────────────────────────────
-const DOT_CLS={disarmed:'hi-disarmed',armed:'hi-armed',arm_home:'hi-home'};
-function logHTML(items){
-  if(!items.length)return '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;font-weight:700">Sin actividad registrada</div>';
-  return items.map(l=>`<div class="hist-item"><div class="hi-dot ${DOT_CLS[l.status]||''}"></div><div class="hi-info"><div class="hi-action">${l.action}</div><div class="hi-user">${l.user}</div></div><div class="hi-time">${l.time}</div></div>`).join('');
-}
-function renderLog(){
-  const isAdmin=S.currentUser?.role==='admin';
-  const items=isAdmin?S.log:S.log.filter(l=>l.user===S.currentUser?.name);
-  const el1=document.getElementById('home-log');
-  const el2=document.getElementById('full-log');
-  if(el1)el1.innerHTML=logHTML(items.slice(0,4));
-  if(el2)el2.innerHTML=logHTML(items);
-}
-
-// ── Agregar usuario a la Base de Datos (Railway) ────────────────────────────
-async function addUser() {
-  const name = document.getElementById('nu-name').value.trim();
-  const username = document.getElementById('nu-user').value.trim();
-  const password = document.getElementById('nu-pass').value;
-  const pin = document.getElementById('nu-pin').value.trim();
-  const role = document.getElementById('nu-role').value;
-  const err = document.getElementById('add-err');
-
-  if (!name || !username || !password) { 
-    err.textContent = 'Completa todos los campos'; 
-    return; 
-  }
-  if (!/^\d{4}$/.test(pin)) { 
-    err.textContent = 'El PIN debe ser exactamente 4 dígitos'; 
-    return; 
-  }
-
-  try {
-    const response = await fetch('/api/usuarios', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, username, password, pin, role })
-    });
-
-    const data = await response.json();
-
-    if (response.ok && data.success) {
-      // Limpiar formulario
-      ['nu-name', 'nu-user', 'nu-pass', 'nu-pin'].forEach(id => document.getElementById(id).value = '');
-      err.textContent = '';
-      toast2('Usuario guardado en la nube');
-      // Refrescar la lista leyendo de la DB
-      renderUsersAdmin(); 
-    } else {
-      err.textContent = data.error || 'Error al guardar';
-    }
-  } catch (e) {
-    err.textContent = 'Error de conexión con el servidor';
-    console.error(e);
-  }
-}
-  
-// ── Users admin (LECTURA REAL DE DB) ─────────────────────────────────────────
 async function renderUsersAdmin(){
   const el=document.getElementById('users-admin-list');
   if(!el)return;
@@ -805,105 +550,143 @@ async function renderUsersAdmin(){
         </div>
         ${u.username!=='admin'?`<button class="ur-del" onclick="removeUser('${u.username}')">Eliminar</button>`:''}
       </div>`).join('');
-  } catch(e) {
-    el.innerHTML = "Error al cargar usuarios";
-  }
+  } catch(e) { el.innerHTML = "Error al cargar usuarios"; }
 }
 
-// ── Eliminar usuario de la Base de Datos ─────────────────────────────────────
-async function removeUser(username) {
-  if (!confirm(`¿Eliminar al usuario @${username} de la base de datos?`)) return;
-  try {
-    const response = await fetch(`/api/usuarios/${username}`, { method: 'DELETE' });
-    if (response.ok) {
-      renderUsersAdmin(); // Recargamos la lista
-      toast2('Usuario eliminado de la nube');
-    } else {
-      toast2('Error al eliminar en el servidor');
-    }
-  } catch (e) {
-    toast2('Error de conexión');
+async function addUser() {
+  const name = document.getElementById('nu-name').value.trim();
+  const username = document.getElementById('nu-user').value.trim();
+  const password = document.getElementById('nu-pass').value;
+  const pin = document.getElementById('nu-pin').value.trim();
+  const role = document.getElementById('nu-role').value;
+  const err = document.getElementById('add-err');
+
+  if (!name || !username || !password || !/^\d{4}$/.test(pin)) {
+    err.textContent = 'Datos inválidos (PIN debe ser de 4 dígitos)'; return;
   }
-}
-
-  async function changePassword() {
-  // 1. Buscamos los inputs con los IDs que pusiste en el HTML
-  const currentPassword = document.getElementById('old-pass').value;
-  const newPassword = document.getElementById('new-pass').value;
-  const err = document.getElementById('pass-err');
-
   try {
-    // 2. Enviamos los datos a la ruta que creaste en server.js
-    const response = await fetch('/api/change-password', {
+    const response = await fetch('/api/usuarios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        username: S.currentUser.username, 
-        currentPassword, 
-        newPassword 
-      })
+      body: JSON.stringify({ name, username, password, pin, role })
     });
-
-    const data = await response.json();
-
-    if (data.success) {
-      // Si el servidor (server.js) dice que OK:
-      document.getElementById('old-pass').value = '';
-      document.getElementById('new-pass').value = '';
-      err.style.color = "#28a745";
-      err.textContent = 'Contraseña actualizada correctamente';
-    } else {
-      // Si el servidor dice que la contraseña actual no coincide:
-      err.style.color = "#ff4d4d";
-      err.textContent = data.message || 'Error al cambiar';
+    if (response.ok) {
+      ['nu-name', 'nu-user', 'nu-pass', 'nu-pin'].forEach(id => document.getElementById(id).value = '');
+      renderUsersAdmin(); toast2('Usuario creado');
     }
-  } catch (e) {
-    err.textContent = 'Error de conexión';
-  }
+  } catch (e) { err.textContent = 'Error de conexión'; }
 }
 
-// ── Config ─────────────────────────────────────────────────────────────────
+async function removeUser(username) {
+  if (!confirm(`¿Eliminar @${username}?`)) return;
+  try {
+    const res = await fetch(`/api/usuarios/${username}`, { method: 'DELETE' });
+    if (res.ok) { renderUsersAdmin(); toast2('Usuario eliminado'); }
+  } catch (e) {}
+}
+
+// ── App Render & Nav ────────────────────────────────────────────────────────
+function renderApp(){
+  const u = S.currentUser; if (!u) return;
+  const isAdmin = (u.username === 'admin' || (u.role && u.role.toLowerCase() === 'admin'));
+  document.getElementById('acc-av').textContent = u.name.slice(0,2).toUpperCase();
+  document.getElementById('acc-name').textContent = u.name;
+  document.getElementById('acc-email').textContent = u.username;
+  document.getElementById('acc-role').textContent = isAdmin ? 'Administrador' : 'Usuario';
+  document.getElementById('tb-addr').textContent = 'Hola, ' + u.name.split(' ')[0];
+  document.getElementById('add-user-form').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('add-user-form-admin').style.display = isAdmin ? 'none' : 'block';
+  updateStatusUI(); renderLog(); renderUsersAdmin(); loadConfigForm();
+}
+
+function navTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('pg-'+page).classList.add('active');
+  const nb=document.getElementById('nav-'+page); if(nb)nb.classList.add('active');
+  if(page==='historial')renderLog();
+  if(page==='admin')renderUsersAdmin();
+  if(page==='cuenta')loadConfigForm();
+}
+
+// ── Interfaz Alarma & PIN ──────────────────────────────────────────────────
+function updateStatusUI(){
+  const cfg=STATUS_CFG[S.alarmStatus]||STATUS_CFG.disarmed;
+  document.getElementById('hs-circle').className='hs-circle '+cfg.cirCls;
+  document.getElementById('hs-icon').innerHTML=cfg.icon;
+  document.getElementById('hs-status').textContent=cfg.label;
+  document.getElementById('hs-sub').textContent=cfg.sub;
+}
+
+function openPin(action){
+  pinAction=action; pinBuffer='';
+  document.getElementById('pm-title').textContent=ACTION_NAMES[action]||action;
+  document.getElementById('pm-err').textContent='';
+  document.getElementById('pm-dots').innerHTML='<div class="pm-dot"></div>'.repeat(4);
+  const num=document.getElementById('pm-numpad'); num.innerHTML='';
+  [1,2,3,4,5,6,7,8,9,'',0,'⌫'].forEach(v=>{
+    const b=document.createElement('button'); b.className='pm-key'+(v===''?' empty':v==='⌫'?' del':'');
+    b.textContent=v;
+    if(v!==''){ b.onclick=()=>{
+      if(v==='⌫') pinBuffer=pinBuffer.slice(0,-1);
+      else if(pinBuffer.length<4) pinBuffer+=v;
+      const dots=document.querySelectorAll('.pm-dot');
+      dots.forEach((d,i)=>d.className='pm-dot'+(i<pinBuffer.length?' on':''));
+      if(pinBuffer.length===4) setTimeout(checkPin,180);
+    };}
+    num.appendChild(b);
+  });
+  document.getElementById('pin-modal-bg').classList.add('open');
+}
+
+function checkPin(){
+  if(pinBuffer!==S.currentUser.pin){
+    document.getElementById('pm-err').textContent='PIN incorrecto';
+    pinBuffer=''; document.querySelectorAll('.pm-dot').forEach(d=>d.className='pm-dot'); return;
+  }
+  document.getElementById('pin-modal-bg').classList.remove('open');
+  applyAction(pinAction,S.currentUser.name);
+}
+
+function applyAction(action,userName){
+  S.alarmStatus=action==='disarm'?'disarmed':action==='arm_away'?'armed':'arm_home';
+  const now=new Date();
+  const time=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  S.log.unshift({action:ACTION_NAMES[action]||action, user:userName, time, status:S.alarmStatus});
+  renderLog(); toast2(ACTION_NAMES[action]);
+  const { backendUrl, deviceId } = S.config;
+  if(backendUrl) fetch(backendUrl+'/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,user:userName,deviceId})});
+}
+
+function renderLog(){
+  const isAdmin=S.currentUser?.role==='admin';
+  const items=isAdmin?S.log:S.log.filter(l=>l.user===S.currentUser?.name);
+  const html=items.length?items.map(l=>`<div class="hist-item"><div class="hi-dot hi-${l.status}"></div><div class="hi-info"><div class="hi-action">${l.action}</div><div class="hi-user">${l.user}</div></div><div class="hi-time">${l.time}</div></div>`).join(''):'<div class="err-small">Sin actividad</div>';
+  if(document.getElementById('home-log')) document.getElementById('home-log').innerHTML=html.slice(0,4);
+  if(document.getElementById('full-log')) document.getElementById('full-log').innerHTML=html;
+}
+
+// ── Otros ──────────────────────────────────────────────────────────────────
 function loadConfigForm(){
   document.getElementById('cfg-backend').value=S.config.backendUrl||'';
-  document.getElementById('cfg-secret').value=S.config.appSecret||'';
   document.getElementById('cfg-device').value=S.config.deviceId||'';
-  document.getElementById('cfg-region').value=S.config.region||'eu';
 }
 function saveConfig(){
-  S.config.backendUrl=document.getElementById('cfg-backend').value.trim().replace(/\/$/,'');
-  S.config.appSecret=document.getElementById('cfg-secret').value.trim();
+  S.config.backendUrl=document.getElementById('cfg-backend').value.trim();
   S.config.deviceId=document.getElementById('cfg-device').value.trim();
-  S.config.region=document.getElementById('cfg-region').value;
-  save();
-  const ok=document.getElementById('cfg-ok');ok.textContent='Guardado ✓';setTimeout(()=>ok.textContent='',2500);
+  save(); toast2('Configuración guardada');
 }
 function toggleCfgPanel(){const p=document.getElementById('cfg-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function togglePinPanel(){const p=document.getElementById('pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function changePass(){
-  const old=document.getElementById('old-pass').value;
-  const nw=document.getElementById('new-pass').value;
-  const err=document.getElementById('pass-err');
-  if(old!==S.currentUser.password){err.textContent='Contraseña actual incorrecta';return;}
-  if(nw.length<6){err.textContent='La nueva contraseña debe tener al menos 6 caracteres';return;}
-  S.currentUser.password=nw;
-  const u=S.users.find(x=>x.id===S.currentUser.id);if(u)u.password=nw;
-  save();err.textContent='';toast2('Contraseña actualizada');
-  document.getElementById('old-pass').value='';document.getElementById('new-pass').value='';
-}
 
-// ── Toast ──────────────────────────────────────────────────────────────────
-let toastT;
 function toast2(msg){
-  const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
-  clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2200);
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2200);
 }
 
-// ── Enter key on login ─────────────────────────────────────────────────────
 document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-
-// ── Init ───────────────────────────────────────────────────────────────────
 load();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
 </script>
 </body>
 </html>
