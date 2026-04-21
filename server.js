@@ -146,6 +146,18 @@ app.post('/api/control', async (req, res) => {
 
 // --- RUTAS DE MONGODB ---
 
+// --- RUTA PARA EL HISTORIAL ---
+app.get('/api/historial', async (req, res) => {
+    try {
+        // Importante: que 'Log' sea el nombre de tu modelo
+        const logs = await Log.find().sort({ fecha: -1 }).limit(20);
+        res.json(logs); // Esto envía los datos reales
+    } catch (e) {
+        console.error("Error al leer historial:", e);
+        res.status(500).json([]); // Envía lista vacía si hay error
+    }
+});
+
 // LOGIN: Verifica credenciales
 app.post('/api/login', async (req, res) => {
     try {
