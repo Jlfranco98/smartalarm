@@ -171,25 +171,27 @@ app.get('/setup-inicial', async (req, res) => {
 });
 
 // Ruta de Login Real
-app.post('/api/login', async (req, res) => {
+app.post('/api/usuarios', async (req, res) => {
     try {
-        const { username, password } = req.body;
-        const user = await User.findOne({ username: username.toLowerCase() });
+        // 1. Añadimos 'role' aquí para que el servidor lo lea del cuerpo del mensaje
+        const { name, username, password, pin, role } = req.body; 
+        
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
-        if (!user) {
-            return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
-        }
-
-        res.json({ 
-            success: true, 
-            user: { name: user.name, username: user.username, role: 'admin', pin: user.pin } 
+        const newUser = new User({
+            name,
+            username,
+            password: hashedPassword,
+            pin,
+            role: role || 'user' // 2. Se lo pasamos al modelo (por defecto 'user')
         });
+
+        await newUser.save();
+        console.log("Usuario guardado en Mongo:", username); // Esto saldrá en los logs de Railway
+        res.json({ success: true });
     } catch (e) {
+        console.error("Error al crear usuario:", e);
         res.status(500).json({ success: false, error: e.message });
     }
 });
