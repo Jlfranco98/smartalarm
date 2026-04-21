@@ -42,6 +42,14 @@ const logSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 const Log = mongoose.model('Log', logSchema);
 
+const configSchema = new mongoose.Schema({
+    id: { type: String, default: 'global_config', unique: true },
+    backendUrl: String,
+    deviceId: String
+}, { collection: 'configs' });
+
+const Config = mongoose.model('Config', configSchema);
+
 // --- 3. RUTAS DE USUARIOS ---
 app.post('/api/usuarios', async (req, res) => {
     try {
@@ -199,6 +207,33 @@ app.post('/api/usuarios', async (req, res) => {
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
+
+    // --- 5. CONFIGURACIÓN GLOBAL ---
+
+// Ruta para obtener la configuración
+app.get('/api/config', async (req, res) => {
+    try {
+        const config = await Config.findOne({ id: 'global_config' });
+        res.json(config || { backendUrl: '', deviceId: '' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Ruta para guardar/actualizar la configuración
+app.post('/api/config', async (req, res) => {
+    try {
+        const { backendUrl, deviceId } = req.body;
+        await Config.findOneAndUpdate(
+            { id: 'global_config' },
+            { backendUrl, deviceId },
+            { upsert: true, new: true }
+        );
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
 });
 
 // CAMBIAR CONTRASEÑA: Valida la vieja y encripta la nueva
