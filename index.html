@@ -541,14 +541,16 @@ function renderApp(){
   // Show/hide admin add-user form
   document.getElementById('add-user-form').style.display=u.role==='admin'?'block':'none';
   document.getElementById('add-user-form-admin').style.display=u.role==='admin'?'none':'block';
+  
   // Admin nav tab visible to all but content gated
   updateStatusUI();
   renderLog();
   renderUsersAdmin();
   loadConfigForm();
-  refreshStatus();
-}
 
+  // BORRA O COMENTA ESTA LÍNEA:
+  // refreshStatus(); 
+}
 // ── Nav ────────────────────────────────────────────────────────────────────
 let currentPage = 'inicio';
 function navTo(page){
