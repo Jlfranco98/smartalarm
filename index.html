@@ -514,25 +514,28 @@ async function fetchHistory() {
 
 // ── App render ─────────────────────────────────────────────────────────────
 function renderApp(){
-  const u=S.currentUser;
-  // Account page
-  document.getElementById('acc-av').textContent=u.name.slice(0,2).toUpperCase();
-  document.getElementById('acc-name').textContent=u.name;
-  document.getElementById('acc-email').textContent=u.username;
-  document.getElementById('acc-role').textContent=u.role==='admin'?'Administrador':'Usuario';
-  document.getElementById('tb-addr').textContent='Hola, '+u.name.split(' ')[0];
-  // Show/hide admin add-user form
-  document.getElementById('add-user-form').style.display=u.role==='admin'?'block':'none';
-  document.getElementById('add-user-form-admin').style.display=u.role==='admin'?'none':'block';
+  const u = S.currentUser;
+  if (!u) return;
+
+  // Normalizamos el rol para evitar fallos visuales
+  const userRole = String(u.role).toLowerCase().trim();
+
+  // Datos de la cuenta
+  document.getElementById('acc-av').textContent = u.name.slice(0,2).toUpperCase();
+  document.getElementById('acc-name').textContent = u.name;
+  document.getElementById('acc-email').textContent = u.username;
+  document.getElementById('acc-role').textContent = userRole === 'admin' ? 'Administrador' : 'Usuario';
+  document.getElementById('tb-addr').textContent = 'Hola, ' + u.name.split(' ')[0];
+
+  // CORRECCIÓN CLAVE: Mostrar/Ocultar formulario de admin
+  const isAdmin = (userRole === 'admin');
+  document.getElementById('add-user-form').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('add-user-form-admin').style.display = isAdmin ? 'none' : 'block';
   
-  // Admin nav tab visible to all but content gated
   updateStatusUI();
   renderLog();
   renderUsersAdmin();
   loadConfigForm();
-
-  // BORRA O COMENTA ESTA LÍNEA:
-  // refreshStatus(); 
 }
   
 // ── Nav ────────────────────────────────────────────────────────────────────
