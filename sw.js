@@ -1,4 +1,4 @@
-const CACHE = 'mialarm-v4.5'; // <--- CADA VEZ QUE SUBAS ALGO, CAMBIA ESTO (v2, v3, v4...)
+const CACHE = 'mialarm-v4.6'; // <--- CADA VEZ QUE SUBAS ALGO, CAMBIA ESTO (v2, v3, v4...)
 const ASSETS = [
   '/',
   '/index.html',
