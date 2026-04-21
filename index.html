@@ -103,15 +103,86 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;border-radius:12px;padding:10px 22px;opacity:0;transition:opacity .2s;z-index:999}
 #toast.show{opacity:1}
 
-/* NUEVOS ESTILOS PARA PIN OBLIGATORIO */
-#s-force-pin {
-  display:none; position:fixed; inset:0; background:var(--white); 
-  z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:2rem;
-}
-.pin-setup-input {
-  width:100%; max-width:260px; padding:15px; border:2px solid var(--border);
-  border-radius:18px; text-align:center; font-size:32px; letter-spacing:0.5em; font-weight:900; outline:none;
-}
+/* ── LOADER ── */
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.login-loader{display:none;align-items:center;justify-content:center;font-size:13px;color:var(--muted);margin-top:10px;min-height:20px;gap:6px}
+.tb-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:4px;vertical-align:middle}
+.tb-dot.live{background:var(--green)}.tb-dot.offline{background:#ccc}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 16px 0}
+.stat-card{background:var(--white);border-radius:14px;padding:12px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+.stat-val{font-size:22px;font-weight:900}.stat-lbl{font-size:10px;color:var(--muted);font-weight:700;margin-top:2px}
+
+/* ── HISTORY ITEM time ── */
+.hi-time{font-size:11px;color:#aaa;white-space:nowrap}
+
+/* ── PIN MODAL enhancements ── */
+.pm-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.pm-sub{text-align:center;font-size:13px;color:var(--muted);margin-bottom:18px}
+.pm-err{font-size:12px;color:var(--orange);text-align:center;min-height:18px;margin-bottom:10px;font-weight:700}
+.pm-key-del{font-size:16px!important;color:var(--muted)}
+
+/* ── CUENTA PAGE ── */
+.acct-card{background:var(--white);border-radius:16px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 8px rgba(0,0,0,.05)}
+.acct-header{padding:16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.acct-avatar{width:44px;height:44px;border-radius:50%;background:#fff0f1;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:var(--red);flex-shrink:0}
+.acct-row{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;gap:12px;transition:background .15s}
+.acct-row:last-child{border-bottom:none}
+.acct-row:active{background:var(--bg)}
+.acct-row.no-tap{cursor:default}.acct-row.no-tap:active{background:transparent}
+.acct-row-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.acct-row-title{font-size:14px;font-weight:800}.acct-row-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.acct-row-arrow{color:var(--muted);font-size:18px;margin-left:auto}
+.toggle-wrap{width:44px;height:26px;border-radius:99px;background:var(--border);position:relative;transition:background .25s;cursor:pointer;flex-shrink:0}
+.toggle-wrap.on{background:var(--green)}
+.toggle-knob{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:var(--white);transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle-wrap.on .toggle-knob{left:20px}
+
+/* ── SUB-VIEWS ── */
+.sub-view{display:none}.sub-view.active{display:block}
+.back-btn{display:flex;align-items:center;gap:4px;font-size:14px;font-weight:800;color:var(--red);
+  background:none;border:none;cursor:pointer;padding:16px 16px 10px;font-family:'Nunito',sans-serif}
+.form-card{background:var(--white);border-radius:16px;padding:16px;margin:0 16px 12px;box-shadow:0 1px 8px rgba(0,0,0,.05)}
+.form-card-title{font-weight:900;font-size:15px;margin-bottom:14px}
+.form-field{margin-bottom:12px}
+.form-field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.form-field input,.form-field select{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;background:var(--white);color:var(--text);outline:none}
+.form-field input:focus,.form-field select:focus{border-color:var(--red)}
+.form-msg{font-size:12px;font-weight:700;min-height:18px;margin-bottom:8px;text-align:center}
+.form-msg.ok{color:var(--green)}.form-msg.err{color:var(--red)}
+.btn-add{width:100%;padding:13px;background:var(--red);border:none;border-radius:12px;color:#fff;
+  font-weight:800;font-family:'Nunito',sans-serif;font-size:14px;cursor:pointer}
+.btn-add:active{background:var(--red-dark)}
+.section-title{padding:16px 16px 10px;font-weight:900;font-size:15px}
+
+/* ── NOTIFICATIONS ── */
+.notif-banner{background:#f0f6ff;border:1.5px solid rgba(0,122,255,.2);border-radius:14px;
+  padding:14px 16px;margin:0 16px 12px;display:flex;align-items:flex-start;gap:12px}
+.notif-banner-icon{font-size:22px;flex-shrink:0}
+.notif-banner-title{font-size:13px;font-weight:900;color:#007aff}
+.notif-banner-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.notif-enable-btn{margin-top:8px;padding:7px 14px;background:#007aff;border:none;border-radius:10px;
+  color:#fff;font-size:12px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif}
+
+/* ── USER CARDS ── */
+.user-card{background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;
+  box-shadow:0 1px 6px rgba(0,0,0,.04);display:flex;align-items:center;gap:12px}
+.uc-avatar{width:38px;height:38px;border-radius:11px;background:#fff0f1;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--red);flex-shrink:0}
+.uc-info{flex:1}.uc-name{font-size:13px;font-weight:900}.uc-meta{font-size:11px;color:var(--muted)}
+.uc-badge{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:800;margin-left:5px}
+.uc-badge.admin{background:#fff0f1;color:var(--red)}.uc-badge.user{background:#f0fdf6;color:var(--green)}
+.uc-del{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 9px;font-size:12px;cursor:pointer;color:var(--red)}
+
+/* ── FORCE PIN SETUP (numpad style) ── */
+#s-force-pin{display:none;position:fixed;inset:0;background:var(--white);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:2rem}
+.setup-dots{display:flex;gap:14px;justify-content:center;margin:16px 0}
+.setup-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border)}
+.setup-dot.on{background:var(--red);border-color:var(--red)}
+.setup-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto}
+.setup-key{padding:16px;background:var(--bg);border-radius:14px;font-family:'Nunito',sans-serif;font-size:20px;font-weight:700;text-align:center;cursor:pointer;border:none}
+.setup-key:active{background:var(--border)}
 </style>
 </head>
 <body>
@@ -125,25 +196,33 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
     <div class="login-form">
       <div class="lf-group">
         <label class="lf-label">Usuario</label>
-        <input class="lf-input" id="li-user" type="text" placeholder="Tu usuario">
-        <div class="lf-err" id="li-err"></div>
+        <input class="lf-input" id="li-user" type="text" placeholder="Tu usuario" autocomplete="username">
       </div>
       <div class="lf-group">
         <label class="lf-label">Contraseña</label>
-        <input class="lf-input" id="li-pass" type="password" placeholder="••••••••">
+        <input class="lf-input" id="li-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+        <div class="lf-err" id="li-err"></div>
       </div>
-      <button class="btn-red" onclick="doLogin()">Iniciar sesión</button>
+      <button class="btn-red" id="btn-login" onclick="doLogin()">Iniciar sesión</button>
+      <div class="login-loader" id="login-loader">
+        <div class="spinner"></div><span id="loader-text">Conectando...</span>
+      </div>
     </div>
   </div>
 </div>
 
 <div id="s-force-pin">
-  <div style="text-align:center; margin-bottom:2rem">
-    <div style="color:var(--orange); font-weight:900; font-size:22px">NUEVO PIN REQUERIDO</div>
-    <p style="font-size:14px; color:var(--muted); margin-top:8px">Por seguridad, configura tu PIN de 4 dígitos.</p>
+  <div style="text-align:center;margin-bottom:1.5rem">
+    <div style="font-size:40px;margin-bottom:10px">🔒</div>
+    <div style="color:var(--red);font-weight:900;font-size:22px">NUEVO PIN REQUERIDO</div>
+    <p style="font-size:14px;color:var(--muted);margin-top:8px;max-width:280px">Por seguridad, configura tu PIN de 4 dígitos para operar la alarma.</p>
   </div>
-  <input type="password" id="new-pin-setup" maxlength="4" class="pin-setup-input" placeholder="0000">
-  <button class="btn-red" style="margin-top:2rem; max-width:260px" onclick="saveNewPin()">Guardar y Entrar</button>
+  <div class="setup-dots" id="psd-dots">
+    <div class="setup-dot" id="psd0"></div><div class="setup-dot" id="psd1"></div>
+    <div class="setup-dot" id="psd2"></div><div class="setup-dot" id="psd3"></div>
+  </div>
+  <div class="pm-err" id="psd-err" style="margin-bottom:12px"></div>
+  <div class="setup-numpad" id="setup-numpad"></div>
 </div>
 
 <div id="s-app" class="screen">
@@ -151,7 +230,8 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
     <div class="tb-brand">MiAlarma</div>
     <div class="tb-address" id="tb-addr">Mi casa</div>
     <div class="tb-icons">
-      <button class="tb-icon-btn" onclick="syncWithDB()">🔄</button>
+      <button class="tb-icon-btn" onclick="syncWithDB(true)">🔄</button>
+      <span class="tb-dot offline" id="tb-dot" title="Estado conexión"></span>
       <button class="tb-icon-btn" onclick="navTo('cuenta')">👤</button>
     </div>
   </div>
@@ -168,9 +248,17 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">Armar total</button>
           <button class="hs-btn hs-btn-orange" onclick="openPin('arm_home')">En casa</button>
           <button class="hs-btn hs-btn-green" onclick="openPin('disarm')">Desarmar</button>
+          <button class="hs-btn" style="background:#1a1a1a;color:#fff" onclick="openPin('sos')">🆘 SOS</button>
         </div>
       </div>
-      <div style="padding:20px 16px 10px; font-weight:900">Últimos eventos</div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" id="st-eventos">—</div><div class="stat-lbl">Eventos</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-usuarios">—</div><div class="stat-lbl">Usuarios</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-armados">—</div><div class="stat-lbl">Armados</div></div>
+      </div>
+
+      <div style="padding:16px 16px 10px; font-weight:900">Últimos eventos</div>
       <div class="hist-list" id="home-log"></div>
     </div>
 
@@ -180,29 +268,107 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
     </div>
 
     <div class="page" id="pg-cuenta">
-      <div style="padding:16px">
-        <div class="admin-card">
-          <div class="form-field"><label>URL Backend Railway</label><input id="cfg-backend" placeholder="https://...railway.app"></div>
-          <button class="btn-add" onclick="saveConfig()">Guardar Configuración</button>
+      <!-- Main cuenta -->
+      <div id="cv-main" class="sub-view active" style="padding:16px">
+        <div class="acct-card">
+          <div class="acct-header">
+            <div class="acct-avatar" id="av-initials">?</div>
+            <div>
+              <div style="font-size:15px;font-weight:900" id="av-name">—</div>
+              <div style="font-size:11px;color:var(--muted);font-weight:700" id="av-role">—</div>
+            </div>
+          </div>
+          <div class="acct-row" onclick="showSub('cv-changepin')">
+            <div class="acct-row-icon" style="background:#fff0f1">🔑</div>
+            <div style="flex:1"><div class="acct-row-title">Cambiar PIN</div><div class="acct-row-sub">Modifica tu PIN de operación</div></div>
+            <div class="acct-row-arrow">›</div>
+          </div>
+          <div class="acct-row" onclick="showSub('cv-changepw')">
+            <div class="acct-row-icon" style="background:#fff8f0">🔐</div>
+            <div style="flex:1"><div class="acct-row-title">Cambiar contraseña</div><div class="acct-row-sub">Actualiza tu contraseña de acceso</div></div>
+            <div class="acct-row-arrow">›</div>
+          </div>
         </div>
-        <button class="btn-red" style="margin-top:10px" onclick="doLogout()">Cerrar sesión</button>
+
+        <div id="notif-banner-wrap"></div>
+        <div class="acct-card">
+          <div class="acct-row no-tap">
+            <div class="acct-row-icon" style="background:#f0f6ff">🔔</div>
+            <div style="flex:1"><div class="acct-row-title">Notificaciones</div><div class="acct-row-sub" id="notif-sub-text">Armar, desarmar y SOS</div></div>
+            <div class="toggle-wrap" id="notif-toggle" onclick="toggleNotif()"><div class="toggle-knob"></div></div>
+          </div>
+        </div>
+
+        <div id="backend-card" style="display:none">
+          <div class="acct-card">
+            <div class="acct-row" onclick="showSub('cv-backend')">
+              <div class="acct-row-icon" style="background:#f5f5f7">⚙️</div>
+              <div style="flex:1"><div class="acct-row-title">Servidor backend</div><div class="acct-row-sub">URL del backend Railway</div></div>
+              <div class="acct-row-arrow">›</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-red" onclick="doLogout()">Cerrar sesión</button>
+      </div>
+
+      <!-- Cambiar PIN -->
+      <div id="cv-changepin" class="sub-view">
+        <button class="back-btn" onclick="showSub('cv-main')">‹ Volver</button>
+        <div class="form-card">
+          <div class="form-card-title">Nuevo PIN de 4 dígitos</div>
+          <div class="setup-dots" id="cpd-dots" style="margin:0 0 8px">
+            <div class="setup-dot" id="cpd0"></div><div class="setup-dot" id="cpd1"></div>
+            <div class="setup-dot" id="cpd2"></div><div class="setup-dot" id="cpd3"></div>
+          </div>
+          <div class="form-msg err" id="cp-msg" style="text-align:center"></div>
+          <div class="setup-numpad" id="cp-numpad"></div>
+        </div>
+      </div>
+
+      <!-- Cambiar contraseña -->
+      <div id="cv-changepw" class="sub-view">
+        <button class="back-btn" onclick="showSub('cv-main')">‹ Volver</button>
+        <div class="form-card">
+          <div class="form-card-title">Cambiar contraseña</div>
+          <div class="form-field"><label>Contraseña actual</label><input type="password" id="pw-cur" placeholder="••••••••"></div>
+          <div class="form-field"><label>Nueva contraseña</label><input type="password" id="pw-new" placeholder="••••••••"></div>
+          <div class="form-field"><label>Confirmar nueva</label><input type="password" id="pw-con" placeholder="••••••••"></div>
+          <div class="form-msg" id="pw-msg"></div>
+          <button class="btn-add" onclick="doChangePw()">Guardar contraseña</button>
+        </div>
+      </div>
+
+      <!-- Backend config (admin only) -->
+      <div id="cv-backend" class="sub-view">
+        <button class="back-btn" onclick="showSub('cv-main')">‹ Volver</button>
+        <div class="form-card">
+          <div class="form-card-title">URL del servidor</div>
+          <div class="form-field"><label>URL Railway / Backend</label><input id="cfg-backend" placeholder="https://...railway.app"></div>
+          <button class="btn-add" onclick="saveConfig()">Guardar y conectar</button>
+        </div>
       </div>
     </div>
 
     <div class="page" id="pg-admin">
-      <div class="admin-card" style="margin:16px">
-        <div style="font-weight:900; margin-bottom:10px">Agregar Usuario</div>
-        <div class="form-field"><input id="nu-name" placeholder="Nombre completo"></div>
-        <div class="form-field"><input id="nu-user" placeholder="Usuario login"></div>
-        <div class="form-field"><input id="nu-pass" type="password" placeholder="Contraseña"></div>
-        <div class="form-field"><input id="nu-pin" type="password" maxlength="4" placeholder="PIN 4 dígitos"></div>
-        <div class="form-field">
-          <select id="nu-role" class="lf-input" style="width:100%; border:1.5px solid var(--border); border-radius:12px; padding:11px;">
-            <option value="user">Usuario Estándar</option>
-            <option value="admin">Administrador</option>
-          </select>
+      <div style="padding:0 16px">
+        <div class="section-title">Dar de alta usuario</div>
+        <div class="form-card" style="margin:0 0 12px">
+          <div class="form-field"><label>Nombre completo</label><input id="nu-name" placeholder="Nombre completo"></div>
+          <div class="form-field"><label>Usuario (login)</label><input id="nu-user" placeholder="usuario"></div>
+          <div class="form-field"><label>Contraseña</label><input id="nu-pass" type="password" placeholder="••••••••"></div>
+          <div class="form-field"><label>PIN (4 dígitos)</label><input id="nu-pin" type="password" maxlength="4" placeholder="0000" inputmode="numeric"></div>
+          <div class="form-field"><label>Rol</label>
+            <select id="nu-role">
+              <option value="user">Usuario estándar</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div class="form-msg" id="add-user-msg"></div>
+          <button class="btn-add" onclick="addUser()">Dar de alta nuevo usuario</button>
         </div>
-        <button class="btn-add" onclick="addUser()">Dar de alta nuevo usuario</button>
+        <div class="section-title" style="padding:0 0 10px">Usuarios registrados</div>
+        <div id="users-list"></div>
       </div>
     </div>
   </div>
@@ -217,212 +383,282 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
 <div class="pin-modal-bg" id="pin-modal-bg">
   <div class="pin-modal">
-    <div style="text-align:center; font-weight:900; margin-bottom:20px" id="pm-title">PIN Requerido</div>
+    <div class="pm-handle"></div>
+    <div style="text-align:center; font-weight:900; margin-bottom:4px; font-size:17px" id="pm-title">PIN Requerido</div>
+    <div class="pm-sub">Introduce tu PIN para continuar</div>
     <div class="pm-dots" id="pm-dots"></div>
+    <div class="pm-err" id="pm-err"></div>
     <div class="pm-numpad" id="pm-numpad"></div>
-    <button class="btn-add" style="background:#ccc; margin-top:15px" onclick="closePin()">Cancelar</button>
+    <button class="btn-add" style="background:#e5e5ea;color:#1a1a1a;margin-top:12px;max-width:280px;display:block;margin-left:auto;margin-right:auto" onclick="closePin()">Cancelar</button>
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-let S = {
-  users: [], 
-  log: [],
-  alarmStatus: 'disarmed',
-  config: {backendUrl:''},
-  currentUser: null,
-  version: '1.0.1' // Cambia esto cada vez que subas cambios
+'use strict';
+// ══════════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════════
+const LS={
+  get(k,d=null){try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch{return d;}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
+  del(k){try{localStorage.removeItem(k);}catch{}},
 };
-let pinBuffer = '', pinAction = '';
 
-// --- NUEVO: GESTIÓN DE VERSIONES ---
-async function checkUpdate() {
-  if ('serviceWorker' in navigator) {
-    const reg = await navigator.serviceWorker.getRegistration();
-    if (reg) reg.update();
-  }
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let S={
+  users:[], log:[], alarmStatus:'disarmed',
+  config: LS.get('mialarm_cfg') || {backendUrl:''},
+  currentUser:null, connected:false,
+};
+let pinBuffer='', pinAction='';
+let psdBuffer=''; // force-pin / cuenta change-pin buffer
+
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+function toast2(m){
+  const t=document.getElementById('toast');
+  if(t){t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+}
+function ini(n){return (n||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+function fmtDate(d){
+  if(!d) return '';
+  const dt=new Date(d),hoy=new Date();
+  if(dt.toDateString()===hoy.toDateString()) return dt.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+  return dt.toLocaleDateString('es-ES',{day:'numeric',month:'short'})+' '+dt.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+}
+function actionLabel(a){return{arm_away:'Armar total',arm_home:'En casa',disarm:'Desarmar',sos:'SOS — Emergencia'}[a]||a;}
+function dotClass(a){return{arm_away:'hi-armed',arm_home:'hi-home',disarm:'hi-disarmed',sos:'hi-armed'}[a]||'hi-disarmed';}
+function setConnDot(ok){
+  S.connected=ok;
+  const d=document.getElementById('tb-dot');
+  if(d) d.className='tb-dot '+(ok?'live':'offline');
+}
+function setLoading(on,text='Conectando...'){
+  const btn=document.getElementById('btn-login');
+  const l=document.getElementById('login-loader');
+  if(btn) btn.style.display=on?'none':'';
+  if(l){l.style.display=on?'flex':'none';document.getElementById('loader-text').textContent=text;}
+}
+function setErr(msg,color='var(--red)'){
+  const e=document.getElementById('li-err');
+  if(e){e.textContent=msg;e.style.color=color;}
 }
 
-// 1. CARGA INICIAL
+// ══════════════════════════════════════════════
+// INIT — restore session
+// ══════════════════════════════════════════════
 async function load(){
-  checkUpdate();
-  const d = JSON.parse(localStorage.getItem('mialarm') || '{}');
-  if(d.config && d.config.backendUrl) {
-    S.config = d.config;
-    document.getElementById('cfg-backend').value = S.config.backendUrl;
-    // Cambiamos el texto de error por un estado de carga
-    document.getElementById('li-err').style.color = "var(--muted)";
-    document.getElementById('li-err').textContent = "Conectando con la nube...";
-    await syncWithDB();
-  } else {
-    document.getElementById('li-err').textContent = "Configure la URL en 'Config'";
-  }
-}
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 
-// 2. SINCRONIZACIÓN MEJORADA
-async function syncWithDB() {
-  if(!S.config.backendUrl) return;
-  const errEl = document.getElementById('li-err');
-  
-  try {
-    const resU = await fetch(S.config.backendUrl + '/api/usuarios');
-    if(!resU.ok) throw new Error();
-    const dbUsers = await resU.json();
-    
-    if(dbUsers && dbUsers.length > 0) {
-      S.users = dbUsers;
-      errEl.textContent = "✅ Servidor conectado";
-      errEl.style.color = "var(--green)";
-    }
+  // Prefill backend URL if saved
+  const cfgIn=document.getElementById('cfg-backend');
+  if(cfgIn && S.config.backendUrl) cfgIn.value=S.config.backendUrl;
 
-    const resL = await fetch(S.config.backendUrl + '/api/historial');
-    S.log = await resL.json();
-    renderLog();
-  } catch(e) { 
-    console.error("Error de sincronización");
-    errEl.textContent = "❌ Error: Servidor no alcanzable";
-    errEl.style.color = "var(--red)";
-  }
-}
-
-// 3. LOGIN CORREGIDO (Ahora es async para esperar a los usuarios)
-async function doLogin(){
-  const u = document.getElementById('li-user').value.trim();
-  const p = document.getElementById('li-pass').value.trim();
-  const err = document.getElementById('li-err');
-
-  // Si la lista está vacía, intentamos una última descarga antes de dar error
-  if(S.users.length === 0) {
-    err.textContent = "Sincronizando datos...";
-    await syncWithDB();
-  }
-  
-  const user = S.users.find(x => x.username === u && x.password === p);
-  
-  if(!user){ 
-    err.textContent = "Usuario o clave incorrectos"; 
-    err.style.color = "var(--red)";
-    return; 
-  }
-  
-  S.currentUser = user;
-
-  if(user.mustChangePin) {
-    document.getElementById('s-force-pin').style.display = 'flex';
+  if(!S.config.backendUrl){
+    setErr('Configura la URL del servidor en Cuenta → Servidor backend','var(--muted)');
     return;
   }
 
+  setLoading(true,'Conectando con el servidor...');
+  await syncWithDB(false);
+  setLoading(false);
+
+  // Try to restore session from localStorage
+  const savedId=LS.get('mialarm_session');
+  if(savedId){
+    const found=S.users.find(u=>(u._id||u.id||u.username)===savedId);
+    if(found && !found.mustChangePin){
+      S.currentUser=found;
+      entrarApp();
+      return;
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+// SYNC WITH MONGODB
+// ══════════════════════════════════════════════
+async function syncWithDB(showToast=true){
+  if(!S.config.backendUrl) return;
+  try{
+    const [rU,rL]=await Promise.all([
+      fetch(S.config.backendUrl+'/api/usuarios'),
+      fetch(S.config.backendUrl+'/api/historial'),
+    ]);
+    if(!rU.ok) throw new Error('HTTP '+rU.status);
+    const dbUsers=await rU.json();
+    const dbLog=await rL.json();
+    if(dbUsers&&dbUsers.length>0) S.users=dbUsers;
+    if(dbLog) S.log=dbLog;
+    setConnDot(true);
+    setErr('✅ Servidor conectado','var(--green)');
+    renderLog(); renderUsers(); updateStats();
+    if(showToast) toast2('Sincronizado ✓');
+    // Refresh current user
+    if(S.currentUser){
+      const fresh=S.users.find(u=>(u._id||u.id)===(S.currentUser._id||S.currentUser.id));
+      if(fresh) S.currentUser=fresh;
+    }
+  }catch(e){
+    setConnDot(false);
+    setErr('❌ Servidor no alcanzable','var(--red)');
+    if(showToast) toast2('Error de conexión');
+  }
+}
+
+// ══════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════
+async function doLogin(){
+  const u=document.getElementById('li-user').value.trim();
+  const p=document.getElementById('li-pass').value;
+  if(!u||!p){setErr('Introduce usuario y contraseña');return;}
+  if(!S.config.backendUrl){setErr('Primero configura la URL del servidor en Cuenta → Servidor backend');return;}
+
+  setLoading(true,'Verificando...');
+  if(S.users.length===0) await syncWithDB(false);
+
+  const user=S.users.find(x=>x.username===u&&x.password===p);
+  setLoading(false);
+
+  if(!user){setErr('Usuario o contraseña incorrectos');return;}
+  S.currentUser=user;
+
+  if(user.mustChangePin){
+    psdBuffer='';
+    document.getElementById('s-force-pin').style.display='flex';
+    buildSetupNumpad('setup-numpad','psd');
+    updateSetupDots(psdBuffer,'psd');
+    return;
+  }
   entrarApp();
 }
 
-function entrarApp() {
+function entrarApp(){
   document.getElementById('s-login').classList.remove('active');
   document.getElementById('s-app').classList.add('active');
-  document.getElementById('tb-addr').textContent = "Hola, " + S.currentUser.name;
-  
-  if(S.currentUser.role !== 'admin') {
-    document.getElementById('nav-admin').style.display = 'none';
-  } else {
-    document.getElementById('nav-admin').style.display = 'flex';
+  const u=S.currentUser;
+
+  // Save session
+  LS.set('mialarm_session', u._id||u.id||u.username);
+
+  // Topbar
+  document.getElementById('tb-addr').textContent='Hola, '+(u.name||u.username);
+
+  // Role-based nav
+  const navAdmin=document.getElementById('nav-admin');
+  navAdmin.style.display=u.role==='admin'?'flex':'none';
+
+  // Cuenta profile
+  renderCuentaProfile();
+  renderNotifBanner();
+  updateNotifToggle();
+
+  // Backend card — solo admin
+  document.getElementById('backend-card').style.display=u.role==='admin'?'block':'none';
+  if(u.role==='admin'){
+    const cfgIn=document.getElementById('cfg-backend');
+    if(cfgIn) cfgIn.value=S.config.backendUrl;
   }
-  renderLog();
+
+  renderLog(); renderUsers(); updateStatusUI(); updateStats();
+  if('Notification' in window) S.notifPerm=Notification.permission;
+  startPolling();
 }
 
-async function saveNewPin() {
-  const nuevoPin = document.getElementById('new-pin-setup').value;
-  if(nuevoPin.length !== 4) return toast2("El PIN debe ser de 4 cifras");
-
-  try {
-    const res = await fetch(S.config.backendUrl + '/api/usuarios/update-pin', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ userId: S.currentUser._id, nuevoPin: nuevoPin })
-    });
-
-    if(res.ok) {
-      toast2("PIN actualizado");
-      location.reload(); 
-    }
-  } catch(e) { toast2("Error de servidor"); }
+function doLogout(){
+  stopPolling();
+  LS.del('mialarm_session');
+  location.reload();
 }
 
+// ══════════════════════════════════════════════
+// ALARM CONTROL
+// ══════════════════════════════════════════════
 async function applyAction(action){
-  try {
-    await fetch(S.config.backendUrl + '/api/control', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ action, user: S.currentUser.name })
+  try{
+    const res=await fetch(S.config.backendUrl+'/api/control',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action,user:S.currentUser.name||S.currentUser.username})
     });
-    S.alarmStatus = action === 'disarm' ? 'disarmed' : action === 'arm_away' ? 'armed' : 'arm_home';
+    if(!res.ok) throw new Error();
+    S.alarmStatus=action==='disarm'?'disarmed':action==='arm_away'?'armed':action==='arm_home'?'arm_home':'sos';
     updateStatusUI();
-    toast2("Comando enviado");
-    setTimeout(syncWithDB, 1500);
-  } catch(e) { toast2("Error de red"); }
+    toast2(actionLabel(action)+' ✓');
+    sendNotif(actionLabel(action), notifBody(action));
+    setTimeout(()=>syncWithDB(false),1500);
+  }catch(e){toast2('Error al enviar comando');}
 }
 
-async function addUser(){
-  const newUser = {
-    name: document.getElementById('nu-name').value,
-    username: document.getElementById('nu-user').value,
-    password: document.getElementById('nu-pass').value,
-    pin: document.getElementById('nu-pin').value,
-    role: document.getElementById('nu-role').value,
-    mustChangePin: true
-  };
-  try {
-    await fetch(S.config.backendUrl + '/api/usuarios', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(newUser)
-    });
-    syncWithDB();
-    toast2("Usuario creado");
-  } catch(e) { toast2("Error al crear"); }
-}
-
-function renderLog(){
-  if(!S.log) return;
-  const html = S.log.map(l => `
-    <div class="hist-item">
-      <div class="hi-dot ${l.accion==='disarm'?'hi-disarmed':'hi-armed'}"></div>
-      <div class="hi-info">
-        <div class="hi-action">${l.accion === 'disarm' ? 'Desarmado' : 'Armado'}</div>
-        <div class="hi-user">${l.usuario}</div>
-      </div>
-      <div style="font-size:11px; color:#999">${new Date(l.fecha).toLocaleTimeString()}</div>
-    </div>`).join('');
-  document.getElementById('home-log').innerHTML = html;
-  document.getElementById('full-log').innerHTML = html;
-}
+function notifBody(a){return{arm_away:'Protección total activa',arm_home:'Zonas perimetrales activas',disarm:'Sistema desactivado',sos:'¡Alerta enviada!'}[a]||'';}
 
 function updateStatusUI(){
-  const c = document.getElementById('hs-circle');
-  const i = document.getElementById('hs-icon');
-  const s = document.getElementById('hs-status');
-  if(S.alarmStatus==='disarmed'){ c.className='hs-circle hs-circle-disarmed'; i.textContent='🔓'; s.textContent='Desconectada'; }
-  else if(S.alarmStatus==='armed'){ c.className='hs-circle hs-circle-armed'; i.textContent='🔒'; s.textContent='Conectada'; }
-  else { c.className='hs-circle hs-circle-home'; i.textContent='🏠'; s.textContent='En Casa'; }
+  const c=document.getElementById('hs-circle');
+  const i=document.getElementById('hs-icon');
+  const s=document.getElementById('hs-status');
+  const sub=document.getElementById('hs-sub');
+  const map={
+    disarmed:{cls:'hs-circle-disarmed',ico:'🔓',lbl:'Desconectada',sub:'Sistema en reposo'},
+    armed:   {cls:'hs-circle-armed',   ico:'🔒',lbl:'Conectada',   sub:'Protección total activa'},
+    arm_home:{cls:'hs-circle-home',    ico:'🏠',lbl:'En Casa',     sub:'Zonas perimetrales activas'},
+    sos:     {cls:'hs-circle-armed',   ico:'🆘',lbl:'EMERGENCIA',  sub:'Alerta SOS activa'},
+  };
+  const st=map[S.alarmStatus]||map.disarmed;
+  if(c) c.className='hs-circle '+st.cls;
+  if(i) i.textContent=st.ico;
+  if(s) s.textContent=st.lbl;
+  if(sub) sub.textContent=st.sub;
 }
 
-function openPin(a){ pinAction=a; pinBuffer=''; buildPinDots(); buildNumpad(); document.getElementById('pin-modal-bg').classList.add('open'); }
-function closePin(){ document.getElementById('pin-modal-bg').classList.remove('open'); }
+// ══════════════════════════════════════════════
+// PIN MODAL (alarm actions)
+// ══════════════════════════════════════════════
+function openPin(a){
+  pinAction=a; pinBuffer='';
+  document.getElementById('pm-title').textContent=actionLabel(a);
+  document.getElementById('pm-err').textContent='';
+  buildPinDots(); buildNumpad();
+  document.getElementById('pin-modal-bg').classList.add('open');
+}
+function closePin(){document.getElementById('pin-modal-bg').classList.remove('open');}
+
 function buildPinDots(){
-  const d = document.getElementById('pm-dots'); d.innerHTML = '';
-  for(let i=0;i<4;i++) d.innerHTML += `<div class="pm-dot" id="pd${i}"></div>`;
+  const d=document.getElementById('pm-dots'); d.innerHTML='';
+  for(let i=0;i<4;i++) d.innerHTML+=`<div class="pm-dot" id="pd${i}"></div>`;
+}
+function refreshPmDots(err=false){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('pd'+i);
+    if(!d) return;
+    d.className='pm-dot'+(i<pinBuffer.length?(err?' err':' on'):'');
+  }
 }
 function buildNumpad(){
-  const n = document.getElementById('pm-numpad'); n.innerHTML = '';
-  [1,2,3,4,5,6,7,8,9,0].forEach(v => {
-    const b = document.createElement('button'); b.className='pm-key'; b.textContent=v;
-    b.onclick = () => {
-      if(pinBuffer.length < 4){
-        pinBuffer += v;
-        document.getElementById('pd'+(pinBuffer.length-1)).classList.add('on');
-        if(pinBuffer.length === 4){
-          if(pinBuffer === S.currentUser.pin){ applyAction(pinAction); closePin(); }
-          else { pinBuffer = ''; buildPinDots(); }
+  const n=document.getElementById('pm-numpad'); n.innerHTML='';
+  [1,2,3,4,5,6,7,8,9,'',0,'⌫'].forEach(v=>{
+    const b=document.createElement('button');
+    b.className='pm-key'+(v===''?' invisible':'');
+    if(v==='') {b.style.visibility='hidden';}
+    b.textContent=v;
+    b.onclick=()=>{
+      if(v==='⌫'){if(pinBuffer.length>0){pinBuffer=pinBuffer.slice(0,-1);refreshPmDots();}return;}
+      if(v===''||typeof v!=='number') return;
+      if(pinBuffer.length<4){
+        pinBuffer+=v;refreshPmDots();
+        if(pinBuffer.length===4){
+          setTimeout(()=>{
+            if(pinBuffer===String(S.currentUser.pin)){closePin();applyAction(pinAction);}
+            else{
+              document.getElementById('pm-err').textContent='PIN incorrecto';
+              pinBuffer='';refreshPmDots(true);
+              setTimeout(()=>{document.getElementById('pm-err').textContent='';refreshPmDots();},900);
+            }
+          },120);
         }
       }
     };
@@ -430,27 +666,339 @@ function buildNumpad(){
   });
 }
 
-function saveConfig(){
-  let url = document.getElementById('cfg-backend').value.trim();
-  if(url.endsWith('/')) url = url.slice(0,-1);
-  S.config.backendUrl = url;
-  localStorage.setItem('mialarm', JSON.stringify({config: S.config}));
-  syncWithDB();
+// ══════════════════════════════════════════════
+// GENERIC NUMPAD BUILDER (force-pin, change-pin)
+// ══════════════════════════════════════════════
+function buildSetupNumpad(containerId, dotsPrefix, onComplete){
+  const n=document.getElementById(containerId); n.innerHTML='';
+  [1,2,3,4,5,6,7,8,9,'',0,'⌫'].forEach(v=>{
+    const b=document.createElement('button');
+    b.className='setup-key';
+    if(v==='') b.style.visibility='hidden';
+    b.textContent=v;
+    b.onclick=()=>{
+      if(v==='⌫'){psdBuffer=psdBuffer.slice(0,-1);updateSetupDots(psdBuffer,dotsPrefix);return;}
+      if(v===''||typeof v!=='number') return;
+      if(psdBuffer.length<4){
+        psdBuffer+=v; updateSetupDots(psdBuffer,dotsPrefix);
+        if(psdBuffer.length===4) setTimeout(()=>onComplete&&onComplete(psdBuffer),130);
+      }
+    };
+    n.appendChild(b);
+  });
+}
+function updateSetupDots(buf,prefix){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById(prefix+i);
+    if(d) d.className='setup-dot'+(i<buf.length?' on':'');
+  }
 }
 
+// ══════════════════════════════════════════════
+// FORCE PIN SETUP
+// ══════════════════════════════════════════════
+function initForcePinNumpad(){
+  psdBuffer='';
+  buildSetupNumpad('setup-numpad','psd', async(pin)=>{
+    document.getElementById('psd-err').textContent='Guardando...';
+    try{
+      const uid=S.currentUser._id||S.currentUser.id;
+      const res=await fetch(S.config.backendUrl+'/api/usuarios/update-pin',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({userId:uid,nuevoPin:pin})
+      });
+      if(!res.ok) throw new Error();
+      S.currentUser.pin=pin; S.currentUser.mustChangePin=false;
+      toast2('PIN configurado ✓');
+      document.getElementById('s-force-pin').style.display='none';
+      entrarApp();
+    }catch(e){
+      document.getElementById('psd-err').textContent='Error. Inténtalo de nuevo.';
+      psdBuffer=''; updateSetupDots(psdBuffer,'psd');
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+// CHANGE PIN (cuenta)
+// ══════════════════════════════════════════════
+function initCpNumpad(){
+  psdBuffer='';
+  updateSetupDots(psdBuffer,'cpd');
+  document.getElementById('cp-msg').textContent='';
+  buildSetupNumpad('cp-numpad','cpd', async(pin)=>{
+    document.getElementById('cp-msg').textContent='Guardando...';
+    document.getElementById('cp-msg').className='form-msg';
+    try{
+      const uid=S.currentUser._id||S.currentUser.id;
+      const res=await fetch(S.config.backendUrl+'/api/usuarios/update-pin',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({userId:uid,nuevoPin:pin})
+      });
+      if(!res.ok) throw new Error();
+      S.currentUser.pin=pin;
+      document.getElementById('cp-msg').textContent='✓ PIN actualizado correctamente';
+      document.getElementById('cp-msg').className='form-msg ok';
+      toast2('PIN actualizado ✓');
+      psdBuffer=''; updateSetupDots(psdBuffer,'cpd');
+      setTimeout(()=>showSub('cv-main'),1200);
+    }catch(e){
+      document.getElementById('cp-msg').textContent='Error al guardar.';
+      document.getElementById('cp-msg').className='form-msg err';
+      psdBuffer=''; updateSetupDots(psdBuffer,'cpd');
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+// CHANGE PASSWORD
+// ══════════════════════════════════════════════
+async function doChangePw(){
+  const cur=document.getElementById('pw-cur').value;
+  const nxt=document.getElementById('pw-new').value;
+  const con=document.getElementById('pw-con').value;
+  const msg=document.getElementById('pw-msg');
+  if(cur!==S.currentUser.password){msg.textContent='La contraseña actual no es correcta';msg.className='form-msg err';return;}
+  if(nxt.length<4){msg.textContent='La nueva contraseña debe tener al menos 4 caracteres';msg.className='form-msg err';return;}
+  if(nxt!==con){msg.textContent='Las contraseñas nuevas no coinciden';msg.className='form-msg err';return;}
+  msg.textContent='Guardando...';msg.className='form-msg';
+  try{
+    const uid=S.currentUser._id||S.currentUser.id;
+    const res=await fetch(S.config.backendUrl+'/api/usuarios/update-password',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userId:uid,nuevaPassword:nxt})
+    });
+    if(!res.ok) throw new Error();
+    S.currentUser.password=nxt;
+    msg.textContent='✓ Contraseña actualizada';msg.className='form-msg ok';
+    toast2('Contraseña actualizada ✓');
+    document.getElementById('pw-cur').value='';
+    document.getElementById('pw-new').value='';
+    document.getElementById('pw-con').value='';
+    setTimeout(()=>showSub('cv-main'),1200);
+  }catch(e){msg.textContent='Error al guardar.';msg.className='form-msg err';}
+}
+
+// ══════════════════════════════════════════════
+// USERS (admin)
+// ══════════════════════════════════════════════
+async function addUser(){
+  const newUser={
+    name:    document.getElementById('nu-name').value.trim(),
+    username:document.getElementById('nu-user').value.trim(),
+    password:document.getElementById('nu-pass').value,
+    pin:     document.getElementById('nu-pin').value,
+    role:    document.getElementById('nu-role').value,
+    mustChangePin:false, notif:true,
+  };
+  const msg=document.getElementById('add-user-msg');
+  if(!newUser.name||!newUser.username||!newUser.password){msg.textContent='Rellena todos los campos';msg.className='form-msg err';return;}
+  if(newUser.pin.length!==4){msg.textContent='El PIN debe tener 4 dígitos';msg.className='form-msg err';return;}
+  if(S.users.find(u=>u.username===newUser.username)){msg.textContent='Ese usuario ya existe';msg.className='form-msg err';return;}
+  msg.textContent='Creando...';msg.className='form-msg';
+  try{
+    const res=await fetch(S.config.backendUrl+'/api/usuarios',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(newUser)
+    });
+    if(!res.ok) throw new Error();
+    msg.textContent='✓ Usuario creado correctamente';msg.className='form-msg ok';
+    toast2('Usuario creado ✓');
+    ['nu-name','nu-user','nu-pass','nu-pin'].forEach(id=>{const el=document.getElementById(id);if(el) el.value='';});
+    syncWithDB(false);
+  }catch(e){msg.textContent='Error al crear usuario';msg.className='form-msg err';}
+}
+
+async function deleteUser(uid){
+  if(!confirm('¿Eliminar este usuario?')) return;
+  try{
+    await fetch(S.config.backendUrl+'/api/usuarios/'+uid,{method:'DELETE'});
+    toast2('Usuario eliminado');syncWithDB(false);
+  }catch(e){toast2('Error al eliminar');}
+}
+
+// ══════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════
+function renderLog(){
+  const all=S.log||[];
+  const mkItem=l=>`
+    <div class="hist-item">
+      <div class="hi-dot ${dotClass(l.accion||l.action)}"></div>
+      <div class="hi-info">
+        <div class="hi-action">${actionLabel(l.accion||l.action)}</div>
+        <div class="hi-user">${l.usuario||l.user||'—'}</div>
+      </div>
+      <div class="hi-time">${fmtDate(l.fecha||l.date)}</div>
+    </div>`;
+  const empty='<div style="padding:16px 0;text-align:center;color:var(--muted);font-size:13px">Sin eventos</div>';
+  const hEl=document.getElementById('home-log');
+  const fEl=document.getElementById('full-log');
+  if(hEl) hEl.innerHTML=all.length?all.slice(0,5).map(mkItem).join(''):empty;
+  if(fEl) fEl.innerHTML=all.length?all.map(mkItem).join(''):empty;
+}
+
+function renderUsers(){
+  const wrap=document.getElementById('users-list');
+  if(!wrap||!S.currentUser||S.currentUser.role!=='admin') return;
+  if(!S.users.length){wrap.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">No hay usuarios</div>';return;}
+  wrap.innerHTML=S.users.map(u=>{
+    const uid=u._id||u.id;
+    const isSelf=uid===(S.currentUser._id||S.currentUser.id);
+    return`<div class="user-card">
+      <div class="uc-avatar">${ini(u.name||u.username)}</div>
+      <div class="uc-info">
+        <div class="uc-name">${u.name||u.username}<span class="uc-badge ${u.role}">${u.role==='admin'?'Admin':'Usuario'}</span></div>
+        <div class="uc-meta">@${u.username} · notif:${u.notif!==false?'✓':'✗'}</div>
+      </div>
+      ${!isSelf?`<button class="uc-del" onclick="deleteUser('${uid}')">✕</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function updateStats(){
+  const ev=(S.log||[]).length;
+  const usr=(S.users||[]).length;
+  const arm=(S.log||[]).filter(l=>(l.accion||l.action)==='arm_away'||(l.accion||l.action)==='arm_home').length;
+  const evEl=document.getElementById('st-eventos');
+  const usEl=document.getElementById('st-usuarios');
+  const arEl=document.getElementById('st-armados');
+  if(evEl) evEl.textContent=ev;
+  if(usEl) usEl.textContent=usr;
+  if(arEl) arEl.textContent=arm;
+}
+
+function renderCuentaProfile(){
+  const u=S.currentUser;if(!u) return;
+  const av=document.getElementById('av-initials');
+  const nm=document.getElementById('av-name');
+  const rl=document.getElementById('av-role');
+  if(av) av.textContent=ini(u.name||u.username);
+  if(nm) nm.textContent=u.name||u.username;
+  if(rl) rl.textContent=u.role==='admin'?'Administrador':'Usuario';
+}
+
+// ══════════════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════════════
+function renderNotifBanner(){
+  const wrap=document.getElementById('notif-banner-wrap');
+  if(!wrap) return;
+  if(!('Notification' in window)||Notification.permission==='granted'||Notification.permission==='denied'){wrap.innerHTML='';return;}
+  wrap.innerHTML=`<div class="notif-banner">
+    <div class="notif-banner-icon">🔔</div>
+    <div>
+      <div class="notif-banner-title">Activa las notificaciones</div>
+      <div class="notif-banner-sub">Recibe alertas al armar, desarmar o en caso de SOS</div>
+      <button class="notif-enable-btn" onclick="requestNotif()">Activar notificaciones</button>
+    </div>
+  </div>`;
+}
+
+async function requestNotif(){
+  if(!('Notification' in window)) return;
+  const p=await Notification.requestPermission();
+  renderNotifBanner(); updateNotifToggle();
+  if(p==='granted'){
+    const u=S.users.find(x=>(x._id||x.id)===(S.currentUser._id||S.currentUser.id));
+    if(u){u.notif=true;S.currentUser.notif=true;}
+    sendNotif('Notificaciones activadas','Recibirás alertas de tu alarma ✅');
+    toast2('Notificaciones activadas');
+    saveNotifPref(true);
+  }
+}
+
+function updateNotifToggle(){
+  const t=document.getElementById('notif-toggle');const sub=document.getElementById('notif-sub-text');
+  if(!t) return;
+  const on=S.currentUser?.notif!==false && ('Notification' in window) && Notification.permission==='granted';
+  t.className='toggle-wrap'+(on?' on':'');
+  if(sub) sub.textContent=on?'Activadas — armar, desarmar y SOS':('Notification' in window)&&Notification.permission==='denied'?'Bloqueadas por el sistema':'Inactivas';
+}
+
+async function toggleNotif(){
+  if(!('Notification' in window)){toast2('Tu navegador no soporta notificaciones');return;}
+  if(Notification.permission==='denied'){toast2('Actívalas en Ajustes del sistema');return;}
+  if(Notification.permission!=='granted'){await requestNotif();return;}
+  const newVal=S.currentUser?.notif===false?true:false;
+  S.currentUser.notif=newVal;
+  const u=S.users.find(x=>(x._id||x.id)===(S.currentUser._id||S.currentUser.id));
+  if(u) u.notif=newVal;
+  updateNotifToggle();
+  saveNotifPref(newVal);
+  toast2(newVal?'Notificaciones activadas':'Notificaciones desactivadas');
+}
+
+async function saveNotifPref(val){
+  if(!S.config.backendUrl) return;
+  const uid=S.currentUser._id||S.currentUser.id;
+  try{
+    await fetch(S.config.backendUrl+'/api/usuarios/update-notif',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userId:uid,notif:val})
+    });
+  }catch(e){}
+}
+
+function sendNotif(title,body){
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  if(S.currentUser?.notif===false) return;
+  try{new Notification(title,{body,tag:'mialarm',renotify:true,vibrate:[200,100,200]});}catch(e){}
+}
+
+// ══════════════════════════════════════════════
+// POLLING
+// ══════════════════════════════════════════════
+let _poll=null;
+function startPolling(){stopPolling();_poll=setInterval(()=>syncWithDB(false),30000);}
+function stopPolling(){if(_poll){clearInterval(_poll);_poll=null;}}
+
+// ══════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════
 function navTo(p){
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
-  document.getElementById('pg-'+p).classList.add('active');
-  document.getElementById('nav-'+p).classList.add('active');
+  const pg=document.getElementById('pg-'+p);if(pg) pg.classList.add('active');
+  const nv=document.getElementById('nav-'+p);if(nv) nv.classList.add('active');
+  if(p==='cuenta'){showSub('cv-main');}
+  if(p==='admin') renderUsers();
 }
 
-function doLogout(){ location.reload(); }
-function toast2(m){
-  const t = document.getElementById('toast');
-  if(t) { t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
+function showSub(id){
+  document.querySelectorAll('#pg-cuenta .sub-view').forEach(v=>v.classList.remove('active'));
+  const el=document.getElementById(id);if(el) el.classList.add('active');
+  if(id==='cv-changepin') initCpNumpad();
+  if(id==='cv-changepw'){['pw-cur','pw-new','pw-con'].forEach(i=>{const el=document.getElementById(i);if(el) el.value='';});if(document.getElementById('pw-msg')) document.getElementById('pw-msg').textContent='';}
+  if(id==='cv-backend'){const inp=document.getElementById('cfg-backend');if(inp) inp.value=S.config.backendUrl;}
+  if(id==='cv-main'){renderCuentaProfile();updateNotifToggle();renderNotifBanner();}
 }
 
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+function saveConfig(){
+  let url=(document.getElementById('cfg-backend')?.value||'').trim();
+  if(url.endsWith('/')) url=url.slice(0,-1);
+  S.config.backendUrl=url;
+  LS.set('mialarm_cfg',S.config);
+  toast2('Guardado — conectando...');
+  syncWithDB(true);
+  setTimeout(()=>showSub('cv-main'),1200);
+}
+
+// ══════════════════════════════════════════════
+// INIT FORCE PIN on open
+// ══════════════════════════════════════════════
+// When s-force-pin is shown we build the numpad
+const _fpObs=new MutationObserver(()=>{
+  if(document.getElementById('s-force-pin').style.display==='flex') initForcePinNumpad();
+});
+_fpObs.observe(document.getElementById('s-force-pin'),{attributes:true,attributeFilter:['style']});
+
+// ══════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════
 load();
 </script>
 </body>
