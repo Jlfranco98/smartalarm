@@ -604,17 +604,42 @@ async function removeUser(username) {
 }
 
 // ── App Render & Nav ────────────────────────────────────────────────────────
-function renderApp(){
+async function renderApp(){
   const u = S.currentUser; if (!u) return;
+
+  // 1. CARGA GLOBAL: Pedimos al servidor la configuración guardada
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const data = await res.json();
+      // Si el servidor tiene datos, los cargamos en el estado de la App
+      S.config.backendUrl = data.backendUrl || '';
+      S.config.deviceId = data.deviceId || '';
+    }
+  } catch(e) { 
+    console.log("Error cargando config global, usando local..."); 
+  }
+
+  // 2. RENDER DE INTERFAZ (Lo que ya tenías)
   const isAdmin = (u.username === 'admin' || (u.role && u.role.toLowerCase() === 'admin'));
+  
   document.getElementById('acc-av').textContent = u.name.slice(0,2).toUpperCase();
   document.getElementById('acc-name').textContent = u.name;
   document.getElementById('acc-email').textContent = u.username;
   document.getElementById('acc-role').textContent = isAdmin ? 'Administrador' : 'Usuario';
   document.getElementById('tb-addr').textContent = 'Hola, ' + u.name.split(' ')[0];
+  
+  // Gestión de visibilidad de formularios
   document.getElementById('add-user-form').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('add-user-form-admin').style.display = isAdmin ? 'none' : 'block';
-  updateStatusUI(); renderLog(); renderUsersAdmin(); loadConfigForm();
+  
+  // 3. ACTUALIZACIÓN DE VISTAS
+  updateStatusUI(); 
+  renderLog(); 
+  renderUsersAdmin(); 
+  
+  // 4. RELLENAR FORMULARIO: Ahora se rellenará con los datos del servidor (Paso 1)
+  loadConfigForm();
 }
 
 function navTo(page){
@@ -689,11 +714,36 @@ function loadConfigForm(){
   document.getElementById('cfg-backend').value=S.config.backendUrl||'';
   document.getElementById('cfg-device').value=S.config.deviceId||'';
 }
-function saveConfig(){
-  S.config.backendUrl=document.getElementById('cfg-backend').value.trim();
-  S.config.deviceId=document.getElementById('cfg-device').value.trim();
-  save(); toast2('Configuración guardada');
+  
+async function saveConfig() {
+  const backendUrl = document.getElementById('cfg-backend').value.trim();
+  const deviceId = document.getElementById('cfg-device').value.trim();
+
+  // 1. Guardamos en el estado local de la app
+  S.config.backendUrl = backendUrl;
+  S.config.deviceId = deviceId;
+
+  try {
+    // 2. Enviamos al servidor (Railway) para que sea global
+    const response = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ backendUrl, deviceId })
+    });
+
+    if (response.ok) {
+      toast2('Configuración guardada para todos');
+    } else {
+      // Si falla el servidor, al menos guardamos en este dispositivo
+      save(); 
+      toast2('Guardado solo localmente');
+    }
+  } catch (e) {
+    save();
+    toast2('Sin conexión: Guardado local');
+  }
 }
+  
 function toggleCfgPanel(){const p=document.getElementById('cfg-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function togglePinPanel(){const p=document.getElementById('pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
