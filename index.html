@@ -221,7 +221,10 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
       <div class="lf-forgot"><a href="#">¿Olvidaste tu contraseña?</a></div>
       <button class="btn-red" onclick="doLogin()">Iniciar sesión</button>
       <div id="li-err" style="font-size:13px;color:var(--red);min-height:18px;margin-top:10px;text-align:center;font-weight:700"></div>
-    </div> </div> <div class="login-bottom">
+      </div>
+    </div>
+  </div>
+  <div class="login-bottom">
     <div class="login-register">El backend Tuya se configura dentro de la app en <strong>Mi cuenta</strong></div>
   </div>
 </div>
@@ -481,7 +484,7 @@ async function doLogin() {
 }
 
 function doLogout() {
-  ();
+  stopPolling();
   S.currentUser = null;
   
   // 2. Limpiamos los campos del formulario de login por seguridad
@@ -665,27 +668,21 @@ async function fetchStatus(){
 }
 
 let _pollTimer = null;
-
 function startPolling(){
-  stopPolling(); // Se asegura de no duplicar timers
-  fetchStatus(); // Sincronización inmediata
-  _pollTimer = setInterval(fetchStatus, 15000); // Cada 15 segundos
+  stopPolling();
+  fetchStatus(); // sync inmediato al entrar
+  _pollTimer = setInterval(fetchStatus, 15000); // cada 15s
 }
-
 function stopPolling(){
-  if(_pollTimer){ 
-    clearInterval(_pollTimer); 
-    _pollTimer = null; 
-  }
+  if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
 }
 
-// ESTA LÍNEA ES VITAL: Es el nombre de la función que agrupa el código de abajo
-function updateStatusUI() {
-  const cfg = STATUS_CFG[S.alarmStatus] || STATUS_CFG.disarmed;
-  document.getElementById('hs-circle').className = 'hs-circle ' + cfg.cirCls;
-  document.getElementById('hs-icon').innerHTML = cfg.icon;
-  document.getElementById('hs-status').textContent = cfg.label;
-  document.getElementById('hs-sub').textContent = cfg.sub;
+
+  const cfg=STATUS_CFG[S.alarmStatus]||STATUS_CFG.disarmed;
+  document.getElementById('hs-circle').className='hs-circle '+cfg.cirCls;
+  document.getElementById('hs-icon').innerHTML=cfg.icon;
+  document.getElementById('hs-status').textContent=cfg.label;
+  document.getElementById('hs-sub').textContent=cfg.sub;
 }
 
 function openPin(action){
