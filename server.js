@@ -259,17 +259,33 @@ app.post('/api/config', async (req, res) => {
 
 // Ejemplo de lógica en el servidor al recibir /api/control
 app.post('/api/control', async (req, res) => {
-  const { action, alarmStatus, deviceId } = req.body;
-  
-  // A. Aquí envías el comando real a TUYA
-  // B. Aquí guardas el estado en MongoDB (Colección 'status' o similar)
-  await db.collection('status').updateOne(
-    { deviceId: deviceId }, 
-    { $set: { alarmStatus: alarmStatus, updatedAt: new Date() } },
-    { upsert: true }
-  );
-  
-  res.sendStatus(200);
+  const { action, alarmStatus, deviceId, user } = req.body;
+
+  try {
+    // A. Aquí envías el comando a TUYA (lo que ya tienes)
+    
+    // B. Aquí actualizas el estado general (lo que ya tienes)
+    await db.collection('status').updateOne(
+      { deviceId: deviceId },
+      { $set: { alarmStatus: alarmStatus, updatedAt: new Date() } },
+      { upsert: true }
+    );
+
+    // === CREAR EL REGISTRO REAL ===
+    const nuevoLog = new Log({
+      usuario: user || 'Usuario', // El nombre que viene del móvil
+      accion: action === 'arm' ? 'Armado' : 'Desarmado',
+      fecha: new Date() // <--- ESTA FECHA SE QUEDA GRABADA A FUEGO
+    });
+    
+    await nuevoLog.save(); // Se guarda en la colección 'logs' de MongoDB
+    // ======================================================
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).send("Error");
+  }
 });
 
 // Ruta para controlar la alarma y guardar el estado en MongoDB
