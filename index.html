@@ -675,7 +675,7 @@ async function addUser() {
 }
 
 async function removeUser(username) {
-  if (!confirm(`¿Eliminar @${username}?`)) return;
+  if (!confirm(`¿Estas seguro de eliminar el usuario ${username}?`)) return;
   try {
     const res = await fetch(`/api/usuarios/${username}`, { method: 'DELETE' });
     if (res.ok) { renderUsersAdmin(); toast2('Usuario eliminado'); }
