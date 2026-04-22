@@ -343,6 +343,21 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           </div>
         </div>
 
+        <div class="sl-item" onclick="toggleChangePinPanel()">
+          <div class="sl-icon">🔢</div>
+          <div class="sl-label">Cambiar PIN de alarma</div>
+          <div class="sl-arrow">›</div>
+        </div>
+        <div id="change-pin-panel" style="display:none">
+          <div class="admin-card" style="margin-bottom:8px">
+            <div class="form-field"><label>PIN actual</label><input id="cp-old" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
+            <div class="form-field"><label>PIN nuevo</label><input id="cp-new1" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
+            <div class="form-field"><label>Repetir PIN nuevo</label><input id="cp-new2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
+            <button class="btn-add" onclick="changePin()" style="margin-top:10px;width:100%">Cambiar PIN</button>
+            <div class="err-small" id="cp-err" style="text-align:center;margin-top:5px"></div>
+          </div>
+        </div>
+
         <div class="sl-item" onclick="doLogout()">
           <div class="sl-icon">🚪</div>
           <div class="sl-label danger" style="color:var(--red)">Cerrar sesión</div>
@@ -439,23 +454,12 @@ const ACTION_NAMES = {arm_away:'Armado total', arm_home:'Armado en casa', disarm
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('mialarm')||'{}');
-    
-    // 1. Recuperamos la configuración (Esto ya lo tenías)
+    // Solo recuperamos config, la sesión SIEMPRE requiere login del servidor
     if(d.config) S.config={...S.config,...d.config};
-    
-    // 2. ¡IMPORTANTE! Recuperamos el usuario (Esto es lo que falta)
-    if(d.user) S.currentUser = d.user; 
-
+    // La nav siempre oculta al arrancar — solo se muestra tras login exitoso
     const nav = document.getElementById('main-nav');
-    if (S.currentUser) {
-        nav.style.display = 'flex';
-    } else {
-        nav.style.display = 'none';
-    }
-    
-    // 3. Ahora que S.currentUser ya existe, la función ya puede saber si eres Admin
-    if(typeof gestionarVisibilidadAdmin === 'function') gestionarVisibilidadAdmin();
-    
+    if(nav) nav.style.display = 'none';
+    S.currentUser = null;
   }catch(e){}
 }
   
@@ -938,6 +942,48 @@ async function saveConfig() {
   
 function toggleCfgPanel(){const p=document.getElementById('cfg-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function togglePinPanel(){const p=document.getElementById('pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
+function toggleChangePinPanel(){const p=document.getElementById('change-pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
+
+async function changePin() {
+  const oldPin  = document.getElementById('cp-old').value.trim();
+  const newPin1 = document.getElementById('cp-new1').value.trim();
+  const newPin2 = document.getElementById('cp-new2').value.trim();
+  const elErr   = document.getElementById('cp-err');
+
+  elErr.style.color = '#e8192c';
+  if (!oldPin || !newPin1 || !newPin2) { elErr.textContent = 'Rellena todos los campos'; return; }
+  if (!/^\d{4}$/.test(newPin1)) { elErr.textContent = 'El PIN debe tener exactamente 4 dígitos'; return; }
+  if (newPin1 !== newPin2) { elErr.textContent = 'Los PINs nuevos no coinciden'; return; }
+  if (oldPin === newPin1) { elErr.textContent = 'El PIN nuevo debe ser diferente al actual'; return; }
+
+  try {
+    const response = await fetch('/api/change-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: S.currentUser.username,
+        currentPin: oldPin,
+        newPin: newPin1
+      })
+    });
+    const data = await response.json();
+    if (data.success) {
+      elErr.style.color = '#00b562';
+      elErr.textContent = 'PIN actualizado correctamente';
+      document.getElementById('cp-old').value = '';
+      document.getElementById('cp-new1').value = '';
+      document.getElementById('cp-new2').value = '';
+      // Actualizamos el PIN en memoria para que funcione sin relogin
+      if (S.currentUser) S.currentUser.pin = newPin1;
+      save();
+      toast2('PIN de alarma actualizado');
+    } else {
+      elErr.textContent = data.message || 'PIN actual incorrecto';
+    }
+  } catch (e) {
+    elErr.textContent = 'Error de conexión';
+  }
+}
 
 function toast2(msg){
   const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
