@@ -234,14 +234,13 @@ app.post('/api/control', async (req, res) => {
     try {
         const { action, alarmStatus } = req.body;
 
-        // 1. Aquí iría tu lógica actual que conecta con Tuya...
+        // 1. Aquí va tu lógica de Tuya...
         
-        // 2. GUARDAR EN MONGODB (La clave de la sincronización)
-        // Usamos la misma lógica de tu 'global_config' pero para el estado
+        // 2. GUARDAR EN MONGODB DE FORMA SEGURA
         await Config.findOneAndUpdate(
             { id: 'global_config' }, 
-            { alarmStatus: alarmStatus }, // Guardamos el nuevo estado (armed/disarmed)
-            { upsert: true }
+            { $set: { alarmStatus: alarmStatus } }, 
+            { upsert: true, new: true }
         );
 
         res.json({ success: true });
