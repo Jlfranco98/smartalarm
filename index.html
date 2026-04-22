@@ -782,70 +782,16 @@ function toast2(msg){
 }
 
 document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-load();
-// ── Init e Interceptor de Actualizaciones ───────────────────────────────────
-load(); // Cargamos configuración local si existe
 
-// --- Control de Actualizaciones Moderno ---
-let newWorker;
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').then(reg => {
-    reg.addEventListener('updatefound', () => {
-      newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        // Cuando la nueva versión está lista y hay una versión anterior activa
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          showUpdateBar();
-        }
-      });
-    });
-  });
-}
-
-  async function refreshStatus() {
-    console.log("Refrescando estado e historial...");
-    
-    // 1. Cargamos el historial de nuevo
-    if (typeof loadHistory === 'function') {
-        await loadHistory();
-    }
-    
-    // 2. Aquí podrías añadir lógica para consultar el estado real de la alarma si lo necesitas
-    
-    // Feedback visual opcional
-    const btn = event.currentTarget;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = "✅";
-    setTimeout(() => btn.innerHTML = originalText, 1000);
-}
-
-function showUpdateBar() {
-  // Creamos un banner dinámico en la parte superior
-  const bar = document.createElement('div');
-  bar.style = `
-    position: fixed; top: 0; left: 0; width: 100%; 
-    background: var(--red); color: white; padding: 15px; 
-    text-align: center; z-index: 9999; font-weight: bold;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    display: flex; justify-content: center; align-items: center; gap: 15px;
-    animation: slideDown 0.4s ease;
-  `;
-  
-  bar.innerHTML = `
-    <span>Nueva versión disponible</span>
-    <button onclick="forceUpdate()" style="
-      background: white; color: var(--red); border: none; 
-      padding: 8px 15px; border-radius: 20px; font-weight: 800; cursor: pointer;">
-      ACTUALIZAR
-    </button>
-  `;
-  document.body.appendChild(bar);
-}
-
-function forceUpdate() {
-  if (newWorker) {
-    newWorker.postMessage({ action: 'skipWaiting' });
+// ── Funciones de UI ────────────────────────────────────────────────────────
+async function refreshStatus(event) {
+  await fetchStatus();
+  await fetchHistory();
+  const btn = event?.currentTarget;
+  if (btn) {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅';
+    setTimeout(() => btn.innerHTML = orig, 1000);
   }
 }
 
@@ -857,15 +803,75 @@ function closePin(){
 }
 
 function closePinOutside(e) {
-  if (e.target.id === 'pin-modal-bg') {
-    closePin();
+  if (e.target.id === 'pin-modal-bg') closePin();
+}
+
+
+
+// ── Carga inicial ──────────────────────────────────────────────────────────
+load();
+
+// ── Service Worker & Control de Actualizaciones ───────────────────────────
+let newWorker;
+
+if ('serviceWorker' in navigator) {
+
+  navigator.serviceWorker.register('sw.js').then(reg => {
+
+    // Detectar nueva versión disponible
+    reg.addEventListener('updatefound', () => {
+      newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateBar();
+        }
+      });
+    });
+
+    // Forzar comprobación de actualización en cada carga
+    reg.update();
+
+  }).catch(err => console.warn('[SW] Error al registrar:', err));
+
+  // Recargar cuando el nuevo SW toma el control
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+
+}
+
+function showUpdateBar() {
+  if (document.getElementById('update-bar')) return; // evitar duplicados
+  const bar = document.createElement('div');
+  bar.id = 'update-bar';
+  bar.style.cssText = `
+    position:fixed;top:0;left:0;width:100%;
+    background:var(--red);color:white;padding:14px 20px;
+    text-align:center;z-index:9999;font-weight:800;font-size:14px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.2);
+    display:flex;justify-content:center;align-items:center;gap:14px;
+    animation:slideDown 0.4s ease;
+  `;
+  bar.innerHTML = `
+    <span>🆕 Nueva versión disponible</span>
+    <button onclick="forceUpdate()" style="
+      background:white;color:var(--red);border:none;
+      padding:7px 16px;border-radius:20px;font-weight:800;
+      font-family:'Nunito',sans-serif;cursor:pointer;font-size:13px;">
+      ACTUALIZAR
+    </button>
+  `;
+  document.body.appendChild(bar);
+}
+
+function forceUpdate() {
+  if (newWorker) {
+    newWorker.postMessage({ action: 'skipWaiting' });
+  } else {
+    window.location.reload();
   }
 }
 
-// Recarga automática al activarse el nuevo SW
-navigator.serviceWorker.addEventListener('controllerchange', () => {
-  window.location.reload();
-});
 </script>
 </body>
 </html>
