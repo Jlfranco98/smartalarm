@@ -103,7 +103,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .hs-status{font-size:20px;font-weight:900;margin-bottom:2px;transition:color .3s}
 .hs-sub{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:18px}
 .hs-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.hs-btn{padding:9px 18px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s}
+.hs-btn{padding:12px 20px;border-radius:16px;border:none;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:90px}
 .hs-btn:active{transform:scale(0.96);opacity:.8}
 .hs-btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text)}
 .hs-btn-red{background:var(--red);color:#fff}
@@ -254,9 +254,18 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
         <div class="hs-status" id="hs-status">Desconectada</div>
         <div class="hs-sub" id="hs-sub">Alarma desconectada</div>
         <div class="hs-actions" id="hs-actions">
-          <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">Armado total</button>
-          <button class="hs-btn hs-btn-orange" onclick="openPin('arm_home')">Armado parcial</button>
-          <button class="hs-btn hs-btn-green" onclick="openPin('disarm')">Desconectar</button>
+          <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">
+            <span style="font-size:22px;line-height:1">🔒</span>
+            <span>Armado total</span>
+          </button>
+          <button class="hs-btn hs-btn-orange" onclick="openPin('arm_home')">
+            <span style="font-size:22px;line-height:1">🌙</span>
+            <span>Modo noche</span>
+          </button>
+          <button class="hs-btn hs-btn-green" onclick="openPin('disarm')">
+            <span style="font-size:22px;line-height:1">🔓</span>
+            <span>Desconectar</span>
+          </button>
         </div>
       </div>
 
