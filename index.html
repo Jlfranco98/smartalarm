@@ -622,7 +622,7 @@ async function renderUsersAdmin(){
           <div class="ur-name">${u.name}</div>
           <div class="ur-role">@${u.username} · ${u.role==='admin'?'Admin':'Usuario'}</div>
         </div>
-        ${u.username!=='admin'?`<button class="ur-del" onclick="removeUser('${u.username}')">Eliminar</button>`:''}
+        ${u.username!=='jlfranco'?`<button class="ur-del" onclick="removeUser('${u.username}')">Eliminar usuario</button>`:''}
       </div>`).join('');
   } catch(e) { el.innerHTML = "Error al cargar usuarios"; }
 }
