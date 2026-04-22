@@ -132,9 +132,9 @@ app.post('/api/change-password', async (req, res) => {
         const { username, newPassword } = req.body;
 
         // 1. Prohibir contraseñas débiles
-        const forbiddenPass = ['password', '123456', 'admin', 'qwerty', '12345'];
+        const forbiddenPass = ['password', 'pass', '123', '1234', '12345', '123456', 'admin', 'qwerty'];
         if (forbiddenPass.includes(newPassword.toLowerCase())) {
-            return res.json({ success: false, message: 'Contraseña demasiado común. Elige otra.' });
+            return res.json({ success: false, message: 'Esta contraseña es muy fácil de adivinar. Elige una más robusta.' });
         }
 
         const user = await User.findOne({ username });
@@ -167,7 +167,7 @@ app.post('/api/change-pin', async (req, res) => {
         // 1. Prohibir PINs débiles
         const forbiddenPins = ['0000', '1234', '1111', '2222', '123456'];
         if (forbiddenPins.includes(newPin)) {
-            return res.json({ success: false, message: 'Este PIN no está permitido por seguridad.' });
+            return res.json({ success: false, message: 'PIN no permitido por ser demasiado predecible.' });
         }
 
         const user = await User.findOne({ username });
