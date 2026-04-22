@@ -502,6 +502,19 @@ function doLogout() {
   
   console.log("Sesión cerrada y estado reiniciado");
 }
+
+  // MOSTRAR SOLO BOTON CONFIGURACION URL SI ERES ADMIN
+function gestionarVisibilidadAdmin() {
+    const itemTuya = document.querySelector('.admin-only');
+    if (!itemTuya) return; 
+
+    // IMPORTANTE: Aquí verificamos si el rol es exactamente el que sale en tu captura
+    if (S.currentUser && S.currentUser.role === 'ADMINISTRADOR') {
+        itemTuya.style.display = 'flex';
+    } else {
+        itemTuya.style.display = 'none';
+    }
+}
   
 // ── Cambio de Contraseña (Único y Corregido) ───────────────────────────────
 async function changePassword() {
