@@ -69,6 +69,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .topbar{background:var(--white);padding:calc(var(--safe-top) + 12px) 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:relative;z-index:10}
 .tb-brand{font-size:22px;font-weight:900;color:var(--red);letter-spacing:-0.5px}
 .tb-address{font-size:14px;color:#333;font-weight:500;display:flex;justify-content:center;align-items:center;background:#f0f2f5;padding:5px 15px;border-radius:20px;margin:0 10px;white-space:nowrap}.user-name-style{margin-left:6px;font-weight:700;color:var(--red)}
+.admin-only{display:none}
 .user-name-style { margin-left: 6px; font-weight: 700; color: #e8192c; }
 @media(max-width:480px){.tb-address{font-size:12px;padding:4px 8px;margin:0 5px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tb-brand{font-size:16px}}
 .tb-icons{display:flex;gap:4px}
@@ -622,7 +623,7 @@ async function renderUsersAdmin(){
           <div class="ur-name">${u.name}</div>
           <div class="ur-role">@${u.username} · ${u.role==='admin'?'Admin':'Usuario'}</div>
         </div>
-        ${u.username!=='admin'?`<button class="ur-del" onclick="removeUser('${u.username}')">Eliminar</button>`:''}
+       ${currentUser.username === 'jlfranco' && u.username !== 'admin' ? `<button class="ur-del" onclick="removeUser('${u.username}')">Eliminar</button>` : ''}
       </div>`).join('');
   } catch(e) { el.innerHTML = "Error al cargar usuarios"; }
 }
