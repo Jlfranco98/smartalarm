@@ -40,8 +40,7 @@ const logSchema = new mongoose.Schema({
 const configSchema = new mongoose.Schema({
     id: { type: String, default: 'global_config', unique: true },
     backendUrl: String,
-    deviceId: String,
-    alarmStatus: { type: String, default: 'disarmed' }
+    deviceId: String
 }, { collection: 'configs' });
 
 const User = mongoose.model('User', userSchema);
@@ -157,7 +156,7 @@ async function tuyaRequest(method, urlPath, body = null, token = "") {
 }
 
 app.post('/api/control', async (req, res) => {
-    const { action, user, alarmStatus } = req.body;
+    const { action, user } = req.body;
     const mapping = { 'disarm': 'switch_1', 'arm_home': 'switch_2', 'arm_away': 'switch_3', 'sos': 'switch_4' };
     const code = mapping[action];
 
@@ -169,31 +168,12 @@ app.post('/api/control', async (req, res) => {
             commands: [{ code: code, value: true }]
         }, tokenData.result.access_token);
 
-        if (result.success) {
-            // Guardar en historial
+        if(result.success) {
             await new Log({ usuario: user || 'Sistema', accion: action }).save();
-
-            // Persistir el nuevo estado de la alarma en MongoDB
-            const newStatus = alarmStatus || (action === 'disarm' ? 'disarmed' : action === 'arm_away' ? 'armed' : 'arm_home');
-            await Config.findOneAndUpdate(
-                { id: 'global_config' },
-                { alarmStatus: newStatus },
-                { upsert: true, new: true }
-            );
         }
         res.json({ success: result.success, result: result.result });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-// ESTADO ACTUAL: Devuelve el estado de la alarma para sincronización entre dispositivos
-app.get('/api/status', async (req, res) => {
-    try {
-        const config = await Config.findOne({ id: 'global_config' });
-        res.json({ alarmStatus: config?.alarmStatus || 'disarmed' });
-    } catch (e) {
-        res.status(500).json({ alarmStatus: 'disarmed' });
     }
 });
 
