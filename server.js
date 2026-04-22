@@ -73,6 +73,7 @@ app.post('/api/usuarios', async (req, res) => {
             password: hashedPassword,
             pin,
             role: role || 'user'
+            isNew: true
         });
 
         await newUser.save();
@@ -116,7 +117,17 @@ app.post('/api/login', async (req, res) => {
         const { username, password } = req.body;
         const user = await User.findOne({ username });
         if (user && await bcrypt.compare(password, user.password)) {
-            res.json({ success: true, user: { name: user.name, username: user.username, role: user.role, pin: user.pin } });
+            // AÑADIMOS isNew AQUÍ:
+            res.json({ 
+                success: true, 
+                user: { 
+                    name: user.name, 
+                    username: user.username, 
+                    role: user.role, 
+                    pin: user.pin,
+                    isNew: user.isNew // <-- Esto es lo que le falta a tu Frontend
+                } 
+            });
         } else {
             res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
         }
@@ -137,6 +148,7 @@ app.post('/api/change-password', async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
+        user.isNew = false;
         await user.save();
 
         res.json({ success: true, message: 'Contraseña actualizada correctamente' });
