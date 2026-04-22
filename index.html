@@ -798,34 +798,29 @@ async function applyAction(action, userName) {
 }
 
 function renderLog() {
-  const items = S.log || []; 
+  const items = S.log || [];
 
-  const htmlArray = items.map(l => {
-    // --- LÓGICA DE FECHA Y HORA FORMATEADA ---
-    let fechaYHoraVisible = "--/--/---- - --:--h";
-    
-    // Capturamos la fecha (manejando el objeto $date de tu MongoDB)
-    let fechaRaw = l.fecha?.$date || l.fecha;
+  const html = items.length ? items.map(l => {
+    // 1. EXTRAEMOS LA FECHA DE LA BASE DE DATOS
+    // Importante: No creamos un "new Date()" vacío si no hay dato
+    let raw = l.fecha?.$date || l.fecha;
+    let fechaTexto = "--/--/---- - --:--h";
 
-    if (fechaRaw) {
-      const d = new Date(fechaRaw);
-      
+    if (raw) {
+      const d = new Date(raw);
+      // Solo si la fecha es válida, extraemos los datos
       if (!isNaN(d.getTime())) {
-        // Extraemos partes de la fecha
         const dia = d.getDate().toString().padStart(2, '0');
-        const mes = (d.getMonth() + 1).toString().padStart(2, '0'); // Enero es 0
+        const mes = (d.getMonth() + 1).toString().padStart(2, '0');
         const anio = d.getFullYear();
-        
-        // Extraemos partes de la hora
         const horas = d.getHours().toString().padStart(2, '0');
         const minutos = d.getMinutes().toString().padStart(2, '0');
         
-        // Montamos el formato: 22/04/2026 - 08:40h
-        fechaYHoraVisible = `${dia}/${mes}/${anio} - ${horas}:${minutos}h`;
+        fechaTexto = `${dia}/${mes}/${anio} - ${horas}:${minutos}h`;
       }
     }
 
-    // Color del punto
+    // Color del punto (Gris para desarmado, Verde para armado)
     const dotClass = (l.accion === 'Desarmado' || l.accion === 'disarm') ? 'hi-disarmed' : 'hi-armed';
 
     return `
@@ -835,19 +830,12 @@ function renderLog() {
           <div class="hi-action">${l.accion || l.action || 'Acción'}</div>
           <div class="hi-user">${l.usuario || l.user || 'Sistema'}</div>
         </div>
-        <div class="hi-time" style="min-width: 140px;">${fechaYHoraVisible}</div>
+        <div class="hi-time" style="min-width: 150px;">${fechaTexto}</div>
       </div>`;
-  });
+  }).join('') : '<div class="err-small">Sin actividad</div>';
 
-  // RENDERIZADO
-  const finalHtml = htmlArray.length ? htmlArray.join('') : '<div class="err-small">Sin actividad</div>';
-  
-  if (document.getElementById('home-log')) {
-    document.getElementById('home-log').innerHTML = htmlArray.slice(0, 4).join('');
-  }
-  if (document.getElementById('full-log')) {
-    document.getElementById('full-log').innerHTML = finalHtml;
-  }
+  if (document.getElementById('home-log')) document.getElementById('home-log').innerHTML = html;
+  if (document.getElementById('full-log')) document.getElementById('full-log').innerHTML = html;
 }
 
 // ── Otros ──────────────────────────────────────────────────────────────────
