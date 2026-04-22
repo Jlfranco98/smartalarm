@@ -606,20 +606,29 @@ async function removeUser(username) {
 async function renderApp(){
   const u = S.currentUser; if (!u) return;
 
-  // 1. CARGA GLOBAL: Pedimos al servidor la configuración guardada
+  // 1. CARGA CONFIG GLOBAL: Pedimos al servidor la configuración guardada
   try {
     const res = await fetch('/api/config');
     if (res.ok) {
       const data = await res.json();
-      // Si el servidor tiene datos, los cargamos en el estado de la App
       S.config.backendUrl = data.backendUrl || '';
       S.config.deviceId = data.deviceId || '';
     }
   } catch(e) { 
-    console.log("Error cargando config global, usando local..."); 
+    console.log("Error cargando config global..."); 
   }
 
-  // 2. RENDER DE INTERFAZ (Lo que ya tenías)
+  // === NUEVO: SINCRONIZACIÓN DE ESTADO INMEDIATA ===
+  // Esto es lo que hace que el móvil se entere de cómo está la alarma al abrirse
+  try {
+    await fetchStatus();  // Trae S.alarmStatus actualizado del servidor
+    await fetchHistory(); // Trae el log de actividad real
+  } catch(e) {
+    console.log("Error en sincronización inicial");
+  }
+  // ================================================
+
+  // 2. RENDER DE INTERFAZ
   const isAdmin = (u.username === 'admin' || (u.role && u.role.toLowerCase() === 'admin'));
   
   document.getElementById('acc-av').textContent = u.name.slice(0,2).toUpperCase();
@@ -630,15 +639,19 @@ async function renderApp(){
   
   // Gestión de visibilidad de formularios
   document.getElementById('add-user-form').style.display = isAdmin ? 'block' : 'none';
-  document.getElementById('add-user-form-admin').style.display = isAdmin ? 'none' : 'block';
+  const nonAdminNote = document.getElementById('add-user-form-admin');
+  if(nonAdminNote) nonAdminNote.style.display = isAdmin ? 'none' : 'block';
   
   // 3. ACTUALIZACIÓN DE VISTAS
-  updateStatusUI(); 
-  renderLog(); 
+  updateStatusUI(); // Ahora pintará el estado real traído en el paso anterior
+  renderLog();      // Ahora pintará el historial real del servidor
   renderUsersAdmin(); 
   
-  // 4. RELLENAR FORMULARIO: Ahora se rellenará con los datos del servidor (Paso 1)
+  // 4. RELLENAR FORMULARIO
   loadConfigForm();
+
+  // 5. INICIAR POLLING: Para que siga sincronizado si dejas la app abierta
+  startPolling(); 
 }
 
 function navTo(page){
@@ -717,19 +730,41 @@ function checkPin(){
   applyAction(pinAction,S.currentUser.name);
 }
 
-function applyAction(action,userName){
-  S.alarmStatus=action==='disarm'?'disarmed':action==='arm_away'?'armed':'arm_home';
-  updateStatusUI();
-  const now=new Date();
-  const time=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-  S.log.unshift({action:ACTION_NAMES[action]||action, user:userName, time, status:S.alarmStatus});
-  renderLog(); toast2(ACTION_NAMES[action]);
-  // Envía el comando Y persiste el estado en MongoDB
-  fetch('/api/control',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action, user:userName, deviceId:S.config.deviceId, alarmStatus:S.alarmStatus})
-  });
+async function applyAction(action, userName) {
+  // ELIMINADO: Ya no cambiamos S.alarmStatus aquí manualmente.
+  // Dejamos que el servidor reciba la orden y el "polling" (fetchStatus)
+  // actualice todos los dispositivos por igual.
+
+  try {
+    const response = await fetch('/api/control', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action, 
+        user: userName, 
+        deviceId: S.config.deviceId 
+        // No enviamos alarmStatus, el servidor sabe qué hacer con la 'action'
+      })
+    });
+
+    if (response.ok) {
+      toast2(ACTION_NAMES[action] || 'Enviando...');
+      
+      // Forzamos una actualización inmediata para que este dispositivo 
+      // vea el cambio rápido sin esperar los 15 segundos del timer.
+      setTimeout(async () => {
+        await fetchStatus(); // Esto actualizará S.alarmStatus y la UI
+        await fetchHistory(); // Esto actualizará el log con el movimiento real
+        renderLog();
+      }, 1000); 
+
+    } else {
+      toast2('Error en la respuesta del servidor');
+    }
+  } catch (e) {
+    console.error(e);
+    toast2('Error de conexión');
+  }
 }
 
 function renderLog(){
