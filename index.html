@@ -619,14 +619,25 @@ async function renderApp(){
   }
 
   // === NUEVO: SINCRONIZACIÓN DE ESTADO INMEDIATA ===
-  // Esto es lo que hace que el móvil se entere de cómo está la alarma al abrirse
+// Esto es lo que hace que el móvil se entere de cómo está la alarma al abrirse
+async function iniciarApp() {
   try {
-    await fetchStatus();  // Trae S.alarmStatus actualizado del servidor
-    await fetchHistory(); // Trae el log de actividad real
+    await fetchStatus();          // Trae el color del círculo (Armado/Desarmado)
+    await fetchHistorialGlobal(); // <--- USA ESTE NOMBRE (trae los logs de todos)
   } catch(e) {
-    console.log("Error en sincronización inicial");
+    console.log("Error en sincronización inicial", e);
   }
-  // ================================================
+}
+
+// Ejecutamos la sincronización inicial
+iniciarApp();
+
+// Y dejamos el motor encendido para que se refresque solo cada 10 segundos
+setInterval(() => {
+    fetchStatus();
+    fetchHistorialGlobal();
+}, 10000);
+// ================================================
 
   // 2. RENDER DE INTERFAZ
   const isAdmin = (u.username === 'admin' || (u.role && u.role.toLowerCase() === 'admin'));
@@ -689,6 +700,19 @@ function startPolling(){
 }
 function stopPolling(){
   if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
+}
+
+async function fetchHistorialGlobal() {
+    try {
+        const res = await fetch('/api/logs');
+        if (res.ok) {
+            const data = await res.json();
+            S.log = data; // Guardamos lo que viene de Railway
+            renderLog();  // Llamamos a tu función de dibujo (la que arreglamos antes)
+        }
+    } catch (e) {
+        console.log("Error sincronizando historial");
+    }
 }
 
 function updateStatusUI() {
@@ -773,12 +797,51 @@ async function applyAction(action, userName) {
   }
 }
 
-function renderLog(){
-  const isAdmin=S.currentUser?.role==='admin';
-  const items=isAdmin?S.log:S.log.filter(l=>l.user===S.currentUser?.name);
-  const html=items.length?items.map(l=>`<div class="hist-item"><div class="hi-dot hi-${l.status}"></div><div class="hi-info"><div class="hi-action">${l.action}</div><div class="hi-user">${l.user}</div></div><div class="hi-time">${l.time}</div></div>`).join(''):'<div class="err-small">Sin actividad</div>';
-  if(document.getElementById('home-log')) document.getElementById('home-log').innerHTML=html.slice(0,4);
-  if(document.getElementById('full-log')) document.getElementById('full-log').innerHTML=html;
+function renderLog() {
+  // 1. GLOBAL: Quitamos el filtro de isAdmin para que todos vean la actividad de todos
+  const items = S.log; 
+
+  const html = items.length ? items.map(l => {
+    
+    // --- 2. CORRECCIÓN DE FECHA (De larga a HH:mm) ---
+    let horaVisible = "--:--";
+    if (l.fecha) {
+      const d = new Date(l.fecha); 
+      const horas = d.getHours().toString().padStart(2, '0');
+      const minutos = d.getMinutes().toString().padStart(2, '0');
+      horaVisible = `${horas}:${minutos}`; // Resultado: "09:17"
+    } else if (l.time) {
+      horaVisible = l.time; // Por si queda algún log antiguo en memoria
+    }
+
+    // 3. COLOR DEL PUNTO (Basado en la acción)
+    // Si la acción es "Desarmado" ponemos gris, si no, rojo/verde
+    const dotClass = (l.accion === 'Desarmado') ? 'hi-disarmed' : 'hi-armed';
+
+    return `
+      <div class="hist-item">
+        <div class="hi-dot ${dotClass}"></div>
+        <div class="hi-info">
+          <div class="hi-action">${l.accion || l.action}</div>
+          <div class="hi-user">${l.usuario || l.user}</div>
+        </div>
+        <div class="hi-time">${horaVisible}</div>
+      </div>`;
+  }).join('') : '<div class="err-small">Sin actividad</div>';
+
+  // 4. RENDERIZADO (Cortamos a 4 para la home, completo para el log total)
+  if(document.getElementById('home-log')) {
+    document.getElementById('home-log').innerHTML = items.length ? items.slice(0,4).map(l => {
+        // (Repetimos la lógica de mapeo o extraemos a función externa si prefieres)
+        // Por simplicidad, aquí lo inyectamos directamente:
+        return html; 
+    }).join('') : html; // Si prefieres, puedes simplemente usar:
+    document.getElementById('home-log').innerHTML = html.split('</div></div>').slice(0,4).join('</div></div>') + '</div></div>';
+  }
+  
+  // Opción más limpia para la home:
+  if(document.getElementById('home-log')) document.getElementById('home-log').innerHTML = html; 
+  if(document.getElementById('full-log')) document.getElementById('full-log').innerHTML = html;
 }
 
 // ── Otros ──────────────────────────────────────────────────────────────────
