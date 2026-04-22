@@ -439,12 +439,27 @@ const ACTION_NAMES = {arm_away:'Armado total', arm_home:'Armado en casa', disarm
 function load(){
   try{
     const d=JSON.parse(localStorage.getItem('mialarm')||'{}');
-    if(d.config)S.config={...S.config,...d.config};
+    
+    // 1. Recuperamos la configuración (Esto ya lo tenías)
+    if(d.config) S.config={...S.config,...d.config};
+    
+    // 2. ¡IMPORTANTE! Recuperamos el usuario (Esto es lo que falta)
+    if(d.user) S.currentUser = d.user; 
+    
+    // 3. Ahora que S.currentUser ya existe, la función ya puede saber si eres Admin
     if(typeof gestionarVisibilidadAdmin === 'function') gestionarVisibilidadAdmin();
+    
   }catch(e){}
 }
+  
 function save(){
-  try{localStorage.setItem('mialarm',JSON.stringify({config:S.config}));}catch(e){}
+  try {
+    // Guardamos la configuración Y el usuario actual (con su rol de ADMIN)
+    localStorage.setItem('mialarm', JSON.stringify({
+      config: S.config,
+      user: S.currentUser 
+    }));
+  } catch(e) {}
 }
 
 // ── Login / Logout ─────────────────────────────────────────────────────────
