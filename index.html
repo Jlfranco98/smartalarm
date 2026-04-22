@@ -232,11 +232,11 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
   <!-- Top bar -->
   <div class="topbar">
-    <div class="tb-brand">MiAlarma</div>
+    <div class="tb-brand">Smart Alarm</div>
     <div class="tb-address" id="tb-addr">Mi casa</div>
     <div class="tb-icons">
-      <button class="tb-icon-btn" onclick="refreshStatus(event)" title="Actualizar">🔄</button>
-      <button class="tb-icon-btn" onclick="navTo('cuenta')" title="Cuenta">👤</button>
+      <button class="tb-icon-btn" onclick="refreshStatus(event)" title="Actualizar">🔄 Actualizar estado</button>
+      <button class="tb-icon-btn" onclick="navTo('cuenta')" title="Cuenta">👤 Perfil</button>
     </div>
   </div>
 
@@ -251,7 +251,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           <div class="hs-icon" id="hs-icon">🔓</div>
         </div>
         <div class="hs-status" id="hs-status">Desconectada</div>
-        <div class="hs-sub" id="hs-sub">Sistema en reposo</div>
+        <div class="hs-sub" id="hs-sub">Alarma desconectada</div>
         <div class="hs-actions" id="hs-actions">
           <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">Armar total</button>
           <button class="hs-btn hs-btn-orange" onclick="openPin('arm_home')">En casa</button>
@@ -276,18 +276,18 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
         <div class="qa-card" onclick="navTo('cuenta')">
           <div class="qa-icon">⚙️</div>
           <div class="qa-label">Configuración</div>
-          <div class="qa-sub">Backend &amp; API</div>
+          <div class="qa-sub">Parametros de la instalacion</div>
         </div>
         <div class="qa-card" onclick="toast2('Próximamente')">
           <div class="qa-icon">🔔</div>
-          <div class="qa-label">Notificaciones</div>
+          <div class="qa-label">Notificaciones (PROXIMAMENTE)</div>
           <div class="qa-sub">Alertas push</div>
         </div>
       </div>
 
       <div class="sec-hdr">
         <span class="sec-title">Últimos eventos</span>
-        <span class="sec-more" onclick="navTo('historial')">Ver todos →</span>
+        <span class="sec-more" onclick="navTo('historial')">Ver todos los eventos →</span>
       </div>
       <div class="hist-list" id="home-log"></div>
     </div>
