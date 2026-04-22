@@ -28,7 +28,8 @@ const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     pin: String,
-    role: { type: String, default: 'user' }
+    role: { type: String, default: 'user' },
+    isNew: { type: Boolean, default: true }
 }, { collection: 'users', timestamps: true });
 
 const logSchema = new mongoose.Schema({
@@ -73,7 +74,6 @@ app.post('/api/usuarios', async (req, res) => {
             password: hashedPassword,
             pin,
             role: role || 'user'
-            isNew: true
         });
 
         await newUser.save();
@@ -117,17 +117,7 @@ app.post('/api/login', async (req, res) => {
         const { username, password } = req.body;
         const user = await User.findOne({ username });
         if (user && await bcrypt.compare(password, user.password)) {
-            // AÑADIMOS isNew AQUÍ:
-            res.json({ 
-                success: true, 
-                user: { 
-                    name: user.name, 
-                    username: user.username, 
-                    role: user.role, 
-                    pin: user.pin,
-                    isNew: user.isNew // <-- Esto es lo que le falta a tu Frontend
-                } 
-            });
+           res.json({ success: true, user: { name: user.name, username: user.username, role: user.role, pin: user.pin, isNew: user.isNew } });
         } else {
             res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
         }
