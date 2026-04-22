@@ -674,12 +674,17 @@ function stopPolling(){
   if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
 }
 
-
-  const cfg=STATUS_CFG[S.alarmStatus]||STATUS_CFG.disarmed;
-  document.getElementById('hs-circle').className='hs-circle '+cfg.cirCls;
-  document.getElementById('hs-icon').innerHTML=cfg.icon;
-  document.getElementById('hs-status').textContent=cfg.label;
-  document.getElementById('hs-sub').textContent=cfg.sub;
+function updateStatusUI() {
+  const cfg = STATUS_CFG[S.alarmStatus] || STATUS_CFG.disarmed;
+  
+  // Añadimos validación por seguridad
+  const circle = document.getElementById('hs-circle');
+  if (circle) {
+    circle.className = 'hs-circle ' + cfg.cirCls;
+    document.getElementById('hs-icon').innerHTML = cfg.icon;
+    document.getElementById('hs-status').textContent = cfg.label;
+    document.getElementById('hs-sub').textContent = cfg.sub;
+  }
 }
 
 function openPin(action){
