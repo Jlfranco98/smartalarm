@@ -437,14 +437,14 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 <div id="force-change-screen" class="screen" style="z-index: 1000; background: var(--bg); display: none; flex-direction: column; padding: 20px;">
     <div class="account-hero">
       <div class="acc-avatar">🔑</div>
-      <div class="acc-name">Seguridad requerida</div>
-      <div class="acc-email">Por favor, personaliza tus credenciales para continuar</div>
+      <div class="acc-name">Configurar nuevo perfil de usuario</div>
+      <div class="acc-email">Por favor, configure una nueva contraseña y un nuevo PIN de seguridad</div>
     </div>
     
     <div class="admin-card" style="margin-top: 20px;">
       <div class="form-field"><label>Nueva Contraseña</label><input id="force-pass" type="password" placeholder="Mínimo 6 caracteres"></div>
       <div class="form-field"><label>Nuevo PIN (4 dígitos)</label><input id="force-pin" type="password" maxlength="4" inputmode="numeric" placeholder="••••"></div>
-      <button class="btn-red" onclick="applyForceChange()">Guardar y Empezar</button>
+      <button class="btn-red" onclick="applyForceChange()">Configurar mi cuenta</button>
       <div id="force-err" class="err-small" style="text-align:center; margin-top:10px"></div>
     </div>
   </div>
@@ -1168,7 +1168,7 @@ async function applyForceChange() {
     renderApp();
     document.getElementById('s-app').classList.add('active');
     document.getElementById('main-nav').style.display = 'flex';
-    toast2('¡Bienvenido! Datos actualizados.');
+    toast2('DATOS ACTUALIZADOS CORRECTAMENTE');
     
   } catch(e) {
     err.textContent = "Error al conectar con el servidor.";
