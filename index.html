@@ -910,7 +910,7 @@ function renderLog() {
         </div>
         <div class="hi-time" style="min-width: 150px;">${fechaTexto}</div>
       </div>`;
-  }).join('') : '<div class="err-small">Sin actividad</div>';
+  }).join('') : '<div class="err-small">No hay ningún evento reciente</div>';
 
   // 1. Generamos el HTML para el INICIO (Solo el último evento)
   const htmlHome = items.slice(0, 1).map(l => {
@@ -932,7 +932,7 @@ function renderLog() {
 
   // 2. Inyectamos en cada contenedor (Sustituye tus líneas marcadas por esto)
   if (document.getElementById('home-log')) {
-    document.getElementById('home-log').innerHTML = items.length > 0 ? htmlHome : '<div class="err-small">Sin actividad</div>';
+    document.getElementById('home-log').innerHTML = items.length > 0 ? htmlHome : '<div class="err-small">No hay eventos registrados</div>';
   }
   if (document.getElementById('full-log')) {
     // Para el historial completo usamos la variable 'html' original que ya tienes en tu código
