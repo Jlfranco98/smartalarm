@@ -530,7 +530,7 @@ function gestionarVisibilidadAdmin() {
     if (!itemTuya) return;
 
     // Aquí forzamos la comprobación y vemos qué falla
-    if (S.currentUser && S.currentUser.role === 'ADMINISTRADOR') {
+    if (S.currentUser && S.currentUser.role === 'admin') {
         console.log("¡Eres Admin! Mostrando botón...");
         itemTuya.style.display = 'flex';
     } else {
