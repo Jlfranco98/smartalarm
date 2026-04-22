@@ -345,7 +345,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
         <div class="sl-item" onclick="toggleChangePinPanel()">
           <div class="sl-icon">🔢</div>
-          <div class="sl-label">Cambiar PIN de alarma</div>
+          <div class="sl-label">Cambiar PIN personal</div>
           <div class="sl-arrow">›</div>
         </div>
         <div id="change-pin-panel" style="display:none">
@@ -379,7 +379,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           <div class="form-field"><label>Nombre</label><input id="nu-name" placeholder="Nombre completo"></div>
           <div class="form-field"><label>Usuario (login)</label><input id="nu-user" placeholder="usuario123"></div>
           <div class="form-field"><label>Contraseña</label><input id="nu-pass" type="password" placeholder="••••••••"></div>
-          <div class="form-field"><label>PIN alarma (4 dígitos)</label><input id="nu-pin" type="password" maxlength="4" placeholder="••••"></div>
+          <div class="form-field"><label>PIN personal (4 dígitos)</label><input id="nu-pin" type="password" maxlength="4" placeholder="••••"></div>
           <div class="form-field"><label>Rol</label>
             <select id="nu-role"><option value="user">Usuario</option><option value="admin">Admin</option></select>
           </div>
@@ -422,7 +422,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 <div class="pin-modal-bg" id="pin-modal-bg" onclick="closePinOutside(event)">
   <div class="pin-modal">
     <div class="pm-title" id="pm-title">Confirmar acción</div>
-    <div class="pm-sub" id="pm-sub">Ingresa tu PIN de alarma</div>
+    <div class="pm-sub" id="pm-sub">Ingresa tu PIN personal</div>
     <div class="pm-dots" id="pm-dots"></div>
     <div class="pm-numpad" id="pm-numpad"></div>
     <div class="pm-err" id="pm-err"></div>
@@ -444,11 +444,11 @@ let S = {
 let pinBuffer = '', pinAction = '';
 
 const STATUS_CFG = {
-  disarmed: {label:'Desconectada', sub:'Sistema en reposo',       icon:'🔓', cirCls:'hs-circle-disarmed', color:'var(--green)'},
+  disarmed: {label:'Desconectada', sub:'Sistema desconectado',       icon:'🔓', cirCls:'hs-circle-disarmed', color:'var(--green)'},
   armed:    {label:'Conectada total',sub:'Protección máxima activa',icon:'🔒', cirCls:'hs-circle-armed',    color:'var(--red)'},
-  arm_home: {label:'Conectada en casa',sub:'Modo en casa activo',  icon:'🏠', cirCls:'hs-circle-home',     color:'var(--orange)'},
+  arm_home: {label:'Conectada parcialmente',sub:'Modo en casa activo',  icon:'🏠', cirCls:'hs-circle-home',     color:'var(--orange)'},
 };
-const ACTION_NAMES = {arm_away:'Armado total', arm_home:'Armado en casa', disarm:'Desarmado'};
+const ACTION_NAMES = {arm_away:'Armado total', arm_home:'Armado parcial', disarm:'Desarmado'};
 
 // ── Persist ────────────────────────────────────────────────────────────────
 function load(){
