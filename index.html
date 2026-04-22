@@ -445,6 +445,13 @@ function load(){
     
     // 2. ¡IMPORTANTE! Recuperamos el usuario (Esto es lo que falta)
     if(d.user) S.currentUser = d.user; 
+
+    const nav = document.getElementById('main-nav');
+    if (S.currentUser) {
+        nav.style.display = 'flex';
+    } else {
+        nav.style.display = 'none';
+    }
     
     // 3. Ahora que S.currentUser ya existe, la función ya puede saber si eres Admin
     if(typeof gestionarVisibilidadAdmin === 'function') gestionarVisibilidadAdmin();
