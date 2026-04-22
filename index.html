@@ -1095,29 +1095,29 @@ load();
 let newWorker;
 
 if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    // GUARDAMOS EL REGISTRO EN LA VARIABLE GLOBAL
+    swRegistration = reg;
 
-  navigator.serviceWorker.register('sw.js').then(reg => {
-
-    // Detectar nueva versión disponible
     reg.addEventListener('updatefound', () => {
-      newWorker = reg.installing;
+      const newWorker = reg.installing;
       newWorker.addEventListener('statechange', () => {
+        // Si el nuevo worker está instalado y listo, mostramos la barra
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
           showUpdateBar();
         }
       });
     });
 
-    // Forzar comprobación de actualización en cada carga
+    // Forzar comprobación de actualización
     reg.update();
 
-  }).catch(err => console.warn('[SW] Error al registrar:', err));
+  }).catch(err => console.warn('Error SW:', err));
 
-  // Recargar cuando el nuevo SW toma el control
+  // Evento clave: cuando el nuevo SW tome el control, recargamos la página
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     window.location.reload();
   });
-
 }
 
 // ── Configuración de Notificaciones ────────────────────────────────────────
@@ -1164,14 +1164,17 @@ async function saveNotifications() {
   }
 }
   
+// Variable global para capturar el registro
+let swRegistration = null; 
+
 function showUpdateBar() {
-  if (document.getElementById('update-bar')) return; // evitar duplicados
+  if (document.getElementById('update-bar')) return;
   const bar = document.createElement('div');
   bar.id = 'update-bar';
   bar.style.cssText = `
     position:fixed;top:0;left:0;width:100%;
     background:var(--red);color:white;padding:14px 20px;
-    text-align:center;z-index:9999;font-weight:800;font-size:14px;
+    text-align:center;z-index:99999;font-weight:800;font-size:14px;
     box-shadow:0 2px 10px rgba(0,0,0,0.2);
     display:flex;justify-content:center;align-items:center;gap:14px;
     animation:slideDown 0.4s ease;
@@ -1181,7 +1184,7 @@ function showUpdateBar() {
     <button onclick="forceUpdate()" style="
       background:white;color:var(--red);border:none;
       padding:7px 16px;border-radius:20px;font-weight:800;
-      font-family:'Nunito',sans-serif;cursor:pointer;font-size:13px;">
+      font-family:inherit;cursor:pointer;font-size:13px;">
       ACTUALIZAR
     </button>
   `;
@@ -1189,10 +1192,12 @@ function showUpdateBar() {
 }
 
 function forceUpdate() {
-  if (newWorker) {
-    newWorker.postMessage({ action: 'skipWaiting' });
+  // 1. Intentar decirle al SW que deje de esperar
+  if (swRegistration && swRegistration.waiting) {
+    swRegistration.waiting.postMessage({ action: 'skipWaiting' });
   } else {
-    window.location.reload();
+    // 2. Si no hay registro o no está esperando, forzamos recarga
+    window.location.reload(true);
   }
 }
 
