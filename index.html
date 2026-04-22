@@ -691,7 +691,6 @@ function stopPolling(){
   if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
 }
 
-// BUSCA ESTO Y CORRÍGELO:
 function updateStatusUI() {
   const cfg = STATUS_CFG[S.alarmStatus] || STATUS_CFG.disarmed;
   const circle = document.getElementById('hs-circle');
@@ -734,36 +733,42 @@ function checkPin(){
 }
 
 async function applyAction(action, userName) {
-  // 1. Mostrar un aviso visual de que se está enviando
-  toast2('Enviando comando...');
+  // 1. Calculamos el estado que queremos poner
+  const nextStatus = action === 'disarm' ? 'disarmed' : action === 'arm_away' ? 'armed' : 'arm_home';
+  
+  toast2('Comunicando con la alarma...');
 
   try {
+    // 2. Enviamos la orden al servidor (Railway)
     const response = await fetch('/api/control', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action,
         user: userName,
-        deviceId: S.config.deviceId
+        deviceId: S.config.deviceId,
+        alarmStatus: nextStatus // Enviamos el nuevo estado para que el servidor lo guarde
       })
     });
 
     if (response.ok) {
-      // 2. IMPORTANTE: Esperamos un poco y forzamos la actualización de la UI
-      // Esto es lo que hace que el icono cambie en tu pantalla actual
-      setTimeout(async () => {
-        await fetchStatus();  // Descarga el nuevo estado (armed/disarmed)
-        await fetchHistory(); // Descarga el log actualizado
-        updateStatusUI();     // Cambia el color del círculo y el icono
-        renderLog();          // Dibuja la nueva línea en el historial
-        toast2(ACTION_NAMES[action] || 'Comando ejecutado');
-      }, 1000); 
-
+      // 3. Si el servidor respondió OK, es que ya se guardó en MongoDB.
+      // Ahora sí, actualizamos nuestra pantalla local.
+      S.alarmStatus = nextStatus;
+      updateStatusUI();
+      
+      // Actualizamos el log para ver el movimiento al instante
+      const now = new Date();
+      const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+      S.log.unshift({ action: ACTION_NAMES[action], user: userName, time, status: S.alarmStatus });
+      
+      renderLog();
+      toast2('Sistema actualizado: ' + ACTION_NAMES[action]);
     } else {
-      toast2('El servidor no pudo procesar la acción');
+      toast2('Error: El servidor no pudo cambiar el estado');
     }
   } catch (e) {
-    console.error(e);
+    console.error("Fallo al ejecutar acción:", e);
     toast2('Error de conexión con el servidor');
   }
 }
