@@ -68,7 +68,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 /* Top bar */
 .topbar{background:var(--white);padding:calc(var(--safe-top) + 12px) 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:relative;z-index:10}
 .tb-brand{font-size:22px;font-weight:900;color:var(--red);letter-spacing:-0.5px}
-.tb-address{font-size:11px;color:var(--muted);font-weight:600;text-align:center;flex:1}
+.tb-address{font-size:14px;color:#333;font-weight:600;text-align:center;flex:1;display:flex;justify-content:center;align-items:center;background:#f0f2f5;padding:4px 12px;border-radius:20px;margin:0 10px;max-width:fit-content}
 .tb-icons{display:flex;gap:4px}
 .tb-icon-btn{width:36px;height:36px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
 
@@ -701,7 +701,7 @@ setInterval(() => {
   document.getElementById('acc-name').textContent = u.name;
   document.getElementById('acc-email').textContent = u.username;
   document.getElementById('acc-role').textContent = isAdmin ? 'Administrador' : 'Usuario';
-  document.getElementById('tb-addr').textContent = 'Hola, ' + u.name.split(' ')[0];
+  document.getElementById('tb-addr').innerHTML = `Usuario:, <span class="user-name-bold">${u.name.split(' ')[0]}</span>`;
   
   // Gestión de visibilidad de formularios
   document.getElementById('add-user-form').style.display = isAdmin ? 'block' : 'none';
