@@ -515,7 +515,7 @@ async function doLogin() {
       save(); // Guardamos la sesión
 
       // 1. CASO: USUARIO NUEVO
-      if (data.user.isNew || data.user.mustChange) {
+      if (data.user.isNew || data.user.mustChange || data.user.isFirstLogin) {
         showForceChangeModal();
         return; // Aquí termina la función para los nuevos
       }
@@ -666,7 +666,7 @@ async function addUser() {
     const response = await fetch('/api/usuarios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, username, password, pin, role })
+      body: JSON.stringify({ name, username, password, pin, role, isNew: true }) 
     });
     if (response.ok) {
       ['nu-name', 'nu-user', 'nu-pass', 'nu-pin'].forEach(id => document.getElementById(id).value = '');
@@ -1125,8 +1125,10 @@ function showUpdateBar() {
 
   function showForceChangeModal() {
   const el = document.getElementById('force-change-screen');
-  el.style.display = 'flex';
-  setTimeout(() => el.classList.add('active'), 10);
+  el.style.display = 'flex'; // Cambia el display
+  el.style.opacity = '1';    // Asegura visibilidad inmediata
+  el.style.pointerEvents = 'all'; // Permite tocar los botones
+  el.classList.add('active');
 }
 
 async function applyForceChange() {
