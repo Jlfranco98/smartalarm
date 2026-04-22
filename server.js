@@ -40,7 +40,7 @@ const logSchema = new mongoose.Schema({
 const configSchema = new mongoose.Schema({
     id: { type: String, default: 'global_config', unique: true },
     backendUrl: String,
-    deviceId: String
+    deviceId: String,
     alarmStatus: { type: String, default: 'disarmed' }
 }, { collection: 'configs' });
 
