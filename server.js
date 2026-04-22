@@ -157,11 +157,13 @@ async function tuyaRequest(method, urlPath, body = null, token = "") {
 }
 
 app.post('/api/control', async (req, res) => {
-    const { action, user } = req.body;
+    // 1. Extraemos alarmStatus (que viene del fetch del index.html)
+    const { action, user, alarmStatus } = req.body; 
     const mapping = { 'disarm': 'switch_1', 'arm_home': 'switch_2', 'arm_away': 'switch_3', 'sos': 'switch_4' };
     const code = mapping[action];
 
     try {
+        // --- Lógica de Tuya ---
         const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
         if (!tokenData.success) throw new Error("Error obteniendo token de Tuya");
 
@@ -170,10 +172,26 @@ app.post('/api/control', async (req, res) => {
         }, tokenData.result.access_token);
 
         if(result.success) {
+            // --- AQUI ESTA LA MAGIA DE LA SINCRONIZACIÓN ---
+            
+            // A. Guardamos el Log
             await new Log({ usuario: user || 'Sistema', accion: action }).save();
+
+            // B. ¡ACTUALIZAMOS EL ESTADO GLOBAL EN MONGO!
+            // Esto es lo que evita que el estado "rebote"
+            await Config.findOneAndUpdate(
+                { id: 'global_config' }, 
+                { $set: { alarmStatus: alarmStatus } }, 
+                { upsert: true }
+            );
+            
+            console.log(`Estado actualizado a ${alarmStatus} en MongoDB`);
         }
+        
         res.json({ success: result.success, result: result.result });
+
     } catch (e) {
+        console.error("Error en control:", e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
