@@ -193,6 +193,19 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .cfg-saved{font-size:12px;color:var(--green);text-align:center;min-height:14px;margin-top:6px;font-weight:700}
 .err-small{font-size:12px;color:var(--red);min-height:14px;margin-top:4px;font-weight:700}
 
+/* Notification toggles */
+.notif-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.notif-toggle-row:last-child{border-bottom:none}
+.notif-toggle-info{display:flex;align-items:center;gap:10px}
+.notif-toggle-icon{font-size:20px;width:36px;text-align:center}
+.notif-toggle-label{font-size:14px;font-weight:700}
+.toggle-switch{position:relative;width:44px;height:26px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:26px;transition:background .2s}
+.toggle-slider:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:white;border-radius:50%;transition:transform .2s}
+.toggle-switch input:checked + .toggle-slider{background:var(--green)}
+.toggle-switch input:checked + .toggle-slider:before{transform:translateX(18px)}
+
 /* Toast */
 #toast{position:fixed;top:calc(var(--safe-top) + 70px);left:50%;transform:translateX(-50%) translateY(-10px);background:#1a1a1a;color:#fff;border-radius:12px;padding:10px 22px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:999;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -365,6 +378,49 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
             <div class="form-field"><label>Repetir PIN nuevo</label><input id="cp-new2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
             <button class="btn-add" onclick="changePin()" style="margin-top:10px;width:100%">Cambiar PIN</button>
             <div class="err-small" id="cp-err" style="text-align:center;margin-top:5px"></div>
+          </div>
+        </div>
+
+        <div class="sl-item" onclick="toggleNotifPanel()">
+          <div class="sl-icon">🔔</div>
+          <div class="sl-label">Notificaciones</div>
+          <div class="sl-arrow">›</div>
+        </div>
+        <div id="notif-panel" style="display:none">
+          <div class="admin-card" style="margin-bottom:8px">
+            <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:12px">Recibe una notificación cuando:</div>
+            <div class="notif-toggle-row">
+              <div class="notif-toggle-info">
+                <div class="notif-toggle-icon">🔒</div>
+                <div class="notif-toggle-label">Armado total</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notif-arm-away" onchange="saveNotifPrefs()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="notif-toggle-row">
+              <div class="notif-toggle-info">
+                <div class="notif-toggle-icon">🌙</div>
+                <div class="notif-toggle-label">Modo noche</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notif-arm-home" onchange="saveNotifPrefs()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="notif-toggle-row">
+              <div class="notif-toggle-info">
+                <div class="notif-toggle-icon">🔓</div>
+                <div class="notif-toggle-label">Desarmado</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notif-disarm" onchange="saveNotifPrefs()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <button class="btn-add" style="margin-top:14px" onclick="requestPushPermission()">🔔 Activar notificaciones en este dispositivo</button>
+            <div class="cfg-saved" id="notif-ok"></div>
           </div>
         </div>
 
@@ -1221,6 +1277,82 @@ function forceUpdate() {
   }
 }
 
+
+// ── Notificaciones Push ────────────────────────────────────────────────────
+function toggleNotifPanel(){
+  const p = document.getElementById('notif-panel');
+  const isOpen = p.style.display !== 'none';
+  p.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) loadNotifPrefs();
+}
+
+async function loadNotifPrefs() {
+  if (!S.currentUser) return;
+  try {
+    const res = await fetch('/api/push/prefs/' + S.currentUser.username);
+    const prefs = await res.json();
+    document.getElementById('notif-arm-away').checked = prefs.arm_away !== false;
+    document.getElementById('notif-arm-home').checked = prefs.arm_home !== false;
+    document.getElementById('notif-disarm').checked   = prefs.disarm  !== false;
+  } catch(e) {}
+}
+
+async function saveNotifPrefs() {
+  if (!S.currentUser) return;
+  try {
+    await fetch('/api/push/prefs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: S.currentUser.username,
+        arm_away: document.getElementById('notif-arm-away').checked,
+        arm_home: document.getElementById('notif-arm-home').checked,
+        disarm:   document.getElementById('notif-disarm').checked
+      })
+    });
+    const ok = document.getElementById('notif-ok');
+    ok.textContent = 'Preferencias guardadas ✓';
+    setTimeout(() => ok.textContent = '', 2000);
+  } catch(e) {}
+}
+
+async function requestPushPermission() {
+  const ok = document.getElementById('notif-ok');
+  ok.style.color = 'var(--red)';
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    ok.textContent = 'Tu navegador no soporta notificaciones push'; return;
+  }
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    ok.textContent = 'Permiso denegado. Actívalo en ajustes del navegador.'; return;
+  }
+  try {
+    const vapidRes = await fetch('/api/push/vapid-public');
+    const { publicKey } = await vapidRes.json();
+    if (!publicKey) { ok.textContent = 'Error: VAPID no configurado en servidor'; return; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: S.currentUser.username, subscription: sub, device: navigator.userAgent.slice(0,80) })
+    });
+    ok.style.color = 'var(--green)';
+    ok.textContent = '✅ Notificaciones activadas en este dispositivo';
+  } catch(e) {
+    ok.textContent = 'Error al activar: ' + e.message;
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
 </script>
 </body>
 </html>

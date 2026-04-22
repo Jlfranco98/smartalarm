@@ -51,3 +51,31 @@ self.addEventListener('fetch', e => {
       })
   );
 });
+
+// ── Push: mostrar notificación ─────────────────────────────────────────────
+self.addEventListener('push', e => {
+  let data = { title: 'Smart Alarm', body: 'Nueva notificación', icon: '/icon-192.png' };
+  try { data = e.data.json(); } catch(err) {}
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:    data.body,
+      icon:    data.icon  || '/icon-192.png',
+      badge:   data.badge || '/icon-192.png',
+      vibrate: [200, 100, 200],
+      tag:     'alarm-status',
+      renotify: true
+    })
+  );
+});
+
+// ── Push: al pulsar la notificación, abrir la app ─────────────────────────
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cls => {
+      const app = cls.find(c => c.url.includes(self.location.origin));
+      if (app) return app.focus();
+      return clients.openWindow('/');
+    })
+  );
+});
