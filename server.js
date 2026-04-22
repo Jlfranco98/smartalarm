@@ -213,6 +213,52 @@ app.post('/api/config', async (req, res) => {
     }
 });
 
+// Ejemplo de lógica en el servidor al recibir /api/control
+app.post('/api/control', async (req, res) => {
+  const { action, alarmStatus, deviceId } = req.body;
+  
+  // A. Aquí envías el comando real a TUYA
+  // B. Aquí guardas el estado en MongoDB (Colección 'status' o similar)
+  await db.collection('status').updateOne(
+    { deviceId: deviceId }, 
+    { $set: { alarmStatus: alarmStatus, updatedAt: new Date() } },
+    { upsert: true }
+  );
+  
+  res.sendStatus(200);
+});
+
+// Ruta para controlar la alarma y guardar el estado en MongoDB
+app.post('/api/control', async (req, res) => {
+    try {
+        const { action, alarmStatus } = req.body;
+
+        // 1. Aquí iría tu lógica actual que conecta con Tuya...
+        
+        // 2. GUARDAR EN MONGODB (La clave de la sincronización)
+        // Usamos la misma lógica de tu 'global_config' pero para el estado
+        await Config.findOneAndUpdate(
+            { id: 'global_config' }, 
+            { alarmStatus: alarmStatus }, // Guardamos el nuevo estado (armed/disarmed)
+            { upsert: true }
+        );
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// Ruta para que el móvil pregunte: ¿Cómo está la alarma?
+app.get('/api/status', async (req, res) => {
+    try {
+        const config = await Config.findOne({ id: 'global_config' });
+        res.json({ alarmStatus: config ? config.alarmStatus : 'disarmed' });
+    } catch (e) {
+        res.status(500).send(e.message);
+    }
+});
+
 // --- 8. INICIO DEL SERVIDOR ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
