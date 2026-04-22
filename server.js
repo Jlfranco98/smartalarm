@@ -193,12 +193,16 @@ app.post('/api/push/prefs', async (req, res) => {
 });
 
 async function sendPushNotification(action, triggeredBy) {
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
-  const labels = { arm_away: '🔒 Alarma armada (total)', arm_home: '🌙 Alarma en modo noche', disarm: '🔓 Alarma desarmada' };
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+    console.log('Push: VAPID no configurado');
+    return;
+  }
   const prefs = await NotifPref.find({ [action]: true });
+  console.log(`Push: ${prefs.length} usuarios con preferencia activa para ${action}`);
   if (!prefs.length) return;
   const usernames = prefs.map(p => p.username);
   const subs = await PushSub.find({ username: { $in: usernames } });
+  console.log(`Push: ${subs.length} suscripciones encontradas para ${usernames}`);
   if (!subs.length) return;
   const payload = JSON.stringify({
     title: 'Smart Alarm',
