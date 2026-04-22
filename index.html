@@ -783,31 +783,43 @@ function loadConfigForm(){
 }
   
 async function saveConfig() {
+  // 1. Capturamos TODOS los campos del formulario
   const backendUrl = document.getElementById('cfg-backend').value.trim();
-  const deviceId = document.getElementById('cfg-device').value.trim();
+  const deviceId   = document.getElementById('cfg-device').value.trim();
+  const appSecret  = document.getElementById('cfg-secret').value.trim(); // Nuevo
+  const region     = document.getElementById('cfg-region').value;        // Nuevo
 
-  // 1. Guardamos en el estado local de la app
+  // 2. Actualizamos el estado local (S.config)
   S.config.backendUrl = backendUrl;
-  S.config.deviceId = deviceId;
+  S.config.deviceId   = deviceId;
+  S.config.appSecret  = appSecret;
+  S.config.region     = region;
 
   try {
-    // 2. Enviamos al servidor (Railway) para que sea global
+    // 3. Enviamos TODO el objeto al servidor para MongoDB
     const response = await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ backendUrl, deviceId })
+      body: JSON.stringify({ 
+        backendUrl, 
+        deviceId, 
+        appSecret, 
+        region 
+      })
     });
 
     if (response.ok) {
-      toast2('Configuración guardada para todos');
+      toast2('Configuración global guardada');
+      document.getElementById('cfg-ok').textContent = 'Sincronizado con MongoDB';
+      save(); // Guardar copia de seguridad en localStorage
     } else {
-      // Si falla el servidor, al menos guardamos en este dispositivo
-      save(); 
-      toast2('Guardado solo localmente');
+      save();
+      toast2('Guardado solo localmente (Error API)');
     }
   } catch (e) {
     save();
     toast2('Sin conexión: Guardado local');
+    console.error("Error al sincronizar config:", e);
   }
 }
   
