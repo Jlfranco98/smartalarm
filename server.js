@@ -157,9 +157,20 @@ async function tuyaRequest(method, urlPath, body = null, token = "") {
 }
 
 app.post('/api/control', async (req, res) => {
-    // 1. Extraemos alarmStatus (que viene del fetch del index.html)
+    // 1. Extraemos datos
     const { action, user, alarmStatus } = req.body; 
+    
+    // Mapeo técnico para Tuya
     const mapping = { 'disarm': 'switch_1', 'arm_home': 'switch_2', 'arm_away': 'switch_3', 'sos': 'switch_4' };
+    
+    // NUEVO: Mapeo de nombres legibles para el Historial
+    const nombresLegibles = {
+        'disarm': 'Desarmado',
+        'arm_home': 'Armado en casa',
+        'arm_away': 'Armado total',
+        'sos': 'Pánico / SOS'
+    };
+
     const code = mapping[action];
 
     try {
@@ -172,20 +183,23 @@ app.post('/api/control', async (req, res) => {
         }, tokenData.result.access_token);
 
         if(result.success) {
-            // --- AQUI ESTA LA MAGIA DE LA SINCRONIZACIÓN ---
+            // --- AQUÍ GUARDAMOS LOS DATOS LIMPIOS ---
             
-            // A. Guardamos el Log
-            await new Log({ usuario: user || 'Sistema', accion: action }).save();
+            // A. Guardamos el Log con el NOMBRE BONITO (ej: "Desarmado")
+            await new Log({ 
+                usuario: user || 'Sistema', 
+                accion: nombresLegibles[action] || action, // <--- Traducción aquí
+                fecha: new Date() // Aseguramos que se guarde la fecha actual
+            }).save();
 
-            // B. ¡ACTUALIZAMOS EL ESTADO GLOBAL EN MONGO!
-            // Esto es lo que evita que el estado "rebote"
+            // B. Actualizamos el estado global para la sincronización
             await Config.findOneAndUpdate(
                 { id: 'global_config' }, 
                 { $set: { alarmStatus: alarmStatus } }, 
                 { upsert: true }
             );
             
-            console.log(`Estado actualizado a ${alarmStatus} en MongoDB`);
+            console.log(`Log guardado: ${nombresLegibles[action]} por ${user}`);
         }
         
         res.json({ success: result.success, result: result.result });
