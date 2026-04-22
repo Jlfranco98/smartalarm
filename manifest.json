@@ -1,7 +1,7 @@
 {
-  "name": "MiAlarma",
-  "short_name": "MiAlarma",
-  "description": "Control de alarma Smart Life / Tuya",
+  "name": "Smart Alarm",
+  "short_name": "Smart Alarm",
+  "description": "Panel de control de alarma",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
