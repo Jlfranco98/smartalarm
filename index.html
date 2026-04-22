@@ -528,17 +528,15 @@ function gestionarVisibilidadAdmin() {
     const itemTuya = document.querySelector('.admin-only');
     
     console.log("--- COMPROBANDO ADMIN ---");
-    console.log("Elemento encontrado:", itemTuya);
-    console.log("Usuario actual:", S.currentUser);
     
     if (!itemTuya) return;
 
     // Aquí forzamos la comprobación y vemos qué falla
     if (S.currentUser && S.currentUser.role === 'admin') {
-        console.log("¡Eres Admin! Mostrando botón...");
+        console.log("¡Usuario ADMINISTRADOR");
         itemTuya.style.display = 'flex';
     } else {
-        console.log("No eres Admin o el rol no coincide.");
+        console.log("¡Usuario user!.");
         itemTuya.style.display = 'none';
     }
 }
