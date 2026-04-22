@@ -129,68 +129,33 @@ app.post('/api/login', async (req, res) => {
 // CAMBIAR CONTRASEÑA
 app.post('/api/change-password', async (req, res) => {
     try {
-        const { username, newPassword } = req.body;
-
-        // 1. Prohibir contraseñas débiles
-        const forbiddenPass = ['password', '123456', 'admin', 'qwerty', '12345'];
-        if (forbiddenPass.includes(newPassword.toLowerCase())) {
-            return res.json({ success: false, message: 'Contraseña demasiado común. Elige otra.' });
-        }
-
+        const { username, currentPassword, newPassword } = req.body;
         const user = await User.findOne({ username });
         if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
 
-        // 2. Validar que la NUEVA no sea igual a la que ya tiene (Opcional, pero recomendado)
-        const isSame = await bcrypt.compare(newPassword, user.password);
-        if (isSame) {
-            return res.json({ success: false, message: 'La nueva contraseña debe ser diferente a la anterior.' });
-        }
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) return res.json({ success: false, message: 'Contraseña actual incorrecta' });
 
-        // 3. Guardar directamente la nueva contraseña
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
-        user.isNew = false; // Marcamos que el usuario ya configuró su seguridad
+        user.isNew = false;
         await user.save();
 
         res.json({ success: true, message: 'Contraseña actualizada correctamente' });
     } catch (e) {
-        console.error(e);
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 });
 
 // CAMBIAR PIN USUARIO
 app.post('/api/change-pin', async (req, res) => {
-    try {
-        const { username, currentPin, newPin } = req.body;
-
-        // 1. Prohibir PINs débiles
-        const forbiddenPins = ['0000', '1234', '1111', '2222', '123456'];
-        if (forbiddenPins.includes(newPin)) {
-            return res.json({ success: false, message: 'Este PIN no está permitido por seguridad.' });
-        }
-
-        const user = await User.findOne({ username });
-        if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-
-        // 2. Validar PIN actual
-        if (user.pin !== currentPin) {
-            return res.json({ success: false, message: 'PIN actual incorrecto' });
-        }
-
-        // 3. Validar que el NUEVO no sea igual al ACTUAL
-        if (newPin === currentPin) {
-            return res.json({ success: false, message: 'El nuevo PIN debe ser diferente al actual.' });
-        }
-
-        user.pin = newPin;
-        user.isNew = false; // También lo marcamos aquí por si acaso solo cambia el PIN
-        await user.save();
-        
-        res.json({ success: true, message: 'PIN actualizado correctamente' });
-    } catch (e) {
-        res.status(500).json({ success: false, message: 'Error al cambiar PIN' });
-    }
+  const { username, currentPin, newPin } = req.body;
+  const user = await User.findOne({ username });
+  if (!user || user.pin !== currentPin)
+    return res.json({ success: false, message: 'PIN actual incorrecto' });
+  user.pin = newPin;
+  await user.save();
+  res.json({ success: true });
 });
 
 
