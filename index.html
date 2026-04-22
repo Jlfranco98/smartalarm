@@ -1141,34 +1141,63 @@ async function applyForceChange() {
   const nPin = document.getElementById('force-pin').value;
   const err = document.getElementById('force-err');
 
+  // 1. VALIDACIÓN DE FORMATO (Lo que ya tenías)
   if (nPass.length < 4 || !/^\d{4}$/.test(nPin)) {
     err.textContent = "Datos no válidos. PIN debe ser de 4 números.";
     return;
   }
 
+  // 2. NUEVA: VALIDACIÓN DE SEGURIDAD (Listas negras)
+  const forbiddenPins = ['0000', '1234', '1111', '2222'];
+  const forbiddenPass = ['password', '123456', 'admin', 'qwerty'];
+
+  if (forbiddenPins.includes(nPin)) {
+    err.textContent = "El PIN " + nPin + " no está permitido por seguridad.";
+    return;
+  }
+
+  if (forbiddenPass.includes(nPass.toLowerCase())) {
+    err.textContent = "La contraseña es demasiado común.";
+    return;
+  }
+
   try {
-    // 1. Cambiamos contraseña usando tu API existente
-    await fetch('/api/change-password', {
+    // 3. Cambiamos contraseña
+    const resPass = await fetch('/api/change-password', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ username: S.currentUser.username, currentPassword: S.currentUser.password || S.currentUser.tempPass, newPassword: nPass })
+      body: JSON.stringify({ 
+        username: S.currentUser.username, 
+        currentPassword: S.currentUser.password || S.currentUser.tempPass, 
+        newPassword: nPass 
+      })
     });
+    const dataPass = await resPass.json();
+    if (!dataPass.success) { err.textContent = dataPass.message; return; }
 
-    // 2. Cambiamos PIN usando tu API existente
-    await fetch('/api/change-pin', {
+    // 4. Cambiamos PIN
+    const resPin = await fetch('/api/change-pin', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ username: S.currentUser.username, currentPin: S.currentUser.pin, newPin: nPin })
+      body: JSON.stringify({ 
+        username: S.currentUser.username, 
+        currentPin: S.currentUser.pin, 
+        newPin: nPin 
+      })
     });
+    const dataPin = await resPin.json();
+    if (!dataPin.success) { err.textContent = dataPin.message; return; }
 
-    // 3. Ocultar modal y entrar
+    // 5. Ocultar modal y entrar
     document.getElementById('force-change-screen').style.display = 'none';
     S.currentUser.pin = nPin; 
+    S.currentUser.isNew = false; // Marcamos como "ya no es nuevo" localmente
     save();
     renderApp();
+    
     document.getElementById('s-app').classList.add('active');
     document.getElementById('main-nav').style.display = 'flex';
-    toast2('DATOS ACTUALIZADOS CORRECTAMENTE');
+    toast2('SEGURIDAD CONFIGURADA CORRECTAMENTE');
     
   } catch(e) {
     err.textContent = "Error al conectar con el servidor.";
