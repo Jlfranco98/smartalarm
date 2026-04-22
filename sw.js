@@ -1,53 +1,58 @@
-const CACHE = 'mialarm-v6.5'; // <--- CADA VEZ QUE SUBAS ALGO, CAMBIA ESTO (v2, v3, v4...)
+const CACHE = 'mialarm-v6.7'; // <--- Recuerda subir la versión
 const ASSETS = [
   '/',
   '/index.html',
   '/manifest.json'
 ];
 
-// Instalación: Guardar archivos en caché
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
-  );
-  // No usamos skipWaiting aquí para que el index.html pueda controlarlo
-});
+// ... (Tus eventos install, activate y fetch se mantienen igual) ...
 
-// Activación: Limpiar cachés antiguas
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.filter(k => k !== CACHE).map(k => caches.delete(k))
-    ))
-  );
-  self.clients.claim();
-});
+// ── EVENTO: RECIBIR NOTIFICACIÓN PUSH ──────────────────────────────────
+self.addEventListener('push', e => {
+  let data = { title: 'Alarma', body: 'Nueva actualización de estado', icon: '/icon-192.png' };
 
-// Escuchar el mensaje del index.html para forzar la actualización
-self.addEventListener('message', e => {
-  if (e.data && e.data.action === 'skipWaiting') {
-    self.skipWaiting();
+  if (e.data) {
+    try {
+      data = e.data.json();
+    } catch (err) {
+      data.body = e.data.text();
+    }
   }
+
+  const options = {
+    body: data.body,
+    icon: data.icon || '/icon-192.png',
+    badge: '/icon-192.png', // Icono pequeño para la barra de estado
+    vibrate: [200, 100, 200],
+    data: {
+      url: self.registration.scope // Para saber a dónde ir al hacer clic
+    },
+    // Si es un salto de alarma, podemos añadirle más prioridad
+    tag: data.tag || 'alarma-status', 
+    renotify: true
+  };
+
+  e.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
 });
 
-// Estrategia de red: Intentar red primero para el index.html, si falla, usar caché
-// Esto asegura que si hay internet, siempre busque la última versión
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+// ── EVENTO: CLIC EN LA NOTIFICACIÓN ─────────────────────────────────────
+self.addEventListener('notificationclick', e => {
+  e.notification.close(); // Cerrar la notificación
 
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        // Si la red responde, guardamos copia en caché y devolvemos
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      // Si la app ya está abierta, poner el foco en ella
+      for (const client of clientList) {
+        if (client.url === e.notification.data.url && 'focus' in client) {
+          return client.focus();
         }
-        return res;
-      })
-      .catch(() => {
-        // Si no hay red (offline), servimos de la caché
-        return caches.match(e.request);
-      })
+      }
+      // Si no está abierta, abrirla
+      if (clients.openWindow) {
+        return clients.openWindow(e.notification.data.url);
+      }
+    })
   );
 });
