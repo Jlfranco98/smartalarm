@@ -29,6 +29,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     pin: String,
     role: { type: String, default: 'user' }
+    isNew: { type: Boolean, default: true }
 }, { collection: 'users', timestamps: true });
 
 const logSchema = new mongoose.Schema({
