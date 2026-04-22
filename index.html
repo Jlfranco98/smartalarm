@@ -668,13 +668,16 @@ function navTo(page){
 async function fetchStatus() {
   try {
     const res = await fetch('/api/status');
+    if (!res.ok) throw new Error('Error en red');
     const data = await res.json();
+    
+    // Si el servidor devuelve el estado, lo actualizamos
     if (data && data.alarmStatus) {
-      S.alarmStatus = data.alarmStatus; // Guardamos el estado real
-      updateStatusUI();                 // Actualizamos los iconos
+      S.alarmStatus = data.alarmStatus;
+      updateStatusUI(); // Esta es la que cambia el color del círculo
     }
   } catch (e) {
-    console.log("Error al consultar estado");
+    console.error("Error al consultar estado:", e);
   }
 }
 
@@ -688,10 +691,9 @@ function stopPolling(){
   if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
 }
 
+// BUSCA ESTO Y CORRÍGELO:
 function updateStatusUI() {
   const cfg = STATUS_CFG[S.alarmStatus] || STATUS_CFG.disarmed;
-  
-  // Añadimos validación por seguridad
   const circle = document.getElementById('hs-circle');
   if (circle) {
     circle.className = 'hs-circle ' + cfg.cirCls;
