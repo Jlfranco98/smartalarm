@@ -470,9 +470,11 @@ async function doLogin() {
       err.textContent = '';
       S.currentUser = data.user; 
       await fetchHistory(); 
+      await fetchStatus();
       renderApp();
       document.getElementById('s-login').classList.remove('active');
       document.getElementById('s-app').classList.add('active');
+      startPolling();
     } else {
       err.textContent = data.message || 'Credenciales incorrectas';
     }
@@ -482,7 +484,7 @@ async function doLogin() {
 }
 
 function doLogout() {
-  // 1. Borramos el usuario de la memoria del estado
+  stopPolling();
   S.currentUser = null;
   
   // 2. Limpiamos los campos del formulario de login por seguridad
@@ -652,8 +654,30 @@ function navTo(page){
   if(page==='cuenta')loadConfigForm();
 }
 
-// ── Interfaz Alarma & PIN ──────────────────────────────────────────────────
-function updateStatusUI(){
+// ── Estado alarma desde MongoDB ────────────────────────────────────────────
+async function fetchStatus(){
+  try{
+    const res = await fetch('/api/status');
+    if(!res.ok) return;
+    const data = await res.json();
+    if(data.alarmStatus && data.alarmStatus !== S.alarmStatus){
+      S.alarmStatus = data.alarmStatus;
+      updateStatusUI();
+    }
+  }catch(e){}
+}
+
+let _pollTimer = null;
+function startPolling(){
+  stopPolling();
+  fetchStatus(); // sync inmediato al entrar
+  _pollTimer = setInterval(fetchStatus, 15000); // cada 15s
+}
+function stopPolling(){
+  if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
+}
+
+
   const cfg=STATUS_CFG[S.alarmStatus]||STATUS_CFG.disarmed;
   document.getElementById('hs-circle').className='hs-circle '+cfg.cirCls;
   document.getElementById('hs-icon').innerHTML=cfg.icon;
@@ -698,8 +722,12 @@ function applyAction(action,userName){
   const time=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   S.log.unshift({action:ACTION_NAMES[action]||action, user:userName, time, status:S.alarmStatus});
   renderLog(); toast2(ACTION_NAMES[action]);
-  const { backendUrl, deviceId } = S.config;
-  if(backendUrl) fetch(backendUrl+'/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,user:userName,deviceId})});
+  // Envía el comando Y persiste el estado en MongoDB
+  fetch('/api/control',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action, user:userName, deviceId:S.config.deviceId, alarmStatus:S.alarmStatus})
+  });
 }
 
 function renderLog(){
