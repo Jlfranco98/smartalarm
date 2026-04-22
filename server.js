@@ -28,7 +28,8 @@ const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     pin: String,
-    role: { type: String, default: 'user' }
+    role: { type: String, default: 'user' },
+    isNew: { type: Boolean, default: true }
 }, { collection: 'users', timestamps: true });
 
 const logSchema = new mongoose.Schema({
@@ -116,7 +117,7 @@ app.post('/api/login', async (req, res) => {
         const { username, password } = req.body;
         const user = await User.findOne({ username });
         if (user && await bcrypt.compare(password, user.password)) {
-            res.json({ success: true, user: { name: user.name, username: user.username, role: user.role, pin: user.pin } });
+           res.json({ success: true, user: { name: user.name, username: user.username, role: user.role, pin: user.pin, isNew: user.isNew } });
         } else {
             res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
         }
@@ -137,6 +138,7 @@ app.post('/api/change-password', async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
+        user.isNew = false;
         await user.save();
 
         res.json({ success: true, message: 'Contraseña actualizada correctamente' });
