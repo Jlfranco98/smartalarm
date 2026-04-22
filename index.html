@@ -820,6 +820,12 @@ function forceUpdate() {
   }
 }
 
+function closePinOutside(e) {
+  if (e.target.id === 'pinModal') {
+    closePin();
+  }
+}
+
 // Recarga automática al activarse el nuevo SW
 navigator.serviceWorker.addEventListener('controllerchange', () => {
   window.location.reload();
