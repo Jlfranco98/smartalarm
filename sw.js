@@ -1,4 +1,4 @@
-const CACHE = 'mialarm-v6.7'; // <--- Recuerda subir la versión
+const CACHE = 'mialarm-v6.8'; // <--- Recuerda subir la versión
 const ASSETS = [
   '/',
   '/index.html',
