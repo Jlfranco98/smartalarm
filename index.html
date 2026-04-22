@@ -665,16 +665,17 @@ function navTo(page){
 }
 
 // ── Estado alarma desde MongoDB ────────────────────────────────────────────
-async function fetchStatus(){
-  try{
+async function fetchStatus() {
+  try {
     const res = await fetch('/api/status');
-    if(!res.ok) return;
     const data = await res.json();
-    if(data.alarmStatus && data.alarmStatus !== S.alarmStatus){
-      S.alarmStatus = data.alarmStatus;
-      updateStatusUI();
+    if (data && data.alarmStatus) {
+      S.alarmStatus = data.alarmStatus; // Guardamos el estado real
+      updateStatusUI();                 // Actualizamos los iconos
     }
-  }catch(e){}
+  } catch (e) {
+    console.log("Error al consultar estado");
+  }
 }
 
 let _pollTimer = null;
@@ -731,39 +732,37 @@ function checkPin(){
 }
 
 async function applyAction(action, userName) {
-  // ELIMINADO: Ya no cambiamos S.alarmStatus aquí manualmente.
-  // Dejamos que el servidor reciba la orden y el "polling" (fetchStatus)
-  // actualice todos los dispositivos por igual.
+  // 1. Mostrar un aviso visual de que se está enviando
+  toast2('Enviando comando...');
 
   try {
     const response = await fetch('/api/control', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action, 
-        user: userName, 
-        deviceId: S.config.deviceId 
-        // No enviamos alarmStatus, el servidor sabe qué hacer con la 'action'
+      body: JSON.stringify({
+        action,
+        user: userName,
+        deviceId: S.config.deviceId
       })
     });
 
     if (response.ok) {
-      toast2(ACTION_NAMES[action] || 'Enviando...');
-      
-      // Forzamos una actualización inmediata para que este dispositivo 
-      // vea el cambio rápido sin esperar los 15 segundos del timer.
+      // 2. IMPORTANTE: Esperamos un poco y forzamos la actualización de la UI
+      // Esto es lo que hace que el icono cambie en tu pantalla actual
       setTimeout(async () => {
-        await fetchStatus(); // Esto actualizará S.alarmStatus y la UI
-        await fetchHistory(); // Esto actualizará el log con el movimiento real
-        renderLog();
+        await fetchStatus();  // Descarga el nuevo estado (armed/disarmed)
+        await fetchHistory(); // Descarga el log actualizado
+        updateStatusUI();     // Cambia el color del círculo y el icono
+        renderLog();          // Dibuja la nueva línea en el historial
+        toast2(ACTION_NAMES[action] || 'Comando ejecutado');
       }, 1000); 
 
     } else {
-      toast2('Error en la respuesta del servidor');
+      toast2('El servidor no pudo procesar la acción');
     }
   } catch (e) {
     console.error(e);
-    toast2('Error de conexión');
+    toast2('Error de conexión con el servidor');
   }
 }
 
