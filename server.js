@@ -41,6 +41,7 @@ const configSchema = new mongoose.Schema({
     id: { type: String, default: 'global_config', unique: true },
     backendUrl: String,
     deviceId: String
+    alarmStatus: { type: String, default: 'disarmed' }
 }, { collection: 'configs' });
 
 const User = mongoose.model('User', userSchema);
