@@ -1042,26 +1042,23 @@ document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='En
 // ── Funciones de UI ────────────────────────────────────────────────────────
 async function refreshStatus(event) {
   const btn = event?.currentTarget;
-  
-  // Ponemos el ✅ primero para dar feedback visual inmediato
+  let orig;
+
   if (btn) {
-    const orig = btn.innerHTML;
-    btn.innerHTML = '⌛'; // Ponemos un relojito mientras carga
-    
-    try {
-      // Intentamos cargar los datos
-      await fetchStatus();
-      await fetchHistory();
-      
-      btn.innerHTML = '✅'; // Si todo va bien, check
-    } catch (e) {
-      console.error("Error al actualizar:", e);
-      btn.innerHTML = '❌'; // Si falla, una X
-    }
-    
-    // Volvemos al icono original después de 3 segundo
-    setTimeout(() => btn.innerHTML = orig, 3000);
+    orig = btn.innerHTML;
+    btn.innerHTML = '⌛';
   }
+
+  try {
+    await fetchStatus();
+    await fetchHistorialGlobal(); // ← asegúrate que coincide con tu nombre real
+    if (btn) btn.innerHTML = '✅';
+  } catch (e) {
+    console.error("Error al actualizar:", e);
+    if (btn) btn.innerHTML = '❌';
+  }
+
+  if (btn) setTimeout(() => btn.innerHTML = orig, 3000);
 }
 
   // Esto se ejecutará SIEMPRE, incluso si falla lo anterior
