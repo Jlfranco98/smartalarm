@@ -189,7 +189,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .form-field label{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
 .form-field input,.form-field select{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;background:var(--white)}
 .form-field input:focus,.form-field select:focus{border-color:var(--red)}
-.btn-add{width:100%;padding:12px;background:var(--red);border:none;border-radius:12px;color:#fff;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer}
+.btn-add{width:30%;padding:12px;background:var(--red);border:none;border-radius:12px;color:#fff;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer}
 .btn-add:active{opacity:.85}
 .cfg-saved{font-size:12px;color:var(--green);text-align:center;min-height:14px;margin-top:6px;font-weight:700}
 .err-small{font-size:12px;color:var(--red);min-height:14px;margin-top:4px;font-weight:700}
@@ -377,7 +377,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           <div id="users-admin-list"></div>
         </div>
         <div class="admin-card" id="add-user-form">
-          <div class="ac-title">Agregar usuario</div>
+          <div class="ac-title">Agregar nuevo usuario a la instalación</div>
           <div class="form-field"><label>Nombre</label><input id="nu-name" placeholder="Nombre completo"></div>
           <div class="form-field"><label>Usuario (login)</label><input id="nu-user" placeholder="usuario123"></div>
           <div class="form-field"><label>Contraseña</label><input id="nu-pass" type="password" placeholder="••••••••"></div>
@@ -385,7 +385,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           <div class="form-field"><label>Rol</label>
             <select id="nu-role"><option value="user">Usuario</option><option value="admin">Admin</option></select>
           </div>
-          <button class="btn-add" onclick="addUser()">Agregar usuario</button>
+          <button class="btn-add" onclick="addUser()">Dar de alta nuevo usuario</button>
           <div class="err-small" id="add-err"></div>
         </div>
         <div id="add-user-form-admin" style="display:none">
