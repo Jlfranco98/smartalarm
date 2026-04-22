@@ -801,47 +801,50 @@ function renderLog() {
   const items = S.log || []; 
 
   const htmlArray = items.map(l => {
-    // --- LÓGICA DE FECHA PARA MONGODB ---
-    let horaVisible = "--:--";
+    // --- LÓGICA DE FECHA Y HORA FORMATEADA ---
+    let fechaYHoraVisible = "--/--/---- - --:--h";
     
-    // 1. Extraemos la fecha cruda (manejando el objeto $date de tus capturas)
-    let fechaRaw = null;
-    if (l.fecha) {
-      // Si l.fecha es el objeto que vemos en tu imagen, sacamos el valor de $date
-      fechaRaw = l.fecha.$date ? l.fecha.$date : l.fecha;
-    }
+    // Capturamos la fecha (manejando el objeto $date de tu MongoDB)
+    let fechaRaw = l.fecha?.$date || l.fecha;
 
-    // 2. Si logramos obtener una fecha, la formateamos
     if (fechaRaw) {
-      const d = new Date(fechaRaw); 
-      // Usamos toLocaleTimeString para que use la hora local de España/tu zona
-      const horas = d.getHours().toString().padStart(2, '0');
-      const minutos = d.getMinutes().toString().padStart(2, '0');
-      horaVisible = `${horas}:${minutos}`; 
+      const d = new Date(fechaRaw);
+      
+      if (!isNaN(d.getTime())) {
+        // Extraemos partes de la fecha
+        const dia = d.getDate().toString().padStart(2, '0');
+        const mes = (d.getMonth() + 1).toString().padStart(2, '0'); // Enero es 0
+        const anio = d.getFullYear();
+        
+        // Extraemos partes de la hora
+        const horas = d.getHours().toString().padStart(2, '0');
+        const minutos = d.getMinutes().toString().padStart(2, '0');
+        
+        // Montamos el formato: 22/04/2026 - 08:40h
+        fechaYHoraVisible = `${dia}/${mes}/${anio} - ${horas}:${minutos}h`;
+      }
     }
 
-    // 3. Color del punto
+    // Color del punto
     const dotClass = (l.accion === 'Desarmado' || l.accion === 'disarm') ? 'hi-disarmed' : 'hi-armed';
 
     return `
       <div class="hist-item">
         <div class="hi-dot ${dotClass}"></div>
         <div class="hi-info">
-          <div class="hi-action">${l.accion || l.action}</div>
+          <div class="hi-action">${l.accion || l.action || 'Acción'}</div>
           <div class="hi-user">${l.usuario || l.user || 'Sistema'}</div>
         </div>
-        <div class="hi-time">${horaVisible}</div>
+        <div class="hi-time" style="min-width: 140px;">${fechaYHoraVisible}</div>
       </div>`;
   });
 
-  // 4. Inyectar en los contenedores
+  // RENDERIZADO
   const finalHtml = htmlArray.length ? htmlArray.join('') : '<div class="err-small">Sin actividad</div>';
   
   if (document.getElementById('home-log')) {
-    // En la home solo mostramos los 4 primeros
     document.getElementById('home-log').innerHTML = htmlArray.slice(0, 4).join('');
   }
-  
   if (document.getElementById('full-log')) {
     document.getElementById('full-log').innerHTML = finalHtml;
   }
