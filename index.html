@@ -495,11 +495,7 @@ async function doLogin() {
   const u = document.getElementById('li-user').value.trim();
   const p = document.getElementById('li-pass').value;
   const err = document.getElementById('li-err');
-
-  if (!u || !p) {
-    err.textContent = 'Introduce usuario y contraseña';
-    return;
-  }
+  if (!u || !p) { err.textContent = 'Introduce usuario y contraseña'; return; }
 
   try {
     const response = await fetch('/api/login', {
@@ -512,15 +508,19 @@ async function doLogin() {
     if (data.success) {
       err.textContent = '';
       S.currentUser = data.user;
-      save(); // Guardamos la sesión
+      
+      // IMPORTANTE: Guardamos el password temporal para que applyForceChange pueda usarlo
+      S.currentUser.password = p; 
+      save();
 
-      // 1. CASO: USUARIO NUEVO
-      if (data.user.isNew || data.user.mustChange || data.user.isFirstLogin) {
+      // COMPROBACIÓN: Si es nuevo o si la contraseña es igual al usuario (como emergencia)
+      if (data.user.isNew || data.user.mustChange || p === '123456') { 
+        console.log("Detectado usuario nuevo, mostrando pantalla de cambio...");
         showForceChangeModal();
-        return; // Aquí termina la función para los nuevos
+        return; // Detenemos aquí para que no entre a la app
       }
 
-      // 2. CASO: USUARIO NORMAL (Este código debe ir fuera del IF anterior)
+      // LOGIN NORMAL
       document.getElementById('main-nav').style.display = 'flex';
       gestionarVisibilidadAdmin();
       await fetchHistory(); 
@@ -529,7 +529,6 @@ async function doLogin() {
       document.getElementById('s-login').classList.remove('active');
       document.getElementById('s-app').classList.add('active');
       startPolling();
-
     } else {
       err.textContent = data.message || 'Credenciales incorrectas';
     }
@@ -666,7 +665,7 @@ async function addUser() {
     const response = await fetch('/api/usuarios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, username, password, pin, role, isNew: true }) 
+      body: JSON.stringify({ name, username, password, pin, role, isNew: true })
     });
     if (response.ok) {
       ['nu-name', 'nu-user', 'nu-pass', 'nu-pin'].forEach(id => document.getElementById(id).value = '');
@@ -1123,12 +1122,18 @@ function showUpdateBar() {
   document.body.appendChild(bar);
 }
 
-  function showForceChangeModal() {
+ function showForceChangeModal() {
   const el = document.getElementById('force-change-screen');
-  el.style.display = 'flex'; // Cambia el display
-  el.style.opacity = '1';    // Asegura visibilidad inmediata
-  el.style.pointerEvents = 'all'; // Permite tocar los botones
+  if(!el) return;
+  
+  // Forzamos los estilos para asegurarnos de que se vea
+  el.style.display = 'flex';
+  el.style.opacity = '1';
+  el.style.visibility = 'visible';
   el.classList.add('active');
+  
+  // Ocultamos el login por si acaso
+  document.getElementById('s-login').classList.remove('active');
 }
 
 async function applyForceChange() {
