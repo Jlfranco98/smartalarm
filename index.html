@@ -440,6 +440,7 @@ function load(){
   try{
     const d=JSON.parse(localStorage.getItem('mialarm')||'{}');
     if(d.config)S.config={...S.config,...d.config};
+    if(typeof gestionarVisibilidadAdmin === 'function') gestionarVisibilidadAdmin();
   }catch(e){}
 }
 function save(){
