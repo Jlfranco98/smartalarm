@@ -1043,8 +1043,15 @@ document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='En
 
 // ── Funciones de UI ────────────────────────────────────────────────────────
 async function refreshStatus(event) {
-  await fetchStatus();
-  await fetchHistory();
+  try {
+    // Ejecutamos las cargas
+    await fetchStatus();
+    await fetchHistory();
+  } catch (e) {
+    console.error("Error al refrescar:", e);
+  }
+
+  // Esto se ejecutará SIEMPRE, incluso si falla lo anterior
   const btn = event?.currentTarget;
   if (btn) {
     const orig = btn.innerHTML;
