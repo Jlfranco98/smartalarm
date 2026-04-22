@@ -701,7 +701,7 @@ setInterval(() => {
   document.getElementById('acc-name').textContent = u.name;
   document.getElementById('acc-email').textContent = u.username;
   document.getElementById('acc-role').textContent = isAdmin ? 'Administrador' : 'Usuario';
-  document.getElementById('tb-addr').innerHTML = `Usuario:, <span class="user-name-bold">${u.name.split(' ')[0]}</span>`;
+  document.getElementById('tb-addr').innerHTML = `Hola, <span style="font-weight:700">  ${u.name}</span>`;
   
   // Gestión de visibilidad de formularios
   document.getElementById('add-user-form').style.display = isAdmin ? 'block' : 'none';
