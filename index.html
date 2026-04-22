@@ -691,52 +691,20 @@ function checkPin(){
   (pinAction,S.currentUser.name);
 }
 
-async function applyAction(action, userName) {
-  // 1. Opcional: Aviso de que está procesando
-  toast2('Enviando orden...');
-
-  try {
-    const { backendUrl, deviceId } = S.config;
-    // Si no hay backendUrl en config, usa la ruta relativa
-    const targetUrl = backendUrl ? backendUrl + '/api/control' : '/api/control';
-
-    // 2. AWAIT: Esperamos a que Railway y Tuya confirmen la acción
-    const res = await fetch(targetUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, user: userName, deviceId })
-    });
-    
-    const data = await res.json();
-
-    // 3. Solo si Tuya responde con éxito, actualizamos la web
-    if (data.success) {
-      // Actualizamos el estado en memoria
-      S.alarmStatus = action === 'disarm' ? 'disarmed' : action === 'arm_away' ? 'armed' : 'arm_home';
-      
-      const now = new Date();
-      const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-      
-      // Actualizamos el log local
-      S.log.unshift({ 
-        action: ACTION_NAMES[action] || action, 
-        user: userName, 
-        time, 
-        status: S.alarmStatus 
-      });
-      
-      // 4. ¡LA PIEZA QUE FALTABA! Actualizar la interfaz gráfica
-      updateStatusUI(); 
-      renderLog(); 
-      toast2(ACTION_NAMES[action] + ' con éxito');
-    } else {
-      toast2('Error al comunicar con la alarma');
-    }
-  } catch (e) {
-    console.error("Fallo de red:", e);
-    toast2('Error de conexión');
-  }
+function applyAction(action,userName){
+  S.alarmStatus=action==='disarm'?'disarmed':action==='arm_away'?'armed':'arm_home';
+  const now=new Date();
+  const time=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  S.log.unshift({action:ACTION_NAMES[action]||action, user:userName, time, status:S.alarmStatus});
+  renderLog(); toast2(ACTION_NAMES[action]);
+  const { backendUrl, deviceId } = S.config;
+  if(backendUrl) fetch(backendUrl+'/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,user:userName,deviceId})});
 }
+
+  function closePinOutside(e) {
+  if (e.target.id === 'pinModal') {
+    closePin();
+  }
 
 function renderLog(){
   const isAdmin=S.currentUser?.role==='admin';
