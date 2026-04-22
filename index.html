@@ -891,8 +891,32 @@ function renderLog() {
       </div>`;
   }).join('') : '<div class="err-small">Sin actividad</div>';
 
-  if (document.getElementById('home-log')) document.getElementById('home-log').innerHTML = html;
-  if (document.getElementById('full-log')) document.getElementById('full-log').innerHTML = html;
+  // 1. Generamos el HTML para el INICIO (Solo el último evento)
+  const htmlHome = items.slice(0, 1).map(l => {
+    let raw = l.fecha?.$date || l.fecha;
+    let fechaTexto = "Sincronizando...";
+    if (raw) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) {
+        const dia = d.getDate().toString().padStart(2, '0');
+        const mes = (d.getMonth() + 1).toString().padStart(2, '0');
+        const horas = d.getHours().toString().padStart(2, '0');
+        const minutos = d.getMinutes().toString().padStart(2, '0');
+        fechaTexto = `${dia}/${mes} - ${horas}:${minutos}h`;
+      }
+    }
+    const dotClass = (l.accion === 'Desarmado' || l.accion === 'disarm') ? 'hi-disarmed' : 'hi-armed';
+    return `<div class="hist-item"><div class="hi-dot ${dotClass}"></div><div class="hi-info"><div class="hi-action">${l.accion || l.action || 'Acción'}</div><div class="hi-user">${l.usuario || l.user || 'Sistema'}</div></div><div class="hi-time">${fechaTexto}</div></div>`;
+  }).join('');
+
+  // 2. Inyectamos en cada contenedor (Sustituye tus líneas marcadas por esto)
+  if (document.getElementById('home-log')) {
+    document.getElementById('home-log').innerHTML = items.length > 0 ? htmlHome : '<div class="err-small">Sin actividad</div>';
+  }
+  if (document.getElementById('full-log')) {
+    // Para el historial completo usamos la variable 'html' original que ya tienes en tu código
+    document.getElementById('full-log').innerHTML = items.length > 0 ? html : '<div class="err-small">Sin actividad</div>';
+  }
 }
 
 // ── Otros ──────────────────────────────────────────────────────────────────
