@@ -485,6 +485,7 @@ async function doLogin() {
       err.textContent = '';
       S.currentUser = data.user; 
       save();
+      document.getElementById('main-nav').style.display = 'flex';
       gestionarVisibilidadAdmin();
       await fetchHistory(); 
       await fetchStatus();
@@ -503,6 +504,7 @@ async function doLogin() {
 function doLogout() {
   stopPolling();
   S.currentUser = null;
+  document.getElementById('main-nav').style.display = 'none';
   save();
   gestionarVisibilidadAdmin();
   
