@@ -484,7 +484,7 @@ async function doLogin() {
 }
 
 function doLogout() {
-  stopPolling();
+  ();
   S.currentUser = null;
   
   // 2. Limpiamos los campos del formulario de login por seguridad
@@ -668,16 +668,19 @@ async function fetchStatus(){
 }
 
 let _pollTimer = null;
+
 function startPolling(){
-  stopPolling();
+  stopPolling(); // <--- Aquí faltaba el nombre de la función 'stopPolling'
   fetchStatus(); // sync inmediato al entrar
   _pollTimer = setInterval(fetchStatus, 15000); // cada 15s
 }
+
 function stopPolling(){
   if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
 }
 
-
+// ESTA LÍNEA ES VITAL: Es el nombre de la función que agrupa el código de abajo
+function updateStatusUI() {
   const cfg=STATUS_CFG[S.alarmStatus]||STATUS_CFG.disarmed;
   document.getElementById('hs-circle').className='hs-circle '+cfg.cirCls;
   document.getElementById('hs-icon').innerHTML=cfg.icon;
