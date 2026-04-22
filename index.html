@@ -688,7 +688,7 @@ function checkPin(){
     pinBuffer=''; document.querySelectorAll('.pm-dot').forEach(d=>d.className='pm-dot'); return;
   }
   document.getElementById('pin-modal-bg').classList.remove('open');
-  (pinAction,S.currentUser.name);
+  applyAction(pinAction,S.currentUser.name);
 }
 
 function applyAction(action,userName){
@@ -700,11 +700,6 @@ function applyAction(action,userName){
   const { backendUrl, deviceId } = S.config;
   if(backendUrl) fetch(backendUrl+'/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,user:userName,deviceId})});
 }
-
-  function closePinOutside(e) {
-  if (e.target.id === 'pinModal') {
-    closePin();
-  }
 
 function renderLog(){
   const isAdmin=S.currentUser?.role==='admin';
