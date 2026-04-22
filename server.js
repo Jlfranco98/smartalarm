@@ -145,6 +145,18 @@ app.post('/api/change-password', async (req, res) => {
     }
 });
 
+// CAMBIAR PIN USUARIO
+app.post('/api/change-pin', async (req, res) => {
+  const { username, currentPin, newPin } = req.body;
+  const user = await User.findOne({ username });
+  if (!user || user.pin !== currentPin)
+    return res.json({ success: false, message: 'PIN actual incorrecto' });
+  user.pin = newPin;
+  await user.save();
+  res.json({ success: true });
+});
+
+
 // --- 6. CONTROL DE ALARMA (TUYA SMART) ---
 
 async function tuyaRequest(method, urlPath, body = null, token = "") {
