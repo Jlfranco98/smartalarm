@@ -130,28 +130,34 @@ app.post('/api/login', async (req, res) => {
 // CAMBIAR CONTRASEÑA
 app.post('/api/change-password', async (req, res) => {
     try {
-        const { username, newPassword } = req.body;
+        const { username, currentPassword, newPassword } = req.body;
 
         // 1. Prohibir contraseñas débiles
         const forbiddenPass = ['password', '123456', 'admin', 'qwerty', '12345'];
-        if (forbiddenPass.includes(newPassword?.toLowerCase())) {
+        if (forbiddenPass.includes(newPassword.toLowerCase())) {
             return res.json({ success: false, message: 'Contraseña demasiado común. Elige otra.' });
         }
 
         const user = await User.findOne({ username });
         if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
 
-        // 2. Guardar nueva contraseña directamente
+        // 2. Validar contraseña actual
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) return res.json({ success: false, message: 'Contraseña actual incorrecta' });
+
+        // 3. Validar que la NUEVA no sea igual a la ACTUAL
+        const isSame = await bcrypt.compare(newPassword, user.password);
+        if (isSame) {
+            return res.json({ success: false, message: 'La nueva contraseña debe ser diferente a la anterior.' });
+        }
+
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
-        
-        // 3. Forzar el false para que no vuelva a salir la pantalla roja
-        user.isNew = false; 
+        user.isNew = false; // Importante para el flujo de seguridad
         await user.save();
 
         res.json({ success: true, message: 'Contraseña actualizada correctamente' });
     } catch (e) {
-        console.error(e);
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 });
