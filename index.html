@@ -858,7 +858,7 @@ function renderLog() {
     // 1. EXTRAEMOS LA FECHA DE LA BASE DE DATOS
     // Importante: No creamos un "new Date()" vacío si no hay dato
     let raw = l.fecha?.$date || l.fecha;
-    let fechaTexto = "Cargando fecha...";
+    let fechaTexto = "Sincronizando...";
 
     if (raw) {
       const d = new Date(raw);
