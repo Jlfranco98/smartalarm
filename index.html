@@ -191,6 +191,19 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .btn-add:active{opacity:.85}
 .cfg-saved{font-size:12px;color:var(--green);text-align:center;min-height:14px;margin-top:6px;font-weight:700}
 .err-small{font-size:12px;color:var(--red);min-height:14px;margin-top:4px;font-weight:700}
+  .notif-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border); }
+.notif-row:last-of-type { border-bottom:none; }
+.notif-text { display: flex; flex-direction: column; gap: 2px; }
+.notif-title { font-size:14px; font-weight:800; color:var(--text); }
+.notif-desc { font-size:11px; color:var(--muted); font-weight:600; }
+.notif-desc.danger { color: var(--red); font-weight: 700; }
+
+.switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: var(--border); transition: .3s; border-radius: 26px; }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: var(--green); }
+input:checked + .slider:before { transform: translateX(20px); }
 
 /* Toast */
 #toast{position:fixed;top:calc(var(--safe-top) + 70px);left:50%;transform:translateX(-50%) translateY(-10px);background:#1a1a1a;color:#fff;border-radius:12px;padding:10px 22px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:999;white-space:nowrap}
@@ -300,71 +313,117 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
     <!-- ── CUENTA / CONFIGURACIÓN ── -->
     <div class="page" id="pg-cuenta">
-      <div class="account-hero">
-        <div class="acc-avatar" id="acc-av">--</div>
-        <div class="acc-name" id="acc-name">Usuario</div>
-        <div class="acc-email" id="acc-email">usuario@email.com</div>
-        <div class="acc-role" id="acc-role">Usuario</div>
-      </div>
-
-      <div class="settings-list">
-  <div class="sl-item admin-only" onclick="toggleCfgPanel()" style="display: none;">
-    <div class="sl-icon">🔗</div>
-    <div class="sl-label">Conexión backend Tuya</div>
-    <div class="sl-arrow">›</div>
+  <div class="account-hero">
+    <div class="acc-avatar" id="acc-av">--</div>
+    <div class="acc-name" id="acc-name">Usuario</div>
+    <div class="acc-email" id="acc-email">usuario@email.com</div>
+    <div class="acc-role" id="acc-role">Usuario</div>
   </div>
-  </div>
-        <div id="cfg-panel" style="display:none">
-          <div class="admin-card" style="margin-bottom:8px">
-            <div class="form-field"><label>URL Backend</label><input id="cfg-backend" placeholder="https://tu-backend.railway.app"></div>
-            <div class="form-field"><label>App Secret</label><input id="cfg-secret" type="password" placeholder="••••••••"></div>
-            <div class="form-field"><label>Device ID</label><input id="cfg-device" placeholder="ID del dispositivo"></div>
-            <div class="form-field"><label>Región</label>
-              <select id="cfg-region"><option value="eu">Europa (España)</option><option value="us">América</option><option value="cn">China</option></select>
-            </div>
-            <button class="btn-add" onclick="saveConfig()">Guardar configuración</button>
-            <div class="cfg-saved" id="cfg-ok"></div>
-          </div>
-        </div>
 
-        <div class="sl-item" onclick="togglePinPanel()">
-          <div class="sl-icon">🔑</div>
-          <div class="sl-label">Cambiar contraseña</div>
-          <div class="sl-arrow">›</div>
+  <div class="settings-list">
+    <div class="sl-item admin-only" onclick="toggleCfgPanel()" style="display: none;">
+      <div class="sl-icon">🔗</div>
+      <div class="sl-label">Conexión backend Tuya</div>
+      <div class="sl-arrow">›</div>
+    </div>
+    <div id="cfg-panel" style="display:none">
+      <div class="admin-card" style="margin-bottom:8px">
+        <div class="form-field"><label>URL Backend</label><input id="cfg-backend" placeholder="https://tu-backend.railway.app"></div>
+        <div class="form-field"><label>App Secret</label><input id="cfg-secret" type="password" placeholder="••••••••"></div>
+        <div class="form-field"><label>Device ID</label><input id="cfg-device" placeholder="ID del dispositivo"></div>
+        <div class="form-field"><label>Región</label>
+          <select id="cfg-region"><option value="eu">Europa (España)</option><option value="us">América</option><option value="cn">China</option></select>
         </div>
-        <div id="pin-panel" style="display:none">
-          <div class="admin-card" style="margin-bottom:8px">
-            <div class="form-field"><label>Contraseña actual</label><input id="old-pass" type="password" placeholder="••••••••"></div>
-            <div class="form-field"><label>Nueva contraseña</label><input id="new-pass" type="password" placeholder="••••••••"></div>
-            <button class="btn-add" onclick="changePassword()" style="margin-top:10px; width:100%">
-            Cambiar contraseña
-           </button>
-           <div class="err-small" id="pass-err" style="text-align:center; margin-top:5px"></div>
-          </div>
-        </div>
-
-        <div class="sl-item" onclick="toggleChangePinPanel()">
-          <div class="sl-icon">🔢</div>
-          <div class="sl-label">Cambiar PIN de alarma</div>
-          <div class="sl-arrow">›</div>
-        </div>
-        <div id="change-pin-panel" style="display:none">
-          <div class="admin-card" style="margin-bottom:8px">
-            <div class="form-field"><label>PIN actual</label><input id="cp-old" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
-            <div class="form-field"><label>PIN nuevo</label><input id="cp-new1" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
-            <div class="form-field"><label>Repetir PIN nuevo</label><input id="cp-new2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
-            <button class="btn-add" onclick="changePin()" style="margin-top:10px;width:100%">Cambiar PIN</button>
-            <div class="err-small" id="cp-err" style="text-align:center;margin-top:5px"></div>
-          </div>
-        </div>
-
-        <div class="sl-item" onclick="doLogout()">
-          <div class="sl-icon">🚪</div>
-          <div class="sl-label danger" style="color:var(--red)">Cerrar sesión</div>
-          <div class="sl-arrow">›</div>
-        </div>
+        <button class="btn-add" onclick="saveConfig()">Guardar configuración</button>
+        <div class="cfg-saved" id="cfg-ok"></div>
       </div>
     </div>
+
+    <div class="sl-item" onclick="togglePinPanel()">
+      <div class="sl-icon">🔑</div>
+      <div class="sl-label">Cambiar contraseña</div>
+      <div class="sl-arrow">›</div>
+    </div>
+    <div id="pin-panel" style="display:none">
+      <div class="admin-card" style="margin-bottom:8px">
+        <div class="form-field"><label>Contraseña actual</label><input id="old-pass" type="password" placeholder="••••••••"></div>
+        <div class="form-field"><label>Nueva contraseña</label><input id="new-pass" type="password" placeholder="••••••••"></div>
+        <button class="btn-add" onclick="changePassword()" style="margin-top:10px; width:100%">
+        Cambiar contraseña
+        </button>
+        <div class="err-small" id="pass-err" style="text-align:center; margin-top:5px"></div>
+      </div>
+    </div>
+
+    <div class="sl-item" onclick="toggleChangePinPanel()">
+      <div class="sl-icon">🔢</div>
+      <div class="sl-label">Cambiar PIN de alarma</div>
+      <div class="sl-arrow">›</div>
+    </div>
+    <div id="change-pin-panel" style="display:none">
+      <div class="admin-card" style="margin-bottom:8px">
+        <div class="form-field"><label>PIN actual</label><input id="cp-old" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
+        <div class="form-field"><label>PIN nuevo</label><input id="cp-new1" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
+        <div class="form-field"><label>Repetir PIN nuevo</label><input id="cp-new2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
+        <button class="btn-add" onclick="changePin()" style="margin-top:10px;width:100%">Cambiar PIN</button>
+        <div class="err-small" id="cp-err" style="text-align:center;margin-top:5px"></div>
+      </div>
+    </div>
+
+    <div class="sl-item" onclick="toggleNotifPanel()">
+      <div class="sl-icon">🔔</div>
+      <div class="sl-label">Notificaciones Push</div>
+      <div class="sl-arrow">›</div>
+    </div>
+    <div id="notif-panel" style="display:none">
+      <div class="admin-card" style="margin-bottom:8px">
+        <div class="ac-title" style="margin-bottom:8px">Alertas en tu dispositivo</div>
+        
+        <div class="notif-row">
+          <div class="notif-text">
+            <div class="notif-title">Armado</div>
+            <div class="notif-desc">Aviso al conectar la alarma</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="chk-notif-arm">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="notif-row">
+          <div class="notif-text">
+            <div class="notif-title">Desarmado</div>
+            <div class="notif-desc">Aviso al desconectar la alarma</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="chk-notif-disarm">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="notif-row">
+          <div class="notif-text">
+            <div class="notif-title">Salto de alarma</div>
+            <div class="notif-desc danger">Aviso crítico de intrusión</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="chk-notif-trigger" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <button class="btn-add" onclick="saveNotifications()" style="margin-top:16px; width:100%">
+          Guardar preferencias
+        </button>
+      </div>
+    </div>
+    <div class="sl-item" onclick="doLogout()">
+      <div class="sl-icon">🚪</div>
+      <div class="sl-label danger" style="color:var(--red)">Cerrar sesión</div>
+      <div class="sl-arrow">›</div>
+    </div>
+
+  </div> </div> ```
 
     <!-- ── ADMIN ── -->
     <div class="page" id="pg-admin">
@@ -894,9 +953,21 @@ function renderLog() {
 }
 
 // ── Otros ──────────────────────────────────────────────────────────────────
+// Busca tu función loadConfigForm() y déjala así:
 function loadConfigForm(){
   document.getElementById('cfg-backend').value=S.config.backendUrl||'';
   document.getElementById('cfg-device').value=S.config.deviceId||'';
+  
+  // Novedad: Cargar estado de interruptores (por defecto el de salto de alarma en true)
+  if(S.config.notificaciones) {
+    document.getElementById('chk-notif-arm').checked = S.config.notificaciones.arm;
+    document.getElementById('chk-notif-disarm').checked = S.config.notificaciones.disarm;
+    document.getElementById('chk-notif-trigger').checked = S.config.notificaciones.trigger;
+  } else {
+    document.getElementById('chk-notif-arm').checked = false;
+    document.getElementById('chk-notif-disarm').checked = false;
+    document.getElementById('chk-notif-trigger').checked = true;
+  }
 }
   
 async function saveConfig() {
@@ -1049,6 +1120,50 @@ if ('serviceWorker' in navigator) {
 
 }
 
+// ── Configuración de Notificaciones ────────────────────────────────────────
+
+function toggleNotifPanel() {
+  const p = document.getElementById('notif-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+async function saveNotifications() {
+  // 1. Pedir permisos al navegador si no los tenemos
+  if ('Notification' in window && Notification.permission !== 'granted') {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      toast2('Permisos denegados por el navegador');
+      return;
+    }
+  }
+
+  // 2. Leer los valores de los interruptores
+  const confNotif = {
+    arm: document.getElementById('chk-notif-arm').checked,
+    disarm: document.getElementById('chk-notif-disarm').checked,
+    trigger: document.getElementById('chk-notif-trigger').checked
+  };
+
+  // 3. Guardar en el estado local de la app
+  S.config.notificaciones = confNotif;
+  save(); // Guarda en localStorage usando tu función existente
+
+  // 4. (Opcional pero recomendado) Enviar al backend para que sepa qué avisos mandarte
+  try {
+    /* Descomenta esto cuando prepares tu backend en Railway para recibir esto:
+    await fetch('/api/user/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: S.currentUser.username, config: confNotif })
+    });
+    */
+    toast2('Preferencias de alertas guardadas');
+    toggleNotifPanel(); // Cierra el panel al guardar
+  } catch (e) {
+    toast2('Guardado localmente (Error API)');
+  }
+}
+  
 function showUpdateBar() {
   if (document.getElementById('update-bar')) return; // evitar duplicados
   const bar = document.createElement('div');
