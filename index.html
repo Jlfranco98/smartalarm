@@ -1041,13 +1041,16 @@ document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='En
 
 // ── Funciones de UI ────────────────────────────────────────────────────────
 async function refreshStatus(event) {
+  const btn = event?.currentTarget || event?.target;
+  const orig = btn?.innerHTML;
+  if (btn) btn.innerHTML = '⌛';
+
   await fetchStatus();
   await fetchHistorialGlobal();
-  const btn = event?.currentTarget;
+
   if (btn) {
-    const orig = btn.innerHTML;
     btn.innerHTML = '✅';
-    setTimeout(() => btn.innerHTML = orig, 1000);
+    setTimeout(() => btn.innerHTML = orig, 1500);
   }
 }
 
