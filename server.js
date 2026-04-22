@@ -29,7 +29,6 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     pin: String,
     role: { type: String, default: 'user' }
-    isNew: { type: Boolean, default: true }
 }, { collection: 'users', timestamps: true });
 
 const logSchema = new mongoose.Schema({
@@ -74,7 +73,6 @@ app.post('/api/usuarios', async (req, res) => {
             password: hashedPassword,
             pin,
             role: role || 'user'
-            isNew: true
         });
 
         await newUser.save();
@@ -118,17 +116,7 @@ app.post('/api/login', async (req, res) => {
         const { username, password } = req.body;
         const user = await User.findOne({ username });
         if (user && await bcrypt.compare(password, user.password)) {
-            // AÑADIMOS isNew AQUÍ:
-            res.json({ 
-                success: true, 
-                user: { 
-                    name: user.name, 
-                    username: user.username, 
-                    role: user.role, 
-                    pin: user.pin,
-                    isNew: user.isNew // <-- Esto es lo que le falta a tu Frontend
-                } 
-            });
+            res.json({ success: true, user: { name: user.name, username: user.username, role: user.role, pin: user.pin } });
         } else {
             res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
         }
@@ -149,7 +137,6 @@ app.post('/api/change-password', async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
-        user.isNew = false;
         await user.save();
 
         res.json({ success: true, message: 'Contraseña actualizada correctamente' });
