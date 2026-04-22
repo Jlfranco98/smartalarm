@@ -216,7 +216,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
     <div class="login-form">
       <div class="lf-group">
         <label class="lf-label">Usuario o email</label>
-        <input class="lf-input" id="li-user" type="text" placeholder="Introduce tu usario o email" autocomplete="username">
+        <input class="lf-input" id="li-user" type="text" placeholder="Introduce tu usuario o email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" oninput="this.value = this.value.toLowerCase()">
       </div>
       <div class="lf-group">
         <label class="lf-label">Contraseña</label>
