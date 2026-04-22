@@ -484,8 +484,6 @@ async function doLogin() {
     if (data.success) {
       err.textContent = '';
       S.currentUser = data.user; 
-      save();
-      gestionarVisibilidadAdmin();
       await fetchHistory(); 
       await fetchStatus();
       renderApp();
@@ -503,8 +501,6 @@ async function doLogin() {
 function doLogout() {
   stopPolling();
   S.currentUser = null;
-  save();
-  gestionarVisibilidadAdmin();
   
   // 2. Limpiamos los campos del formulario de login por seguridad
   document.getElementById('li-user').value = '';
