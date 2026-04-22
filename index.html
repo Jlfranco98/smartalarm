@@ -693,6 +693,7 @@ function checkPin(){
 
 function applyAction(action,userName){
   S.alarmStatus=action==='disarm'?'disarmed':action==='arm_away'?'armed':'arm_home';
+  updateStatusUI();
   const now=new Date();
   const time=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   S.log.unshift({action:ACTION_NAMES[action]||action, user:userName, time, status:S.alarmStatus});
@@ -820,8 +821,15 @@ function forceUpdate() {
   }
 }
 
+function closePin(){
+  pinBuffer='';
+  document.getElementById('pin-modal-bg').classList.remove('open');
+  document.getElementById('pm-err').textContent='';
+  document.querySelectorAll('.pm-dot').forEach(d=>d.className='pm-dot');
+}
+
 function closePinOutside(e) {
-  if (e.target.id === 'pinModal') {
+  if (e.target.id === 'pin-modal-bg') {
     closePin();
   }
 }
