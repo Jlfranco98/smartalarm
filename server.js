@@ -97,6 +97,17 @@ app.delete('/api/usuarios/:username', async (req, res) => {
     }
 });
 
+// Ruta para obtener el historial de todos los usuarios
+app.get('/api/logs', async (req, res) => {
+    try {
+        // Traemos los últimos 30 logs, ordenados por fecha descendente
+        const logs = await Log.find().sort({ fecha: -1 }).limit(30);
+        res.json(logs);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // --- 5. AUTENTICACIÓN ---
 
 // LOGIN: Verifica credenciales
