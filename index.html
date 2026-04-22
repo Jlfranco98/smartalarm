@@ -434,6 +434,21 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
 <div id="toast"></div>
 
+<div id="force-change-screen" class="screen" style="z-index: 1000; background: var(--bg); display: none; flex-direction: column; padding: 20px;">
+    <div class="account-hero">
+      <div class="acc-avatar">🔑</div>
+      <div class="acc-name">Seguridad requerida</div>
+      <div class="acc-email">Por favor, personaliza tus credenciales para continuar</div>
+    </div>
+    
+    <div class="admin-card" style="margin-top: 20px;">
+      <div class="form-field"><label>Nueva Contraseña</label><input id="force-pass" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div class="form-field"><label>Nuevo PIN (4 dígitos)</label><input id="force-pin" type="password" maxlength="4" inputmode="numeric" placeholder="••••"></div>
+      <button class="btn-red" onclick="applyForceChange()">Guardar y Empezar</button>
+      <div id="force-err" class="err-small" style="text-align:center; margin-top:10px"></div>
+    </div>
+  </div>
+  
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let S = {
@@ -496,8 +511,16 @@ async function doLogin() {
 
     if (data.success) {
       err.textContent = '';
-      S.currentUser = data.user; 
-      save();
+      S.currentUser = data.user;
+      save(); // Guardamos la sesión
+
+      // 1. CASO: USUARIO NUEVO
+      if (data.user.isNew || data.user.mustChange) {
+        showForceChangeModal();
+        return; // Aquí termina la función para los nuevos
+      }
+
+      // 2. CASO: USUARIO NORMAL (Este código debe ir fuera del IF anterior)
       document.getElementById('main-nav').style.display = 'flex';
       gestionarVisibilidadAdmin();
       await fetchHistory(); 
@@ -506,6 +529,7 @@ async function doLogin() {
       document.getElementById('s-login').classList.remove('active');
       document.getElementById('s-app').classList.add('active');
       startPolling();
+
     } else {
       err.textContent = data.message || 'Credenciales incorrectas';
     }
@@ -1097,6 +1121,51 @@ function showUpdateBar() {
     </button>
   `;
   document.body.appendChild(bar);
+}
+
+  function showForceChangeModal() {
+  const el = document.getElementById('force-change-screen');
+  el.style.display = 'flex';
+  setTimeout(() => el.classList.add('active'), 10);
+}
+
+async function applyForceChange() {
+  const nPass = document.getElementById('force-pass').value;
+  const nPin = document.getElementById('force-pin').value;
+  const err = document.getElementById('force-err');
+
+  if (nPass.length < 4 || !/^\d{4}$/.test(nPin)) {
+    err.textContent = "Datos no válidos. PIN debe ser de 4 números.";
+    return;
+  }
+
+  try {
+    // 1. Cambiamos contraseña usando tu API existente
+    await fetch('/api/change-password', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username: S.currentUser.username, currentPassword: S.currentUser.password || S.currentUser.tempPass, newPassword: nPass })
+    });
+
+    // 2. Cambiamos PIN usando tu API existente
+    await fetch('/api/change-pin', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username: S.currentUser.username, currentPin: S.currentUser.pin, newPin: nPin })
+    });
+
+    // 3. Ocultar modal y entrar
+    document.getElementById('force-change-screen').style.display = 'none';
+    S.currentUser.pin = nPin; 
+    save();
+    renderApp();
+    document.getElementById('s-app').classList.add('active');
+    document.getElementById('main-nav').style.display = 'flex';
+    toast2('¡Bienvenido! Datos actualizados.');
+    
+  } catch(e) {
+    err.textContent = "Error al conectar con el servidor.";
+  }
 }
 
 function forceUpdate() {
