@@ -1,4 +1,4 @@
-const CACHE = 'mialarm-v5.4'; // <-- cambia esto en cada despliegue (v6, v7...)
+const CACHE = 'mialarm-v5.5'; // <-- cambia esto en cada despliegue (v6, v7...)
 const STATIC = ['/', '/index.html', '/manifest.json'];
 
 // INSTALL: guarda estáticos, sin skipWaiting para que el index controle cuándo activar
