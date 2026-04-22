@@ -1142,14 +1142,14 @@ async function applyForceChange() {
   const err = document.getElementById('force-err');
 
   // 1. VALIDACIÓN DE FORMATO (Lo que ya tenías)
-  if (nPass.length < 4 || !/^\d{4}$/.test(nPin)) {
-    err.textContent = "Datos no válidos. PIN debe ser de 4 números.";
+  if (nPass.length < 6 || !/^\d{4}$/.test(nPin)) {
+    err.textContent = "La contraseña debe de ser minimo de 6 caracteres";
     return;
   }
 
   // 2. NUEVA: VALIDACIÓN DE SEGURIDAD (Listas negras)
-  const forbiddenPins = ['0000', '1234', '1111', '2222'];
-  const forbiddenPass = ['password', '123456', 'admin', 'qwerty'];
+  const forbiddenPins = ['0000', '1234', '1111', '2222', '123456'];
+  const forbiddenPass = ['password', 'pass', '123', '1234', '12345', '123456', 'admin', 'qwerty'];
 
   if (forbiddenPins.includes(nPin)) {
     err.textContent = "El PIN " + nPin + " no está permitido por seguridad.";
