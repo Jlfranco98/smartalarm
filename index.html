@@ -798,53 +798,53 @@ async function applyAction(action, userName) {
 }
 
 function renderLog() {
-  // 1. Tomamos los datos globales
   const items = S.log || []; 
 
-  // 2. Generamos el HTML procesando cada elemento
   const htmlArray = items.map(l => {
-    
-    // --- CORRECCIÓN DE FECHA ---
+    // --- LÓGICA DE FECHA PARA MONGODB ---
     let horaVisible = "--:--";
     
-    // Verificamos si es una fecha directa o el objeto $date de MongoDB
-    let fechaRaw = l.fecha;
-    if (fechaRaw && fechaRaw.$date) fechaRaw = fechaRaw.$date;
+    // 1. Extraemos la fecha cruda (manejando el objeto $date de tus capturas)
+    let fechaRaw = null;
+    if (l.fecha) {
+      // Si l.fecha es el objeto que vemos en tu imagen, sacamos el valor de $date
+      fechaRaw = l.fecha.$date ? l.fecha.$date : l.fecha;
+    }
 
+    // 2. Si logramos obtener una fecha, la formateamos
     if (fechaRaw) {
       const d = new Date(fechaRaw); 
+      // Usamos toLocaleTimeString para que use la hora local de España/tu zona
       const horas = d.getHours().toString().padStart(2, '0');
       const minutos = d.getMinutes().toString().padStart(2, '0');
       horaVisible = `${horas}:${minutos}`; 
-    } else if (l.time) {
-      horaVisible = l.time; 
     }
 
-    // Color del punto
-    const dotClass = (l.accion === 'Desarmado') ? 'hi-disarmed' : 'hi-armed';
+    // 3. Color del punto
+    const dotClass = (l.accion === 'Desarmado' || l.accion === 'disarm') ? 'hi-disarmed' : 'hi-armed';
 
     return `
       <div class="hist-item">
         <div class="hi-dot ${dotClass}"></div>
         <div class="hi-info">
-          <div class="hi-action">${l.accion || l.action || 'Acción'}</div>
+          <div class="hi-action">${l.accion || l.action}</div>
           <div class="hi-user">${l.usuario || l.user || 'Sistema'}</div>
         </div>
         <div class="hi-time">${horaVisible}</div>
       </div>`;
   });
 
-  // 3. RENDERIZADO FINAL
+  // 4. Inyectar en los contenedores
   const finalHtml = htmlArray.length ? htmlArray.join('') : '<div class="err-small">Sin actividad</div>';
-  const homeHtml = htmlArray.length ? htmlArray.slice(0, 4).join('') : finalHtml;
-
-  // Inyectamos en la Home (solo los 4 primeros)
-  const homeLog = document.getElementById('home-log');
-  if (homeLog) homeLog.innerHTML = homeHtml;
-
-  // Inyectamos en el Historial Completo
-  const fullLog = document.getElementById('full-log');
-  if (fullLog) fullLog.innerHTML = finalHtml;
+  
+  if (document.getElementById('home-log')) {
+    // En la home solo mostramos los 4 primeros
+    document.getElementById('home-log').innerHTML = htmlArray.slice(0, 4).join('');
+  }
+  
+  if (document.getElementById('full-log')) {
+    document.getElementById('full-log').innerHTML = finalHtml;
+  }
 }
 
 // ── Otros ──────────────────────────────────────────────────────────────────
