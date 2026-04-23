@@ -208,8 +208,8 @@ async function sendPushNotification(action, triggeredBy) {
   if (!subs.length) return;
   const labels = { arm_away: '🔒 Alarma armada (total)', arm_home: '🌙 Modo noche', disarm: '🔓 Alarma desarmada' };
   const payload = JSON.stringify({
-    title: 'Smart Alarm',
-    body:  `${labels[action] || action} — por ${triggeredBy}`,
+    title: labels[action] || action,
+    body:  `Por el usuario: ${triggeredBy}`,
     icon:  '/icon-192.png',
     badge: '/icon-192.png'
   });
