@@ -323,7 +323,7 @@ app.get('/api/status', async (req, res) => {
 });
 
 // --- SENSOR DE LUZ ---
-const SENSOR_DEVICE_ID = 'bfdeac450e35ceb89daceq';
+const SENSOR_DEVICE_ID = 'bfc5d2d1da002201c6pcbl';
 const LUX_UMBRAL = 3; // Si supera este valor, se considera que hay luz = alarma saltada
 let sensorAlarmaActiva = false; // Para no repetir la notificación
 
