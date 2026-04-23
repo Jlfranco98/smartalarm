@@ -197,8 +197,8 @@ async function sendPushNotification(action, triggeredBy) {
     console.log('Push: VAPID no configurado');
     return;
   }
-  const prefs = action === 'sos' 
-  ? await NotifPref.find({}) // SOS avisa a todos sin importar preferencias
+  const prefs = (action === 'sos' || action === 'sensor_luz') 
+  ? await NotifPref.find({})
   : await NotifPref.find({ [action]: true });
   console.log(`Push: ${prefs.length} usuarios con preferencia activa para ${action}`);
   if (!prefs.length) return;
@@ -206,7 +206,7 @@ async function sendPushNotification(action, triggeredBy) {
   const subs = await PushSub.find({ username: { $in: usernames } });
   console.log(`Push: ${subs.length} suscripciones encontradas para ${usernames}`);
   if (!subs.length) return;
-  const labels = { arm_away: '🔒 Alarma armada (total)', arm_home: '🌙 Alarma armada (modo noche)', disarm: '🔓 Alarma desarmada', sos: '🆘 Pánico / SOS' };
+  const labels = { arm_away: '🔒 Alarma armada (total)', arm_home: '🌙 Alarma armada (modo noche)', disarm: '🔓 Alarma desarmada', sos: '🆘 Pánico / SOS', sensor_luz: '🚨 ¡ALARMA SALTADA!' };
   const payload = JSON.stringify({
     title: labels[action] || action,
     body:  `Por el usuario: ${triggeredBy}`,
@@ -321,6 +321,56 @@ app.get('/api/status', async (req, res) => {
     res.json({ alarmStatus: config ? config.alarmStatus : 'disarmed' });
   } catch (e) { res.status(500).send(e.message); }
 });
+
+// --- SENSOR DE LUZ ---
+const SENSOR_DEVICE_ID = 'bfdeac450e35ceb89daceq';
+const LUX_UMBRAL = 3; // Si supera este valor, se considera que hay luz = alarma saltada
+let sensorAlarmaActiva = false; // Para no repetir la notificación
+
+async function checkSensorLuz() {
+  try {
+    const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
+    if (!tokenData.success) return;
+
+    const data = await tuyaRequest('GET', `/v1.0/devices/${SENSOR_DEVICE_ID}/status`, null, tokenData.result.access_token);
+    if (!data.success) return;
+
+    const brightProp = data.result.find(p => p.code === 'bright_value');
+    if (!brightProp) return;
+
+    const lux = brightProp.value;
+    console.log(`Sensor luz: ${lux} LUX`);
+
+    if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
+      // ¡Alarma detectada!
+      sensorAlarmaActiva = true;
+      console.log('⚠️ SENSOR: Luz detectada, posible intrusión');
+
+      // Guardar log
+      await new Log({
+        usuario: 'Sistema',
+        accion: '🚨 Alarma saltada — Sensor de luz activado',
+        fecha: new Date()
+      }).save();
+
+      // Notificar a todos los usuarios
+      await sendPushNotification('sensor_luz', 'Sistema');
+
+    } else if (lux <= LUX_UMBRAL && sensorAlarmaActiva) {
+      // La luz volvió a apagarse, reseteamos
+      sensorAlarmaActiva = false;
+      console.log('Sensor luz: vuelta a normalidad');
+    }
+
+  } catch (e) {
+    console.error('Error sensor luz:', e.message);
+  }
+}
+
+// Polling cada 30 segundos
+setInterval(checkSensorLuz, 5000); // cada 5 segundos
+// También al arrancar
+checkSensorLuz();
 
 // --- 8. INICIO DEL SERVIDOR ---
 const PORT = process.env.PORT || 8080;
