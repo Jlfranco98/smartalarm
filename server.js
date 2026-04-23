@@ -197,7 +197,9 @@ async function sendPushNotification(action, triggeredBy) {
     console.log('Push: VAPID no configurado');
     return;
   }
-  const prefs = await NotifPref.find({ [action]: true });
+  const prefs = action === 'sos' 
+  ? await NotifPref.find({}) // SOS avisa a todos sin importar preferencias
+  : await NotifPref.find({ [action]: true });
   console.log(`Push: ${prefs.length} usuarios con preferencia activa para ${action}`);
   if (!prefs.length) return;
   const usernames = prefs.map(p => p.username);
