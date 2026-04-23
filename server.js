@@ -324,7 +324,7 @@ app.get('/api/status', async (req, res) => {
 
 // --- SENSOR DE LUZ ---
 const SENSOR_DEVICE_ID = 'bfc5d2d1da002201c6pcbl';
-const LUX_UMBRAL = 3; // Si supera este valor, se considera que hay luz = alarma saltada
+const LUX_UMBRAL = 1; // Si supera este valor, se considera que hay luz = alarma saltada
 let sensorAlarmaActiva = false; // Para no repetir la notificación
 
 async function checkSensorLuz() {
@@ -339,7 +339,7 @@ async function checkSensorLuz() {
     if (!brightProp) return;
 
     const lux = brightProp.value;
-    console.log(`Sensor luz: ${lux} LUX`);
+    console.log(`Comprobando estado alarma: ${lux} LUX`);
 
     if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
       // ¡Alarma detectada!
@@ -367,8 +367,8 @@ async function checkSensorLuz() {
   }
 }
 
-// Polling cada 30 segundos
-setInterval(checkSensorLuz, 5000); // cada 5 segundos
+// Polling cada 9 segundos
+setInterval(checkSensorLuz, 9000); // cada 9 segundos
 // También al arrancar
 checkSensorLuz();
 
