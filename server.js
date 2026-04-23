@@ -204,6 +204,7 @@ async function sendPushNotification(action, triggeredBy) {
   const subs = await PushSub.find({ username: { $in: usernames } });
   console.log(`Push: ${subs.length} suscripciones encontradas para ${usernames}`);
   if (!subs.length) return;
+  const labels = { arm_away: '🔒 Alarma armada (total)', arm_home: '🌙 Modo noche', disarm: '🔓 Alarma desarmada' };
   const payload = JSON.stringify({
     title: 'Smart Alarm',
     body:  `${labels[action] || action} — por ${triggeredBy}`,
