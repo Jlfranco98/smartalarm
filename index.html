@@ -538,11 +538,12 @@ function load(){
     if(d.config) S.config = {...S.config, ...d.config};
     if(d.user) {
       S.currentUser = d.user;
-      // Mostrar app directamente sin pasar por login
       document.getElementById('main-nav').style.display = 'flex';
       document.getElementById('s-login').classList.remove('active');
       document.getElementById('s-app').classList.add('active');
-      renderApp();
+      gestionarVisibilidadAdmin();
+      // Usamos setTimeout para asegurarnos que el DOM está listo
+      setTimeout(() => renderApp(), 0);
     }
   } catch(e) {}
 }
