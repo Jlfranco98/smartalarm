@@ -419,7 +419,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
                 <span class="toggle-slider"></span>
               </label>
             </div>
-            <button class="btn-add" style="margin-top:14px" onclick="requestPushPermission()">🔔 Activar notificaciones en este dispositivo</button>
+            <button class="btn-add" id="notif-btn" style="margin-top:14px" onclick="requestPushPermission()">🔔 Activar notificaciones en este dispositivo</button>
             <div class="cfg-saved" id="notif-ok"></div>
           </div>
         </div>
@@ -1283,7 +1283,10 @@ function toggleNotifPanel(){
   const p = document.getElementById('notif-panel');
   const isOpen = p.style.display !== 'none';
   p.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) loadNotifPrefs();
+  if (!isOpen) {
+    loadNotifPrefs();
+    checkNotifStatus();
+  }
 }
 
 async function loadNotifPrefs() {
@@ -1316,9 +1319,37 @@ async function saveNotifPrefs() {
   } catch(e) {}
 }
 
+async function checkNotifStatus() {
+  const btn = document.getElementById('notif-btn');
+  const ok  = document.getElementById('notif-ok');
+  if (!('Notification' in window)) return;
+  
+  if (Notification.permission === 'granted') {
+    // Comprobar si además tiene suscripción activa
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        btn.textContent = '✅ Dispositivo configurado';
+        btn.style.background = 'var(--green)';
+        ok.style.color = 'var(--green)';
+        ok.textContent = 'Este dispositivo recibirá notificaciones';
+        return;
+      }
+    } catch(e) {}
+  }
+  
+  // No configurado
+  btn.textContent = '🔔 Activar notificaciones en este dispositivo';
+  btn.style.background = '';
+  ok.textContent = '';
+}
+
 async function requestPushPermission() {
-  const ok = document.getElementById('notif-ok');
+  const ok  = document.getElementById('notif-ok');
+  const btn = document.getElementById('notif-btn');
   ok.style.color = 'var(--red)';
+
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     ok.textContent = 'Tu navegador no soporta notificaciones push'; return;
   }
@@ -1341,7 +1372,9 @@ async function requestPushPermission() {
       body: JSON.stringify({ username: S.currentUser.username, subscription: sub, device: navigator.userAgent.slice(0,80) })
     });
     ok.style.color = 'var(--green)';
-    ok.textContent = '✅ Notificaciones activadas en este dispositivo';
+    ok.textContent = 'Este dispositivo recibirá notificaciones';
+    btn.textContent = '✅ Dispositivo configurado';
+    btn.style.background = 'var(--green)';
   } catch(e) {
     ok.textContent = 'Error al activar: ' + e.message;
   }
