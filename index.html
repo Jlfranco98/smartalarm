@@ -109,6 +109,8 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .hs-btn-red{background:var(--red);color:#fff}
 .hs-btn-green{background:var(--green);color:#fff}
 .hs-btn-orange{background:var(--orange);color:#fff}
+.hs-btn-sos{background:#7d0000;color:#fff;animation:sos-pulse 1.5s infinite}
+@keyframes sos-pulse{0%,100%{box-shadow:0 0 0 0 rgba(125,0,0,0.4)}70%{box-shadow:0 0 0 12px rgba(125,0,0,0)}}
 
 /* Section header */
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 16px 10px}
@@ -279,6 +281,12 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
             <span style="font-size:22px;line-height:1">🔓</span>
             <span>Desconectar</span>
           </button>
+          </div>
+        <button class="hs-btn hs-btn-sos" style="width:100%;margin-top:10px;border-radius:14px;padding:14px 20px;flex-direction:row;gap:10px;justify-content:center;font-size:15px" onclick="openSos()">
+          <span style="font-size:24px;line-height:1">🆘</span>
+          <span>PÁNICO / SOS</span>
+        </button>
+      </div>
         </div>
       </div>
 
@@ -529,7 +537,7 @@ const STATUS_CFG = {
   armed:    {label:'Conectada total',sub:'Protección máxima activa',icon:'🔒', cirCls:'hs-circle-armed',    color:'var(--red)'},
   arm_home: {label:'Conectada parcialmente',sub:'Modo en casa activo',  icon:'🏠', cirCls:'hs-circle-home',     color:'var(--orange)'},
 };
-const ACTION_NAMES = {arm_away:'Armado total', arm_home:'Armado parcial', disarm:'Desarmado'};
+const ACTION_NAMES = {arm_away:'Armado total', arm_home:'Armado parcial', disarm:'Desarmado', sos:'Pánico / SOS'};
 
 // ── Persist ────────────────────────────────────────────────────────────────
 function load(){
@@ -872,6 +880,29 @@ function updateStatusUI() {
   }
 }
 
+function openSos() {
+  if (!confirm('⚠️ ¿Activar MODO PÁNICO?\n\nSe alertará a TODOS los usuarios inmediatamente.')) return;
+  pinAction = 'sos'; pinBuffer = '';
+  document.getElementById('pm-title').textContent = '🆘 Confirmar PÁNICO';
+  document.getElementById('pm-sub').textContent = 'Ingresa tu PIN para confirmar';
+  document.getElementById('pm-err').textContent = '';
+  document.getElementById('pm-dots').innerHTML = '<div class="pm-dot"></div>'.repeat(4);
+  const num = document.getElementById('pm-numpad'); num.innerHTML = '';
+  [1,2,3,4,5,6,7,8,9,'',0,'⌫'].forEach(v=>{
+    const b = document.createElement('button'); b.className='pm-key'+(v===''?' empty':v==='⌫'?' del':'');
+    b.textContent = v;
+    if(v!==''){b.onclick=()=>{
+      if(v==='⌫') pinBuffer=pinBuffer.slice(0,-1);
+      else if(pinBuffer.length<4) pinBuffer+=String(v);
+      const dots=document.querySelectorAll('.pm-dot');
+      dots.forEach((d,i)=>d.className='pm-dot'+(i<pinBuffer.length?' on':''));
+      if(pinBuffer.length===4) setTimeout(checkPin,180);
+    };}
+    num.appendChild(b);
+  });
+  document.getElementById('pin-modal-bg').classList.add('open');
+}
+  
 function openPin(action){
   pinAction=action; pinBuffer='';
   document.getElementById('pm-title').textContent=ACTION_NAMES[action]||action;
