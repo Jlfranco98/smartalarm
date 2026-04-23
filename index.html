@@ -947,7 +947,10 @@ function checkPin(){
 
 async function applyAction(action, userName) {
   // 1. Calculamos el estado que queremos poner
-  const nextStatus = action === 'disarm' ? 'disarmed' : action === 'arm_away' ? 'armed' : 'arm_home';
+  const nextStatus = action === 'disarm' ? 'disarmed' : 
+                   action === 'arm_away' ? 'armed' : 
+                   action === 'arm_home' ? 'arm_home' : 
+                   S.alarmStatus; // SOS mantiene el estado actual
   
   toast2('Comunicando con la alarma...');
 
