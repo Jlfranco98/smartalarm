@@ -533,15 +533,18 @@ const ACTION_NAMES = {arm_away:'Armado total', arm_home:'Armado parcial', disarm
 
 // ── Persist ────────────────────────────────────────────────────────────────
 function load(){
-  try{
-    const d=JSON.parse(localStorage.getItem('mialarm')||'{}');
-    // Solo recuperamos config, la sesión SIEMPRE requiere login del servidor
-    if(d.config) S.config={...S.config,...d.config};
-    // La nav siempre oculta al arrancar — solo se muestra tras login exitoso
-    const nav = document.getElementById('main-nav');
-    if(nav) nav.style.display = 'none';
-    S.currentUser = null;
-  }catch(e){}
+  try {
+    const d = JSON.parse(localStorage.getItem('mialarm') || '{}');
+    if(d.config) S.config = {...S.config, ...d.config};
+    if(d.user) {
+      S.currentUser = d.user;
+      // Mostrar app directamente sin pasar por login
+      document.getElementById('main-nav').style.display = 'flex';
+      document.getElementById('s-login').classList.remove('active');
+      document.getElementById('s-app').classList.add('active');
+      renderApp();
+    }
+  } catch(e) {}
 }
   
 function save(){
