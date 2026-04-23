@@ -247,7 +247,7 @@ async function tuyaRequest(method, urlPath, body = null, token = '') {
 app.post('/api/control', async (req, res) => {
   const { action, user, alarmStatus } = req.body;
   const mapping = { disarm: 'switch_1', arm_home: 'switch_2', arm_away: 'switch_3', sos: 'switch_4' };
-  const nombresLegibles = { disarm: 'Desarmado', arm_home: 'Armado en casa', arm_away: 'Armado total', sos: 'Pánico / SOS' };
+  const nombresLegibles = { disarm: '🔓 Alarma Desarmada', arm_home: '🌙 Alarma armada (modo noche)', arm_away: '🔒 Alarma armada (total)', sos: '🆘 Pánico / SOS' };
   const code = mapping[action];
 
   try {
