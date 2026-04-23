@@ -1026,7 +1026,10 @@ function renderLog() {
         fechaTexto = `${dia}/${mes} - ${horas}:${minutos}h`;
       }
     }
-    const dotClass = (l.accion === 'Desarmado' || l.accion === 'disarm') ? 'hi-disarmed' : 'hi-armed';
+    const dotClass = 
+  (l.accion === 'Desarmado' || l.accion === 'disarm' || l.accion?.includes('Desarmada')) ? 'hi-disarmed' :
+  (l.accion?.includes('noche') || l.accion?.includes('casa') || l.accion?.includes('parcial')) ? 'hi-home' :
+  'hi-armed';
     return `<div class="hist-item"><div class="hi-dot ${dotClass}"></div><div class="hi-info"><div class="hi-action">${l.accion || l.action || 'Acción'}</div><div class="hi-user">${l.usuario || l.user || 'Sistema'}</div></div><div class="hi-time">${fechaTexto}</div></div>`;
   }).join('');
 
