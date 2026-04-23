@@ -995,8 +995,11 @@ function renderLog() {
       }
     }
 
-    // Color del punto (Gris para desarmado, Verde para armado)
-    const dotClass = (l.accion === 'Desarmado' || l.accion === 'disarm') ? 'hi-disarmed' : 'hi-armed';
+    // Colores de los puntos de las acciones en el historial
+    const dotClass = 
+  (l.accion === 'Desarmado' || l.accion === 'disarm' || l.accion?.includes('Desarmada')) ? 'hi-disarmed' :
+  (l.accion?.includes('noche') || l.accion?.includes('casa') || l.accion?.includes('parcial')) ? 'hi-home' :
+  'hi-armed';
 
     return `
       <div class="hist-item">
