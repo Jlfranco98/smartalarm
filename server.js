@@ -433,12 +433,12 @@ checkTodosLosSensores();
 
 // --- DISPOSITIVOS ---
 const LISTA_DISPOSITIVOS = [
-  { id: TUYA_DEVICE_ID,                nombre: 'Panel Alarma',              icono: '🔒' },
-  { id: 'bfc5d2d1da002201c6pcbl',      nombre: 'Centralita Alarma',         icono: '💡' },
-  { id: 'bfcbcf5e1f2b903dedyx4i',      nombre: 'Sensor Agua Jose',          icono: '💧' },
-  { id: 'bf92df2609b5192252oyym',      nombre: 'Sensor Agua Cocina',        icono: '💧' },
-  { id: 'bff7dcc64693fab3acucza',      nombre: 'Sensor Agua Pasillo',       icono: '💧' },
-  { id: 'Entrada',                     nombre: 'Fotodetector 1',            icono: '👁', forzarOnline: true },
+  { id: TUYA_DEVICE_ID,           nombre: 'Panel Alarma',               icono: '🔒', ubicacion: 'Entrada'                      },
+  { id: 'bfc5d2d1da002201c6pcbl', nombre: 'Centralita Alarma',          icono: '💡', ubicacion: 'Habitación Jose'              },
+  { id: 'bfcbcf5e1f2b903dedyx4i', nombre: 'Sensor Fugas de Agua',       icono: '💧', ubicacion: 'Habitación Jose'              },
+  { id: 'bf92df2609b5192252oyym', nombre: 'Sensor Fugas de Aguaa',      icono: '💧', ubicacion: 'Cocina'                       },
+  { id: 'bff7dcc64693fab3acucza', nombre: 'Sensor Fugas de Agua',       icono: '💧', ubicacion: 'Pasillo'                      },
+  { id: 'Entrada',                nombre: 'Fotodetector 1',             icono: '👁', ubicacion: 'Entrada',  forzarOnline: true },
 ];
 
 app.get('/api/dispositivos', async (req, res) => {
@@ -451,9 +451,9 @@ app.get('/api/dispositivos', async (req, res) => {
       try {
         const data = await tuyaRequest('GET', `/v1.0/devices/${d.id}`, null, token);
         const bateria = data.result?.status?.find(s => s.code === 'battery_percentage')?.value ?? null;
-        return { ...d, online: data.result?.online || false, bateria };
+        return { ...d, online: d.forzarOnline || data.result?.online || false, bateria };
       } catch(e) {
-        return { ...d, online: false, bateria: null };
+        return { ...d, online: d.forzarOnline || false, bateria: null };
       }
     }));
 
