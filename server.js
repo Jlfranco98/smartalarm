@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema({
   pin:      String,
   role:     { type: String, default: 'user' },
   isNew:    { type: Boolean, default: true }
-}, { collection: 'users', timestamps: true });
+}, { collection: 'users', timestamps: true, suppressReservedKeysWarning: true });
 
 const logSchema = new mongoose.Schema({
   usuario: String,
