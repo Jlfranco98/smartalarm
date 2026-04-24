@@ -340,19 +340,17 @@ const SENSORES_AGUA = [
   { id: 'bf92df2609b5192252oyym', nombre: 'Cocina' },
   { id: 'bff7dcc64693fab3acucza', nombre: 'Pasillo' },
 ];
-
 const LUX_UMBRAL = 2;
 let sensorAlarmaActiva = false;
 let sensorOffline = false;
-const aguaActiva = {}; // rastrea qué sensores de agua están activos
+const aguaActiva = {};
+const dispositivosOffline = {};
 
 async function checkTodosLosSensores() {
   try {
     const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
     if (!tokenData.success) return;
     const token = tokenData.result.access_token;
-
-    // Ejecutar todos en paralelo con el mismo token
     await Promise.all([
       checkSensorLuz(token),
       ...SENSORES_AGUA.map(s => checkSensorAgua(s, token))
@@ -374,12 +372,10 @@ async function checkSensorLuz(token) {
       return;
     }
     if (sensorOffline) { sensorOffline = false; }
-
     const brightProp = data.result.find(p => p.code === 'bright_value');
     if (!brightProp) return;
     const lux = brightProp.value;
     console.log(`Sensor luz: ${lux} LUX`);
-
     if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
       sensorAlarmaActiva = true;
       console.log('⚠️ SENSOR: Luz detectada, posible intrusión');
@@ -396,29 +392,33 @@ async function checkSensorLuz(token) {
 async function checkSensorAgua(sensor, token) {
   try {
     const data = await tuyaRequest('GET', `/v1.0/devices/${sensor.id}/status`, null, token);
-    if (!data.success) {
+    if (!data.success || !data.result) {
       console.log(`Sensor agua ${sensor.nombre}: offline`);
+      if (!dispositivosOffline[sensor.id]) {
+        dispositivosOffline[sensor.id] = true;
+        await new Log({ usuario: 'Sistema', accion: `⚠️ Sensor Agua ${sensor.nombre} desconectado`, fecha: new Date() }).save();
+        await sendPushNotification('dispositivo_offline_' + sensor.id, 'Sistema');
+      }
       return;
     }
-
+    if (dispositivosOffline[sensor.id]) {
+      dispositivosOffline[sensor.id] = false;
+      await new Log({ usuario: 'Sistema', accion: `✅ Sensor Agua ${sensor.nombre} reconectado`, fecha: new Date() }).save();
+      await sendPushNotification('dispositivo_online_' + sensor.id, 'Sistema');
+    }
     const stateProp = data.result.find(p => p.code === 'watersensor_state');
     if (!stateProp) return;
-
-    const estado = stateProp.value; // 'alarm' o 'normal'
+    const estado = stateProp.value;
     console.log(`Sensor agua ${sensor.nombre}: ${estado}`);
-
     if (estado === 'alarm' && !aguaActiva[sensor.id]) {
       aguaActiva[sensor.id] = true;
       console.log(`⚠️ AGUA detectada en ${sensor.nombre}`);
-
       await new Log({
         usuario: 'Sistema',
         accion: `💧 Fuga de agua detectada — ${sensor.nombre}`,
         fecha: new Date()
       }).save();
-
       await sendPushNotification('sensor_agua_' + sensor.id, `Sensor ${sensor.nombre}`);
-
     } else if (estado === 'normal' && aguaActiva[sensor.id]) {
       aguaActiva[sensor.id] = false;
       console.log(`Sensor agua ${sensor.nombre}: vuelta a normalidad`);
