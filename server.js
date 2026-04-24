@@ -142,6 +142,7 @@ app.post('/api/change-password', async (req, res) => {
 app.post('/api/change-pin', async (req, res) => {
   try {
     const { username, currentPin, newPin } = req.body;
+    console.log('Change PIN request:', { username, currentPin, newPin });
     const forbidden = ['0000', '1234', '1111', '2222', '123456'];
     if (forbidden.includes(newPin))
       return res.json({ success: false, message: 'PIN no permitido por ser demasiado predecible.' });
@@ -155,7 +156,10 @@ app.post('/api/change-pin', async (req, res) => {
     user.isNew = false;
     await user.save();
     res.json({ success: true, message: 'PIN actualizado correctamente' });
-  } catch (e) { res.status(500).json({ success: false, message: 'Error al cambiar PIN' }); }
+  } catch (e) { 
+  console.error('Error change-pin completo:', e);
+  res.status(500).json({ success: false, message: 'Error al cambiar PIN: ' + e.message }); 
+}
 });
 
 // --- 5b. NOTIFICACIONES PUSH ---
