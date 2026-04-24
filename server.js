@@ -284,34 +284,33 @@ app.post('/api/control', async (req, res) => {
   const mapping = { disarm: 'switch_1', arm_home: 'switch_2', arm_away: 'switch_3', sos: 'switch_4' };
   const nombresLegibles = { disarm: 'Alarma Desarmada', arm_home: 'Alarma armada (modo noche)', arm_away: 'Alarma armada (total)', sos: 'PÁNICO / SOS' };
   const code = mapping[action];
-
   try {
     const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
     if (!tokenData.success) throw new Error('Error obteniendo token de Tuya');
 
+    // Verificar que el panel está online antes de enviar comando
+    const deviceInfo = await tuyaRequest('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`, null, tokenData.result.access_token);
+    if (!deviceInfo.result?.online) {
+      return res.json({ success: false, error: 'Panel de alarma desconectado. No se puede ejecutar el comando.' });
+    }
+
     const result = await tuyaRequest('POST', `/v1.0/devices/${TUYA_DEVICE_ID}/commands`, {
       commands: [{ code, value: true }]
     }, tokenData.result.access_token);
-
     if (result.success) {
       await new Log({
         usuario: user || 'Verisure',
         accion:  nombresLegibles[action] || action,
         fecha:   new Date()
       }).save();
-
       await Config.findOneAndUpdate(
         { id: 'global_config' },
         { $set: { alarmStatus } },
         { upsert: true }
       );
-
       console.log(`Log guardado: ${nombresLegibles[action]} por ${user}`);
-
-      // Enviar notificaciones push
       sendPushNotification(action, user || 'Verisure').catch(e => console.error('Push error:', e));
     }
-
     res.json({ success: result.success, result: result.result });
   } catch (e) {
     console.error('Error en control:', e.message);
