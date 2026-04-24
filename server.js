@@ -387,8 +387,11 @@ async function checkTodosLosSensores() {
 
 async function checkSensorLuz(token) {
   try {
-    const data = await tuyaRequest('GET', `/v1.0/devices/${SENSOR_LUZ_ID}/status`, null, token);
-    if (!data.success) {
+    // Primero comprobamos si está online
+    const deviceData = await tuyaRequest('GET', `/v1.0/devices/${SENSOR_LUZ_ID}`, null, token);
+    const isOnline = deviceData.result?.online === true;
+
+    if (!isOnline) {
       if (!sensorOffline) {
         sensorOffline = true;
         await new Log({ usuario: 'Sistema', accion: '⚠️ Sensor de luz desconectado', fecha: new Date() }).save();
@@ -396,11 +399,21 @@ async function checkSensorLuz(token) {
       }
       return;
     }
-    if (sensorOffline) { sensorOffline = false; }
-    const brightProp = data.result.find(p => p.code === 'bright_value');
+
+    if (sensorOffline) {
+      sensorOffline = false;
+      await new Log({ usuario: 'Sistema', accion: '✅ Sensor de luz reconectado', fecha: new Date() }).save();
+      await sendPushNotification('sensor_online', 'Sistema');
+    }
+
+    // Si está online, leemos el valor de luz
+    const statusData = await tuyaRequest('GET', `/v1.0/devices/${SENSOR_LUZ_ID}/status`, null, token);
+    const brightProp = statusData.result?.find(p => p.code === 'bright_value');
     if (!brightProp) return;
+
     const lux = brightProp.value;
-    console.log(`✅ Sensor sirena alarma: OK - ${lux} LUX`);
+    console.log(`✅ Sensor luz: OK - ${lux} LUX`);
+
     if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
       sensorAlarmaActiva = true;
       console.log('⚠️ SENSOR: Luz detectada, posible intrusión');
