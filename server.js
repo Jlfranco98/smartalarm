@@ -433,11 +433,12 @@ checkTodosLosSensores();
 
 // --- DISPOSITIVOS ---
 const LISTA_DISPOSITIVOS = [
-  { id: TUYA_DEVICE_ID,                nombre: 'Panel Alarma',       icono: '🔒' },
-  { id: 'bfc5d2d1da002201c6pcbl',      nombre: 'Sensor Luz',         icono: '💡' },
-  { id: 'bfcbcf5e1f2b903dedyx4i',      nombre: 'Sensor Agua Jose',   icono: '💧' },
-  { id: 'bf92df2609b5192252oyym',      nombre: 'Sensor Agua Cocina', icono: '💧' },
-  { id: 'bff7dcc64693fab3acucza',      nombre: 'Sensor Agua Pasillo',icono: '💧' },
+  { id: TUYA_DEVICE_ID,                nombre: 'Panel Alarma',              icono: '🔒' },
+  { id: 'bfc5d2d1da002201c6pcbl',      nombre: 'Centralita Alarma',         icono: '💡' },
+  { id: 'bfcbcf5e1f2b903dedyx4i',      nombre: 'Sensor Agua Jose',          icono: '💧' },
+  { id: 'bf92df2609b5192252oyym',      nombre: 'Sensor Agua Cocina',        icono: '💧' },
+  { id: 'bff7dcc64693fab3acucza',      nombre: 'Sensor Agua Pasillo',       icono: '💧' },
+  { id: 'Entrada',                     nombre: 'Fotodetector 1',            icono: '👁', forzarOnline: true },
 ];
 
 app.get('/api/dispositivos', async (req, res) => {
