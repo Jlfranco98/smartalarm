@@ -239,6 +239,8 @@ const prefs = notificarATodos
   dispositivo_online_bfcbcf5e1f2b903dedyx4i: '✅ Sensor Agua Jose reconectado',
   dispositivo_online_bf92df2609b5192252oyym: '✅ Sensor Agua Cocina reconectado',
   dispositivo_online_bff7dcc64693fab3acucza: '✅ Sensor Agua Pasillo reconectado',
+  panel_offline: '⚠️ Panel Alarma desconectado',
+  panel_online:  '✅ Panel Alarma reconectado',
 };
   const payload = JSON.stringify({
     title: labels[action] || action,
@@ -375,6 +377,7 @@ async function checkTodosLosSensores() {
     const token = tokenData.result.access_token;
     await Promise.all([
       checkSensorLuz(token),
+      checkPanelAlarma(token),
       ...SENSORES_AGUA.map(s => checkSensorAgua(s, token))
     ]);
   } catch(e) {
@@ -408,6 +411,27 @@ async function checkSensorLuz(token) {
     }
   } catch(e) {
     console.error('Error sensor luz:', e.message);
+  }
+}
+
+async function checkPanelAlarma(token) {
+  try {
+    const data = await tuyaRequest('GET', `/v1.0/devices/${TUYA_DEVICE_ID}/status`, null, token);
+    if (!data.success || !data.result) {
+      if (!dispositivosOffline['panel']) {
+        dispositivosOffline['panel'] = true;
+        await new Log({ usuario: 'Sistema', accion: '⚠️ Panel Alarma desconectado', fecha: new Date() }).save();
+        await sendPushNotification('panel_offline', 'Sistema');
+      }
+      return;
+    }
+    if (dispositivosOffline['panel']) {
+      dispositivosOffline['panel'] = false;
+      await new Log({ usuario: 'Sistema', accion: '✅ Panel Alarma reconectado', fecha: new Date() }).save();
+      await sendPushNotification('panel_online', 'Sistema');
+    }
+  } catch(e) {
+    console.error('Error panel alarma:', e.message);
   }
 }
 
