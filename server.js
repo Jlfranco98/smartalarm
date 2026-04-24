@@ -431,6 +431,37 @@ async function checkSensorAgua(sensor, token) {
 setInterval(checkTodosLosSensores, 9000);
 checkTodosLosSensores();
 
+// --- DISPOSITIVOS ---
+const LISTA_DISPOSITIVOS = [
+  { id: TUYA_DEVICE_ID,                nombre: 'Panel Alarma',       icono: '🔒' },
+  { id: 'bfc5d2d1da002201c6pcbl',      nombre: 'Sensor Luz',         icono: '💡' },
+  { id: 'bfcbcf5e1f2b903dedyx4i',      nombre: 'Sensor Agua Jose',   icono: '💧' },
+  { id: 'bf92df2609b5192252oyym',      nombre: 'Sensor Agua Cocina', icono: '💧' },
+  { id: 'bff7dcc64693fab3acucza',      nombre: 'Sensor Agua Pasillo',icono: '💧' },
+];
+
+app.get('/api/dispositivos', async (req, res) => {
+  try {
+    const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
+    if (!tokenData.success) throw new Error('Token error');
+    const token = tokenData.result.access_token;
+
+    const results = await Promise.all(LISTA_DISPOSITIVOS.map(async d => {
+      try {
+        const data = await tuyaRequest('GET', `/v1.0/devices/${d.id}`, null, token);
+        const bateria = data.result?.status?.find(s => s.code === 'battery_percentage')?.value ?? null;
+        return { ...d, online: data.result?.online || false, bateria };
+      } catch(e) {
+        return { ...d, online: false, bateria: null };
+      }
+    }));
+
+    res.json(results);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // --- 8. INICIO DEL SERVIDOR ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`Servidor activo en el puerto ${PORT}`));
