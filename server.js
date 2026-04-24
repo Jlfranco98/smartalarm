@@ -416,9 +416,12 @@ async function checkSensorLuz(token) {
 
 async function checkPanelAlarma(token) {
   try {
-    const data = await tuyaRequest('GET', `/v1.0/devices/${TUYA_DEVICE_ID}/status`, null, token);
-    console.log('Panel Alarma response:', JSON.stringify(data).slice(0, 200));
-    if (!data.success || !data.result) {
+    const data = await tuyaRequest('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`, null, token);
+    console.log('Panel online:', data.result?.online);
+    
+    const isOnline = data.result?.online === true;
+    
+    if (!isOnline) {
       if (!dispositivosOffline['panel']) {
         dispositivosOffline['panel'] = true;
         await new Log({ usuario: 'Sistema', accion: '⚠️ Panel Alarma desconectado', fecha: new Date() }).save();
