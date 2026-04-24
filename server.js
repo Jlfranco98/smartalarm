@@ -228,8 +228,8 @@ const prefs = notificarATodos
   disarm:      '🔓 Alarma desarmada',
   sos:         '🆘 PÁNICO / SOS',
   sensor_luz:  '🚨 ¡ALARMA SALTADA!',
-  sensor_offline: '⚠️ Sensor de luz desconectado',
-  sensor_online:  '✅ Sensor de luz reconectado',
+  sensor_offline: '⚠️ Centralita desconectada',
+  sensor_online:  '✅ Centralita reconectada',
   sensor_agua_bfcbcf5e1f2b903dedyx4i: '💧 Fuga de agua — Jose',
   sensor_agua_bf92df2609b5192252oyym: '💧 Fuga de agua — Cocina',
   sensor_agua_bff7dcc64693fab3acucza: '💧 Fuga de agua — Pasillo',
@@ -394,7 +394,7 @@ async function checkSensorLuz(token) {
     if (!isOnline) {
       if (!sensorOffline) {
         sensorOffline = true;
-        await new Log({ usuario: 'Sistema', accion: '⚠️ Sensor de luz desconectado', fecha: new Date() }).save();
+        await new Log({ usuario: 'Verisure', accion: '⚠️ Centralita desconectada', fecha: new Date() }).save();
         await sendPushNotification('sensor_offline', 'Sistema');
       }
       return;
@@ -402,7 +402,7 @@ async function checkSensorLuz(token) {
 
     if (sensorOffline) {
       sensorOffline = false;
-      await new Log({ usuario: 'Sistema', accion: '✅ Sensor de luz reconectado', fecha: new Date() }).save();
+      await new Log({ usuario: 'Verisure', accion: '✅ Centralita reconectada', fecha: new Date() }).save();
       await sendPushNotification('sensor_online', 'Sistema');
     }
 
@@ -417,7 +417,7 @@ async function checkSensorLuz(token) {
     if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
       sensorAlarmaActiva = true;
       console.log('⚠️ SENSOR: Luz detectada, posible intrusión');
-      await new Log({ usuario: 'Sistema', accion: '🚨 Alarma saltada — Sensor de luz activado', fecha: new Date() }).save();
+      await new Log({ usuario: 'Sistema', accion: '🚨 Alarma saltada', fecha: new Date() }).save();
       await sendPushNotification('sensor_luz', 'Sistema');
     } else if (lux <= LUX_UMBRAL && sensorAlarmaActiva) {
       sensorAlarmaActiva = false;
@@ -491,7 +491,7 @@ async function checkSensorAgua(sensor, token) {
   }
 }
 
-setInterval(checkTodosLosSensores, 15000);  //Cada 15 segundos 
+setInterval(checkTodosLosSensores, 30000);  //Cada 30 segundos
 checkTodosLosSensores();
 
 // --- DISPOSITIVOS ---
