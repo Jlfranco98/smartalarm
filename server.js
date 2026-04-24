@@ -212,11 +212,17 @@ async function sendPushNotification(action, triggeredBy) {
   disarm:      '🔓 Alarma desarmada',
   sos:         '🆘 Pánico / SOS',
   sensor_luz:  '🚨 ¡ALARMA SALTADA!',
-  sensor_offline: '⚠️ Sensor desconectado',
-  sensor_online:  '✅ Sensor reconectado',
+  sensor_offline: '⚠️ Sensor de luz desconectado',
+  sensor_online:  '✅ Sensor de luz reconectado',
   sensor_agua_bfcbcf5e1f2b903dedyx4i: '💧 Fuga de agua — Jose',
   sensor_agua_bf92df2609b5192252oyym: '💧 Fuga de agua — Cocina',
-  sensor_agua_bff7dcc64693fab3acucza: '💧 Fuga de agua — Pasillo'
+  sensor_agua_bff7dcc64693fab3acucza: '💧 Fuga de agua — Pasillo',
+  dispositivo_offline_bfcbcf5e1f2b903dedyx4i: '⚠️ Sensor Agua Jose desconectado',
+  dispositivo_offline_bf92df2609b5192252oyym: '⚠️ Sensor Agua Cocina desconectado',
+  dispositivo_offline_bff7dcc64693fab3acucza: '⚠️ Sensor Agua Pasillo desconectado',
+  dispositivo_online_bfcbcf5e1f2b903dedyx4i: '✅ Sensor Agua Jose reconectado',
+  dispositivo_online_bf92df2609b5192252oyym: '✅ Sensor Agua Cocina reconectado',
+  dispositivo_online_bff7dcc64693fab3acucza: '✅ Sensor Agua Pasillo reconectado',
 };
   const payload = JSON.stringify({
     title: labels[action] || action,
