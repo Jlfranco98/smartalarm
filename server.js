@@ -149,7 +149,6 @@ await user.save();
 app.post('/api/change-pin', async (req, res) => {
   try {
     const { username, currentPin, newPin } = req.body;
-    console.log('Change PIN request:', { username, currentPin, newPin });
     const forbidden = ['0000', '1234', '1111', '2222', '123456'];
     if (forbidden.includes(newPin))
       return res.json({ success: false, message: 'PIN no permitido por ser demasiado predecible.' });
@@ -159,21 +158,15 @@ app.post('/api/change-pin', async (req, res) => {
       return res.json({ success: false, message: 'PIN actual incorrecto' });
     if (newPin === currentPin)
       return res.json({ success: false, message: 'El nuevo PIN debe ser diferente al actual.' });
-    user.pin = newPin;
-user.isNew = false;
-// Fix para usuarios con fechas en formato legacy
-if (user.createdAt && typeof user.createdAt === 'object' && user.createdAt.$date) {
-  user.createdAt = new Date(user.createdAt.$date);
-}
-if (user.updatedAt && typeof user.updatedAt === 'object' && user.updatedAt.$date) {
-  user.updatedAt = new Date(user.updatedAt.$date);
-}
-await user.save();
+    
+    // Usar updateOne en vez de save() para evitar problemas con fechas legacy
+    await User.updateOne({ username }, { $set: { pin: newPin, isNew: false } });
+    
     res.json({ success: true, message: 'PIN actualizado correctamente' });
-  } catch (e) { 
-  console.error('Error change-pin completo:', e);
-  res.status(500).json({ success: false, message: 'Error al cambiar PIN: ' + e.message }); 
-}
+  } catch (e) {
+    console.error('Error change-pin completo:', e);
+    res.status(500).json({ success: false, message: 'Error al cambiar PIN: ' + e.message });
+  }
 });
 
 // --- 5b. NOTIFICACIONES PUSH ---
