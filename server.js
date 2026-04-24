@@ -484,10 +484,6 @@ const LISTA_DISPOSITIVOS = [
   { id: 'bfcbcf5e1f2b903dedyx4i', nombre: 'Sensor Fugas de Agua',       icono: '💧', ubicacion: 'Habitación Jose'              },
   { id: 'bf92df2609b5192252oyym', nombre: 'Sensor Fugas de Agua',      icono: '💧', ubicacion: 'Cocina'                        },
   { id: 'bff7dcc64693fab3acucza', nombre: 'Sensor Fugas de Agua',       icono: '💧', ubicacion: 'Pasillo'                      },
-  { id: 'null',                   nombre: 'Sirena Alta Potencia',       icono: '📢', ubicacion: '(ID 1) Entrada',  forzarOnline: true },
-  { id: 'null',                   nombre: 'ShockSensor',                icono: '🚪', ubicacion: '(ID 1) Puerta Principal',  forzarOnline: true },
-  { id: 'null',                   nombre: 'Fotodetector',               icono: '🏃', ubicacion: '(ID 1) Entrada',  forzarOnline: true },
-  { id: 'null',                   nombre: 'Detector de humos',          icono: '💨', ubicacion: '(ID 2) Pasillo',  forzarOnline: true },
 ];
 
 app.get('/api/dispositivos', async (req, res) => {
