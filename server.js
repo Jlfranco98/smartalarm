@@ -450,7 +450,7 @@ async function checkSensorAgua(sensor, token) {
   }
 }
 
-setInterval(checkTodosLosSensores, 9000);
+setInterval(checkTodosLosSensores, 15000);  //Cada 15 segundos 
 checkTodosLosSensores();
 
 // --- DISPOSITIVOS ---
