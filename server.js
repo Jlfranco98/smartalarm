@@ -138,7 +138,7 @@ if (user.createdAt && typeof user.createdAt === 'object' && user.createdAt.$date
 if (user.updatedAt && typeof user.updatedAt === 'object' && user.updatedAt.$date) {
   user.updatedAt = new Date(user.updatedAt.$date);
 }
-await user.save();
+await User.updateOne({ username }, { $set: { password: await bcrypt.hash(newPassword, await bcrypt.genSalt(10)), isNew: false } });
     res.json({ success: true, message: 'Contraseña actualizada correctamente' });
   } catch (e) {
     console.error(e);
