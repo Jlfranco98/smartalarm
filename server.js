@@ -208,7 +208,7 @@ async function sendPushNotification(action, triggeredBy) {
     console.log('Push: VAPID no configurado');
     return;
   }
-  const notificarATodos = ['sos', 'sensor_luz', 'sensor_offline', 'sensor_online'].includes(action) 
+  const notificarATodos = ['sos', 'sensor_luz', 'sensor_offline', 'sensor_online', 'panel_offline', 'panel_online'].includes(action) 
   || action.startsWith('sensor_agua_')
   || action.startsWith('dispositivo_offline_')
   || action.startsWith('dispositivo_online_');
