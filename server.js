@@ -130,8 +130,15 @@ app.post('/api/change-password', async (req, res) => {
     if (await bcrypt.compare(newPassword, user.password))
       return res.json({ success: false, message: 'La nueva contraseña debe ser diferente a la anterior.' });
     user.password = await bcrypt.hash(newPassword, await bcrypt.genSalt(10));
-    user.isNew = false;
-    await user.save();
+user.isNew = false;
+// Fix para usuarios con fechas en formato legacy
+if (user.createdAt && typeof user.createdAt === 'object' && user.createdAt.$date) {
+  user.createdAt = new Date(user.createdAt.$date);
+}
+if (user.updatedAt && typeof user.updatedAt === 'object' && user.updatedAt.$date) {
+  user.updatedAt = new Date(user.updatedAt.$date);
+}
+await user.save();
     res.json({ success: true, message: 'Contraseña actualizada correctamente' });
   } catch (e) {
     console.error(e);
@@ -153,8 +160,15 @@ app.post('/api/change-pin', async (req, res) => {
     if (newPin === currentPin)
       return res.json({ success: false, message: 'El nuevo PIN debe ser diferente al actual.' });
     user.pin = newPin;
-    user.isNew = false;
-    await user.save();
+user.isNew = false;
+// Fix para usuarios con fechas en formato legacy
+if (user.createdAt && typeof user.createdAt === 'object' && user.createdAt.$date) {
+  user.createdAt = new Date(user.createdAt.$date);
+}
+if (user.updatedAt && typeof user.updatedAt === 'object' && user.updatedAt.$date) {
+  user.updatedAt = new Date(user.updatedAt.$date);
+}
+await user.save();
     res.json({ success: true, message: 'PIN actualizado correctamente' });
   } catch (e) { 
   console.error('Error change-pin completo:', e);
