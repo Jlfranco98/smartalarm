@@ -295,7 +295,7 @@ app.post('/api/control', async (req, res) => {
 
     if (result.success) {
       await new Log({
-        usuario: user || 'Sistema',
+        usuario: user || 'Verisure',
         accion:  nombresLegibles[action] || action,
         fecha:   new Date()
       }).save();
@@ -309,7 +309,7 @@ app.post('/api/control', async (req, res) => {
       console.log(`Log guardado: ${nombresLegibles[action]} por ${user}`);
 
       // Enviar notificaciones push
-      sendPushNotification(action, user || 'Sistema').catch(e => console.error('Push error:', e));
+      sendPushNotification(action, user || 'Verisure').catch(e => console.error('Push error:', e));
     }
 
     res.json({ success: result.success, result: result.result });
@@ -395,7 +395,7 @@ async function checkSensorLuz(token) {
       if (!sensorOffline) {
         sensorOffline = true;
         await new Log({ usuario: 'Verisure', accion: '⚠️ Centralita desconectada', fecha: new Date() }).save();
-        await sendPushNotification('sensor_offline', 'Sistema');
+        await sendPushNotification('sensor_offline', 'Verisure');
       }
       return;
     }
@@ -403,7 +403,7 @@ async function checkSensorLuz(token) {
     if (sensorOffline) {
       sensorOffline = false;
       await new Log({ usuario: 'Verisure', accion: '✅ Centralita reconectada', fecha: new Date() }).save();
-      await sendPushNotification('sensor_online', 'Sistema');
+      await sendPushNotification('sensor_online', 'Verisure');
     }
 
     // Si está online, leemos el valor de luz
@@ -412,13 +412,13 @@ async function checkSensorLuz(token) {
     if (!brightProp) return;
 
     const lux = brightProp.value;
-    console.log(`✅ Sensor luz: OK - ${lux} LUX`);
+    console.log(`✅ Centralita alarma: OK - ${lux} LUX`);
 
     if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
       sensorAlarmaActiva = true;
       console.log('⚠️ SENSOR: Luz detectada, posible intrusión');
-      await new Log({ usuario: 'Sistema', accion: '🚨 Alarma saltada', fecha: new Date() }).save();
-      await sendPushNotification('sensor_luz', 'Sistema');
+      await new Log({ usuario: 'Verisure', accion: '🚨 Alarma saltada', fecha: new Date() }).save();
+      await sendPushNotification('sensor_luz', 'Verisure');
     } else if (lux <= LUX_UMBRAL && sensorAlarmaActiva) {
       sensorAlarmaActiva = false;
     }
@@ -430,22 +430,22 @@ async function checkSensorLuz(token) {
 async function checkPanelAlarma(token) {
   try {
     const data = await tuyaRequest('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`, null, token);
-    console.log('Panel online:', data.result?.online);
+    console.log('✅ Panel Online:', data.result?.online);
     
     const isOnline = data.result?.online === true;
     
     if (!isOnline) {
       if (!dispositivosOffline['panel']) {
         dispositivosOffline['panel'] = true;
-        await new Log({ usuario: 'Sistema', accion: '⚠️ Panel Alarma desconectado', fecha: new Date() }).save();
-        await sendPushNotification('panel_offline', 'Sistema');
+        await new Log({ usuario: 'Verisure', accion: '⚠️ Panel Alarma desconectado', fecha: new Date() }).save();
+        await sendPushNotification('panel_offline', 'Verisure');
       }
       return;
     }
     if (dispositivosOffline['panel']) {
       dispositivosOffline['panel'] = false;
-      await new Log({ usuario: 'Sistema', accion: '✅ Panel Alarma reconectado', fecha: new Date() }).save();
-      await sendPushNotification('panel_online', 'Sistema');
+      await new Log({ usuario: 'Verisure', accion: '✅ Panel Alarma reconectado', fecha: new Date() }).save();
+      await sendPushNotification('panel_online', 'Verisure');
     }
   } catch(e) {
     console.error('Error panel alarma:', e.message);
@@ -459,15 +459,15 @@ async function checkSensorAgua(sensor, token) {
       console.log(`❌ Sensor agua ${sensor.nombre}: offline`);
       if (!dispositivosOffline[sensor.id]) {
         dispositivosOffline[sensor.id] = true;
-        await new Log({ usuario: 'Sistema', accion: `⚠️ Sensor Agua ${sensor.nombre} desconectado`, fecha: new Date() }).save();
-        await sendPushNotification('dispositivo_offline_' + sensor.id, 'Sistema');
+        await new Log({ usuario: 'Verisure', accion: `⚠️ Sensor Agua ${sensor.nombre} desconectado`, fecha: new Date() }).save();
+        await sendPushNotification('dispositivo_offline_' + sensor.id, 'Verisure');
       }
       return;
     }
     if (dispositivosOffline[sensor.id]) {
       dispositivosOffline[sensor.id] = false;
-      await new Log({ usuario: 'Sistema', accion: `✅ Sensor Agua ${sensor.nombre} reconectado`, fecha: new Date() }).save();
-      await sendPushNotification('dispositivo_online_' + sensor.id, 'Sistema');
+      await new Log({ usuario: 'Verisure', accion: `✅ Sensor Agua ${sensor.nombre} reconectado`, fecha: new Date() }).save();
+      await sendPushNotification('dispositivo_online_' + sensor.id, 'Verisure');
     }
     const stateProp = data.result.find(p => p.code === 'watersensor_state');
     if (!stateProp) return;
@@ -477,7 +477,7 @@ async function checkSensorAgua(sensor, token) {
       aguaActiva[sensor.id] = true;
       console.log(`⚠️ AGUA detectada en ${sensor.nombre}`);
       await new Log({
-        usuario: 'Sistema',
+        usuario: 'Verisure',
         accion: `💧 Fuga de agua detectada — ${sensor.nombre}`,
         fecha: new Date()
       }).save();
