@@ -226,7 +226,7 @@ const prefs = notificarATodos
   arm_away:    '🔒 Alarma armada (total)',
   arm_home:    '🌙 Alarma armada (modo noche)',
   disarm:      '🔓 Alarma desarmada',
-  sos:         '🆘 ´PÁNICO / SOS',
+  sos:         '🆘 PÁNICO / SOS',
   sensor_luz:  '🚨 ¡ALARMA SALTADA!',
   sensor_offline: '⚠️ Sensor de luz desconectado',
   sensor_online:  '✅ Sensor de luz reconectado',
