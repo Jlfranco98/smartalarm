@@ -206,7 +206,18 @@ async function sendPushNotification(action, triggeredBy) {
   const subs = await PushSub.find({ username: { $in: usernames } });
   console.log(`Push: ${subs.length} suscripciones encontradas para ${usernames}`);
   if (!subs.length) return;
-  const labels = { arm_away: '🔒 Alarma armada (total)', arm_home: '🌙 Alarma armada (modo noche)', disarm: '🔓 Alarma desarmada', sos: '🆘 Pánico / SOS', sensor_luz: '🚨 ¡ALARMA SALTADA!' };
+  const labels = {
+  arm_away:    '🔒 Alarma armada (total)',
+  arm_home:    '🌙 Alarma armada (modo noche)',
+  disarm:      '🔓 Alarma desarmada',
+  sos:         '🆘 Pánico / SOS',
+  sensor_luz:  '🚨 ¡ALARMA SALTADA!',
+  sensor_offline: '⚠️ Sensor desconectado',
+  sensor_online:  '✅ Sensor reconectado',
+  sensor_agua_bfcbcf5e1f2b903dedyx4i: '💧 Fuga de agua — Jose',
+  sensor_agua_bf92df2609b5192252oyym: '💧 Fuga de agua — Cocina',
+  sensor_agua_bff7dcc64693fab3acucza: '💧 Fuga de agua — Pasillo'
+};
   const payload = JSON.stringify({
     title: labels[action] || action,
     body:  `Por el usuario: ${triggeredBy}`,
@@ -322,55 +333,103 @@ app.get('/api/status', async (req, res) => {
   } catch (e) { res.status(500).send(e.message); }
 });
 
-// --- SENSOR DE LUZ ---
-const SENSOR_DEVICE_ID = 'bfc5d2d1da002201c6pcbl';
-const LUX_UMBRAL = 1; // Si supera este valor, se considera que hay luz = alarma saltada
-let sensorAlarmaActiva = false; // Para no repetir la notificación
+// --- SENSORES ---
+const SENSOR_LUZ_ID = 'bfc5d2d1da002201c6pcbl';
+const SENSORES_AGUA = [
+  { id: 'bfcbcf5e1f2b903dedyx4i', nombre: 'Jose' },
+  { id: 'bf92df2609b5192252oyym', nombre: 'Cocina' },
+  { id: 'bff7dcc64693fab3acucza', nombre: 'Pasillo' },
+];
 
-async function checkSensorLuz() {
+const LUX_UMBRAL = 2;
+let sensorAlarmaActiva = false;
+let sensorOffline = false;
+const aguaActiva = {}; // rastrea qué sensores de agua están activos
+
+async function checkTodosLosSensores() {
   try {
     const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
     if (!tokenData.success) return;
+    const token = tokenData.result.access_token;
 
-    const data = await tuyaRequest('GET', `/v1.0/devices/${SENSOR_DEVICE_ID}/status`, null, tokenData.result.access_token);
-    if (!data.success) return;
+    // Ejecutar todos en paralelo con el mismo token
+    await Promise.all([
+      checkSensorLuz(token),
+      ...SENSORES_AGUA.map(s => checkSensorAgua(s, token))
+    ]);
+  } catch(e) {
+    console.error('Error sensores:', e.message);
+  }
+}
+
+async function checkSensorLuz(token) {
+  try {
+    const data = await tuyaRequest('GET', `/v1.0/devices/${SENSOR_LUZ_ID}/status`, null, token);
+    if (!data.success) {
+      if (!sensorOffline) {
+        sensorOffline = true;
+        await new Log({ usuario: 'Sistema', accion: '⚠️ Sensor de luz desconectado', fecha: new Date() }).save();
+        await sendPushNotification('sensor_offline', 'Sistema');
+      }
+      return;
+    }
+    if (sensorOffline) { sensorOffline = false; }
 
     const brightProp = data.result.find(p => p.code === 'bright_value');
     if (!brightProp) return;
-
     const lux = brightProp.value;
-    console.log(`Comprobando estado alarma: ${lux} LUX`);
+    console.log(`Sensor luz: ${lux} LUX`);
 
     if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
-      // ¡Alarma detectada!
       sensorAlarmaActiva = true;
       console.log('⚠️ SENSOR: Luz detectada, posible intrusión');
-
-      // Guardar log
-      await new Log({
-        usuario: 'Sistema',
-        accion: '🚨 Alarma saltada — Sensor de luz activado',
-        fecha: new Date()
-      }).save();
-
-      // Notificar a todos los usuarios
+      await new Log({ usuario: 'Sistema', accion: '🚨 Alarma saltada — Sensor de luz activado', fecha: new Date() }).save();
       await sendPushNotification('sensor_luz', 'Sistema');
-
     } else if (lux <= LUX_UMBRAL && sensorAlarmaActiva) {
-      // La luz volvió a apagarse, reseteamos
       sensorAlarmaActiva = false;
-      console.log('Sensor luz: vuelta a normalidad');
     }
-
-  } catch (e) {
+  } catch(e) {
     console.error('Error sensor luz:', e.message);
   }
 }
 
-// Polling cada 9 segundos
-setInterval(checkSensorLuz, 9000); // cada 9 segundos
-// También al arrancar
-checkSensorLuz();
+async function checkSensorAgua(sensor, token) {
+  try {
+    const data = await tuyaRequest('GET', `/v1.0/devices/${sensor.id}/status`, null, token);
+    if (!data.success) {
+      console.log(`Sensor agua ${sensor.nombre}: offline`);
+      return;
+    }
+
+    const stateProp = data.result.find(p => p.code === 'watersensor_state');
+    if (!stateProp) return;
+
+    const estado = stateProp.value; // 'alarm' o 'normal'
+    console.log(`Sensor agua ${sensor.nombre}: ${estado}`);
+
+    if (estado === 'alarm' && !aguaActiva[sensor.id]) {
+      aguaActiva[sensor.id] = true;
+      console.log(`⚠️ AGUA detectada en ${sensor.nombre}`);
+
+      await new Log({
+        usuario: 'Sistema',
+        accion: `💧 Fuga de agua detectada — ${sensor.nombre}`,
+        fecha: new Date()
+      }).save();
+
+      await sendPushNotification('sensor_agua_' + sensor.id, `Sensor ${sensor.nombre}`);
+
+    } else if (estado === 'normal' && aguaActiva[sensor.id]) {
+      aguaActiva[sensor.id] = false;
+      console.log(`Sensor agua ${sensor.nombre}: vuelta a normalidad`);
+    }
+  } catch(e) {
+    console.error(`Error sensor agua ${sensor.nombre}:`, e.message);
+  }
+}
+
+setInterval(checkTodosLosSensores, 9000);
+checkTodosLosSensores();
 
 // --- 8. INICIO DEL SERVIDOR ---
 const PORT = process.env.PORT || 8080;
