@@ -494,6 +494,12 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
   </div><!-- /page-area -->
 
+    <!-- ── DISPOSITIVOS ── -->
+    <div class="page" id="pg-dispositivos">
+      <div class="sec-hdr"><span class="sec-title">Mis dispositivos</span><span class="sec-more" onclick="renderDispositivos()">↻ Actualizar</span></div>
+      <div id="dispositivos-list" style="padding:0 16px"></div>
+    </div>
+
   <!-- Bottom nav -->
   <div class="bottomnav" id="main-nav" style="display: none;">
     <button class="nav-item active" id="nav-inicio" onclick="navTo('inicio')">
@@ -504,9 +510,9 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
       <div class="nav-icon">📋</div>
       <div class="nav-label">Historial</div>
     </button>
-    <button class="nav-item" id="nav-admin" onclick="navTo('admin')">
-      <div class="nav-icon">👥</div>
-      <div class="nav-label">Usuarios</div>
+    <button class="nav-item" id="nav-dispositivos" onclick="navTo('dispositivos')">
+      <div class="nav-icon">📡</div>
+      <div class="nav-label">Dispositivos</div>
     </button>
     <button class="nav-item" id="nav-cuenta" onclick="navTo('cuenta')">
       <div class="nav-icon">👤</div>
@@ -851,6 +857,7 @@ function navTo(page){
   if(page==='historial')renderLog();
   if(page==='admin')renderUsersAdmin();
   if(page==='cuenta')loadConfigForm();
+  if(page==='dispositivos')renderDispositivos();
 }
 
 // ── Estado alarma desde MongoDB ────────────────────────────────────────────
@@ -1454,6 +1461,35 @@ function urlBase64ToUint8Array(base64String) {
   const rawData = atob(base64);
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
+
+// ── Dispositivos ───────────────────────────────────────────────────────────
+async function renderDispositivos() {
+  const el = document.getElementById('dispositivos-list');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;font-weight:700">Consultando dispositivos...</div>';
+  try {
+    const res = await fetch('/api/dispositivos');
+    const data = await res.json();
+    el.innerHTML = data.map(d => `
+      <div class="hist-item" style="background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.04);display:flex;align-items:center;gap:12px">
+        <div style="font-size:28px;flex-shrink:0">${d.icono}</div>
+        <div style="flex:1">
+          <div class="hi-action">${d.nombre}</div>
+          <div class="hi-user" style="font-size:10px;font-family:monospace">${d.id}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;background:${d.online ? '#EAF3DE' : '#FCEBEB'};color:${d.online ? '#3B6D11' : '#A32D2D'}">
+            <div style="width:7px;height:7px;border-radius:50%;background:${d.online ? '#34c759' : '#ff4444'}"></div>
+            ${d.online ? 'Online' : 'Offline'}
+          </div>
+          ${d.bateria !== null && d.bateria !== undefined ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">🔋 ${d.bateria}%</div>` : ''}
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:13px;font-weight:700">Error al consultar dispositivos</div>';
+  }
+}
+
 </script>
 </body>
 </html>
