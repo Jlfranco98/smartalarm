@@ -496,9 +496,9 @@ checkTodosLosSensores();
 // --- DISPOSITIVOS ---
 const LISTA_DISPOSITIVOS = [
   { id: 'bfc5d2d1da002201c6pcbl', nombre: 'Centralita Alarma',          icono: '🛡️', ubicacion: 'Es el corazón de tu alarma'  },
-  { id: TUYA_DEVICE_ID,           nombre: 'Lector de llaves',           icono: '🔑', ubicacion: 'Entrada'                     },
+  { id: TUYA_DEVICE_ID,           nombre: 'Panel Alarma',               icono: '🛜', ubicacion: 'Entrada'                     },
   { id: 'bfcbcf5e1f2b903dedyx4i', nombre: 'Sensor Fugas de Agua',       icono: '💧', ubicacion: 'Habitación Jose'              },
-  { id: 'bf92df2609b5192252oyym', nombre: 'Sensor Fugas de Agua',      icono: '💧', ubicacion: 'Cocina'                        },
+  { id: 'bf92df2609b5192252oyym', nombre: 'Sensor Fugas de Agua',       icono: '💧', ubicacion: 'Cocina'                        },
   { id: 'bff7dcc64693fab3acucza', nombre: 'Sensor Fugas de Agua',       icono: '💧', ubicacion: 'Pasillo'                      },
 ];
 
