@@ -415,7 +415,7 @@ async function checkSensorAgua(sensor, token) {
   try {
     const data = await tuyaRequest('GET', `/v1.0/devices/${sensor.id}/status`, null, token);
     if (!data.success || !data.result) {
-      console.log(`✅ Sensor agua ${sensor.nombre}: offline`);
+      console.log(`❌ Sensor agua ${sensor.nombre}: offline`);
       if (!dispositivosOffline[sensor.id]) {
         dispositivosOffline[sensor.id] = true;
         await new Log({ usuario: 'Sistema', accion: `⚠️ Sensor Agua ${sensor.nombre} desconectado`, fecha: new Date() }).save();
@@ -431,7 +431,7 @@ async function checkSensorAgua(sensor, token) {
     const stateProp = data.result.find(p => p.code === 'watersensor_state');
     if (!stateProp) return;
     const estado = stateProp.value;
-    console.log(`Sensor agua ${sensor.nombre}: ${estado}`);
+    console.log(`✅ Sensor agua ${sensor.nombre}: ${estado}`);
     if (estado === 'alarm' && !aguaActiva[sensor.id]) {
       aguaActiva[sensor.id] = true;
       console.log(`⚠️ AGUA detectada en ${sensor.nombre}`);
@@ -443,10 +443,10 @@ async function checkSensorAgua(sensor, token) {
       await sendPushNotification('sensor_agua_' + sensor.id, `Sensor ${sensor.nombre}`);
     } else if (estado === 'normal' && aguaActiva[sensor.id]) {
       aguaActiva[sensor.id] = false;
-      console.log(`Sensor agua ${sensor.nombre}: vuelta a normalidad`);
+      console.log(`✅ Sensor agua ${sensor.nombre}: vuelta a normalidad`);
     }
   } catch(e) {
-    console.error(`Error sensor agua ${sensor.nombre}:`, e.message);
+    console.error(`⚠️ Error sensor agua ${sensor.nombre}:`, e.message);
   }
 }
 
