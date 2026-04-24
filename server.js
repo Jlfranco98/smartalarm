@@ -433,12 +433,13 @@ checkTodosLosSensores();
 
 // --- DISPOSITIVOS ---
 const LISTA_DISPOSITIVOS = [
-  { id: TUYA_DEVICE_ID,           nombre: 'Panel Alarma',               icono: '🔒', ubicacion: 'Entrada'                      },
+  { id: TUYA_DEVICE_ID,           nombre: 'Lector de llaves',           icono: '🔑', ubicacion: 'Entrada'                     },
   { id: 'bfc5d2d1da002201c6pcbl', nombre: 'Centralita Alarma',          icono: '💡', ubicacion: 'Habitación Jose'              },
   { id: 'bfcbcf5e1f2b903dedyx4i', nombre: 'Sensor Fugas de Agua',       icono: '💧', ubicacion: 'Habitación Jose'              },
   { id: 'bf92df2609b5192252oyym', nombre: 'Sensor Fugas de Aguaa',      icono: '💧', ubicacion: 'Cocina'                       },
   { id: 'bff7dcc64693fab3acucza', nombre: 'Sensor Fugas de Agua',       icono: '💧', ubicacion: 'Pasillo'                      },
-  { id: 'Entrada',                nombre: 'Fotodetector 1',             icono: '👁', ubicacion: 'Entrada',  forzarOnline: true },
+  { id: 'null',                   nombre: 'ShockSensor',                icono: '🚪', ubicacion: 'Puerta Principal',  forzarOnline: true },
+  { id: 'null',                   nombre: 'Fotodetector',               icono: '🏃', ubicacion: '(1) Entrada',  forzarOnline: true },
 ];
 
 app.get('/api/dispositivos', async (req, res) => {
