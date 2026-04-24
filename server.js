@@ -397,7 +397,7 @@ async function checkSensorLuz(token) {
     const brightProp = data.result.find(p => p.code === 'bright_value');
     if (!brightProp) return;
     const lux = brightProp.value;
-    console.log(`Sensor luz: ${lux} LUX`);
+    console.log(`✅ Sensor sirena alarma: OK - ${lux} LUX`);
     if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
       sensorAlarmaActiva = true;
       console.log('⚠️ SENSOR: Luz detectada, posible intrusión');
@@ -415,7 +415,7 @@ async function checkSensorAgua(sensor, token) {
   try {
     const data = await tuyaRequest('GET', `/v1.0/devices/${sensor.id}/status`, null, token);
     if (!data.success || !data.result) {
-      console.log(`Sensor agua ${sensor.nombre}: offline`);
+      console.log(`✅ Sensor agua ${sensor.nombre}: offline`);
       if (!dispositivosOffline[sensor.id]) {
         dispositivosOffline[sensor.id] = true;
         await new Log({ usuario: 'Sistema', accion: `⚠️ Sensor Agua ${sensor.nombre} desconectado`, fecha: new Date() }).save();
