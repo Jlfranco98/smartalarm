@@ -412,7 +412,7 @@ async function checkSensorLuz(token) {
     if (!brightProp) return;
 
     const lux = brightProp.value;
-    console.log(`✅ Centralita alarma: OK - ${lux} LUX`);
+    console.log(`✅ CENTRALITA ALARMA - ${lux} LUX`);
 
     if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
       sensorAlarmaActiva = true;
@@ -430,7 +430,7 @@ async function checkSensorLuz(token) {
 async function checkPanelAlarma(token) {
   try {
     const data = await tuyaRequest('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`, null, token);
-    console.log('✅ Panel Online:', data.result?.online);
+    console.log('✅ PANEL ONLINE:', data.result?.online);
     
     const isOnline = data.result?.online === true;
     
