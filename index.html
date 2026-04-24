@@ -1175,7 +1175,7 @@ async function changePin() {
       // Actualizamos el PIN en memoria para que funcione sin relogin
       if (S.currentUser) S.currentUser.pin = newPin1;
       save();
-      toast2('PIN de alarma actualizado');
+      toast2('PIN personal actualizado');
     } else {
       elErr.textContent = data.message || 'PIN actual incorrecto';
     }
