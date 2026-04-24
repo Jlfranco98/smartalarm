@@ -197,7 +197,12 @@ async function sendPushNotification(action, triggeredBy) {
     console.log('Push: VAPID no configurado');
     return;
   }
-  const prefs = (action === 'sos' || action === 'sensor_luz') 
+  const notificarATodos = ['sos', 'sensor_luz', 'sensor_offline', 'sensor_online'].includes(action) 
+  || action.startsWith('sensor_agua_')
+  || action.startsWith('dispositivo_offline_')
+  || action.startsWith('dispositivo_online_');
+
+const prefs = notificarATodos
   ? await NotifPref.find({})
   : await NotifPref.find({ [action]: true });
   console.log(`Push: ${prefs.length} usuarios con preferencia activa para ${action}`);
