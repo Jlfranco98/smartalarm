@@ -490,7 +490,29 @@ async function checkSensorAgua(sensor, token) {
   }
 }
 
-setInterval(checkTodosLosSensores, 30000);  //Cada 30 segundos
+// Sensor de luz (alarma) cada 10 segundos
+setInterval(async () => {
+  try {
+    const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
+    if (!tokenData.success) return;
+    await checkSensorLuz(tokenData.result.access_token);
+  } catch(e) { console.error('Error polling luz:', e.message); }
+}, 10000);
+
+// Panel y sensores de agua cada 30 segundos
+setInterval(async () => {
+  try {
+    const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
+    if (!tokenData.success) return;
+    const token = tokenData.result.access_token;
+    await Promise.all([
+      checkPanelAlarma(token),
+      ...SENSORES_AGUA.map(s => checkSensorAgua(s, token))
+    ]);
+  } catch(e) { console.error('Error polling sensores:', e.message); }
+}, 30000);
+
+// Arranque inicial
 checkTodosLosSensores();
 
 // --- DISPOSITIVOS ---
