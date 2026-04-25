@@ -269,6 +269,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
         </div>
         <div class="hs-status" id="hs-status">Desconectada</div>
         <div class="hs-sub" id="hs-sub">Alarma desconectada</div>
+        <div class="hs-refresh-time" id="hs-refresh-time" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
         <div class="hs-actions" id="hs-actions">
           <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">
             <span style="font-size:22px;line-height:1">🔒</span>
@@ -880,21 +881,31 @@ async function fetchStatus() {
     if (!res.ok) throw new Error('Error en red');
     const data = await res.json();
     
-    // Si el servidor devuelve el estado, lo actualizamos
     if (data && data.alarmStatus) {
       S.alarmStatus = data.alarmStatus;
-      updateStatusUI(); // Esta es la que cambia el color del círculo
+      updateStatusUI();
     }
+
+    // Actualizar hora de último refresco
+    const ahora = new Date();
+    const hora = ahora.getHours().toString().padStart(2,'0') + ':' + 
+                 ahora.getMinutes().toString().padStart(2,'0') + ':' + 
+                 ahora.getSeconds().toString().padStart(2,'0');
+    const el = document.getElementById('hs-refresh-time');
+    if (el) el.textContent = 'Última actualización: ' + hora;
+
   } catch (e) {
     console.error("Error al consultar estado:", e);
+    const el = document.getElementById('hs-refresh-time');
+    if (el) el.textContent = 'Sin conexión con el servidor';
   }
 }
 
 let _pollTimer = null;
 function startPolling(){
   stopPolling();
-  fetchStatus(); // sync inmediato al entrar
-  _pollTimer = setInterval(fetchStatus, 15000); // cada 15s
+  fetchStatus();
+  _pollTimer = setInterval(fetchStatus, 15000);
 }
 function stopPolling(){
   if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
