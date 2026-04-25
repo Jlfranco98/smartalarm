@@ -978,16 +978,13 @@ function checkPin(){
 }
 
 async function applyAction(action, userName) {
-  // 1. Calculamos el estado que queremos poner
   const nextStatus = action === 'disarm' ? 'disarmed' : 
                    action === 'arm_away' ? 'armed' : 
                    action === 'arm_home' ? 'arm_home' : 
-                   S.alarmStatus; // SOS mantiene el estado actual
+                   S.alarmStatus;
   
   toast2('Comunicando con la alarma...');
-
   try {
-    // 2. Enviamos la orden al servidor (Railway)
     const response = await fetch('/api/control', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -995,29 +992,30 @@ async function applyAction(action, userName) {
         action,
         user: userName,
         deviceId: S.config.deviceId,
-        alarmStatus: nextStatus // Enviamos el nuevo estado para que el servidor lo guarde
+        alarmStatus: nextStatus
       })
     });
 
-    if (response.ok) {
-      // 3. Si el servidor respondió OK, es que ya se guardó en MongoDB.
-      // Ahora sí, actualizamos nuestra pantalla local.
-      S.alarmStatus = nextStatus;
-      updateStatusUI();
-      
-      // Actualizamos el log para ver el movimiento al instante
-      const now = new Date();
-      const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-      S.log.unshift({ action: ACTION_NAMES[action], user: userName, time, status: S.alarmStatus });
-      
-      renderLog();
-      toast2('Sistema actualizado: ' + ACTION_NAMES[action]);
-    } else {
-      toast2('Error: El servidor no pudo cambiar el estado');
+    const data = await response.json();
+
+    // Panel offline u otro error del servidor
+    if (!data.success) {
+      toast2('⚠️ ' + (data.error || 'No se pudo ejecutar el comando'));
+      return; // No actualizamos nada en local
     }
+
+    // Todo OK — actualizamos pantalla
+    S.alarmStatus = nextStatus;
+    updateStatusUI();
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    S.log.unshift({ action: ACTION_NAMES[action], user: userName, time, status: S.alarmStatus });
+    renderLog();
+    toast2('Sistema actualizado: ' + ACTION_NAMES[action]);
+
   } catch (e) {
     console.error("Fallo al ejecutar acción:", e);
-    toast2('Error de conexión con el servidor');
+    toast2('⚠️ Error de conexión con el servidor');
   }
 }
 
