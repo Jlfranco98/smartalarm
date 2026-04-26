@@ -32,16 +32,9 @@ const REGION_URL = {
 };
 const BASE_URL = REGION_URL[TUYA_REGION] || REGION_URL['eu'];
 
-// ⏱️ DOS VELOCIDADES:
-// CUENTA A: 1 dispositivo crítico (Alarma)
-// Se queda igual: 1.5 min para no pasarnos de 30k.
-const POLL_ALARMA_MS = 1.5 * 60 * 1000; 
-
-// CUENTA B: 4 dispositivos (Agua, Panel + 2 extras)
-// Bajamos de 6 a 8 minutos.
-// Gasto polling: 21,600 calls/mes.
-// Te quedan 8,400 calls/mes LIBRES para comandos.
-const POLL_NORMAL_MS = 8 * 60 * 1000;
+// ⏱️ DOS VELOCIDADES OPTIMIZADAS:
+const POLL_ALARMA_MS = 5 * 60 * 1000;  // 5 min (CUENTA A - Respaldo, ya que MacroDroid es el principal)
+const POLL_NORMAL_MS = 8 * 60 * 1000;  // 8 min (CUENTA B - Equilibrio agua + panel)
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails('mailto:admin@smartalarm.app', VAPID_PUBLIC, VAPID_PRIVATE);
@@ -359,6 +352,27 @@ app.post('/api/control', async (req, res) => {
     }
     res.json({ success: result.success, result: result.result });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// --- RUTA PARA MACRODROID (Aviso instantáneo) ---
+app.get('/alerta-alarma', async (req, res) => {
+  try {
+    console.log('🚨 [MacroDroid] ¡AVISO RECIBIDO!');
+    
+    // 1. Guardar el log inmediatamente
+    await new Log({ 
+      usuario: 'Verisure', 
+      accion: '🚨 ALARMA SALTADA' 
+    }).save();
+
+    // 2. Enviar la notificación push a los móviles
+    await sendPushNotification('sensor_luz', 'Verisure');
+
+    res.status(200).send("✅ Alerta procesada");
+  } catch (e) {
+    console.error('❌ Error en alerta MacroDroid:', e.message);
+    res.status(500).send("Error");
+  }
 });
 
 // --- 13. HISTORIAL Y CONFIG ---
