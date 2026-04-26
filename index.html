@@ -1088,30 +1088,35 @@ async function applyAction(action, userName) {
 // ── Filtros de Historial ────────────────────────────────────────────────────
 let F = { categoria: 'todo', subcategoria: 'todo' };
 
+// ── Filtros de Historial (Optimizado) ────────────────────────────────────────
+let F = { categoria: 'todo', subcategoria: 'todo' };
+
 const CATEGORIAS = {
   acciones: {
     label: '🔐 Acciones',
     subcats: [
-      { id: 'armado', label: '🔒 Armados', keywords: ['arm_away','Conectad','Armado total','arm away'] },
-      { id: 'desarmado', label: '🔓 Desarmados', keywords: ['disarm','Desconect','Desarmad'] },
-      { id: 'noche', label: '🌙 Modo noche', keywords: ['arm_home','noche','parcial','casa'] },
-      { id: 'sos', label: '🆘 Pánico/SOS', keywords: ['sos','PÁNICO','SOS','panico','pánico'] },
+      // Usamos palabras más exactas para evitar que "Desconectado" entre en "Conectado"
+      { id: 'armado', label: '🔒 Armados', keywords: ['arm_away', 'Alarma armada (total)', 'Armado total'] },
+      { id: 'desarmado', label: '🔓 Desarmados', keywords: ['disarm', 'Alarma desarmada', 'Desarmad'] },
+      { id: 'noche', label: '🌙 Modo noche', keywords: ['arm_home', 'modo noche', 'Alarma armada (modo noche)'] },
+      { id: 'sos', label: '🆘 Pánico/SOS', keywords: ['sos', 'PÁNICO', 'SOS'] },
     ]
   },
   saltos: {
     label: '🚨 Saltos',
     subcats: [
-      { id: 'alarma', label: '🚨 Alarma saltada', keywords: ['alarma saltada','alarm triggered','disparo','intrusion','intrusión'] },
-      { id: 'agua', label: '💧 Sensor de agua', keywords: ['agua','water','inundac'] },
-      { id: 'movimiento', label: '👁 Movimiento', keywords: ['movimiento','motion','pir'] },
+      { id: 'alarma', label: '🚨 Alarma saltada', keywords: ['ALARMA SALTADA', 'alarma saltada'] },
+      { id: 'agua', label: '💧 Sensor de agua', keywords: ['Fuga de agua', 'agua detectada'] },
+      { id: 'movimiento', label: '👁 Movimiento', keywords: ['movimiento', 'motion'] },
     ]
   },
   errores: {
     label: '⚠️ Errores',
     subcats: [
-      { id: 'desconectado', label: '📵 Sensor desconectado', keywords: ['desconectado','offline','sin señal','lost','disconnect'] },
-      { id: 'reconectado', label: '✅ Sensor reconectado', keywords: ['reconectado','online','restored','reconnect','volvió'] },
-      { id: 'bateria', label: '🔋 Batería baja', keywords: ['batería','bateria','battery','pila'] },
+      // Priorizamos palabras que no estén en "Acciones"
+      { id: 'desconectado', label: '📵 Sensor desconectado', keywords: ['desconectado', 'offline', 'Centralita desconectada'] },
+      { id: 'reconectado', label: '✅ Sensor reconectado', keywords: ['reconectado', 'online', 'Centralita reconectada'] },
+      { id: 'bateria', label: '🔋 Batería baja', keywords: ['batería', 'bateria', 'pila'] },
     ]
   }
 };
