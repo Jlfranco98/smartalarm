@@ -5,7 +5,7 @@ const path     = require('path');
 const mongoose = require('mongoose');
 const bcrypt   = require('bcryptjs');
 const webpush  = require('web-push');
-const mqtt     = require('mqtt');
+const { TuyaContext, TuyaMQTTClient } = require('@tuya/tuya-connector-nodejs');
 
 const app = express();
 app.use(express.json());
@@ -20,6 +20,15 @@ const TUYA_DEVICE_ID     = process.env.TUYA_DEVICE_KEY;
 const TUYA_REGION        = process.env.TUYA_REGION || 'eu';
 const VAPID_PUBLIC       = process.env.VAPID_PUBLIC_KEY  || '';
 const VAPID_PRIVATE      = process.env.VAPID_PRIVATE_KEY || '';
+
+// Mapa de región a URL base de Tuya
+const REGION_URL = {
+  eu: 'https://openapi.tuyaeu.com',
+  us: 'https://openapi.tuyaus.com',
+  cn: 'https://openapi.tuyacn.com',
+  in: 'https://openapi.tuyain.com',
+};
+const BASE_URL = REGION_URL[TUYA_REGION] || REGION_URL['eu'];
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails('mailto:admin@smartalarm.app', VAPID_PUBLIC, VAPID_PRIVATE);
@@ -73,41 +82,21 @@ const Config    = mongoose.model('Config',    configSchema);
 const PushSub   = mongoose.model('PushSub',   pushSubSchema);
 const NotifPref = mongoose.model('NotifPref', notifPrefSchema);
 
-// --- 4. CACHÉ DE TOKEN (solo para comandos) ---
-let cachedToken = null;
-let tokenExpiry = 0;
+// --- 4. CLIENTE TUYA (SDK oficial) ---
+// Gestiona token automáticamente, no hay que pedirlo manualmente
+const tuyaClient = new TuyaContext({
+  baseUrl: BASE_URL,
+  accessKey: TUYA_CLIENT_ID,
+  secretKey: TUYA_CLIENT_SECRET,
+});
 
-async function getTuyaToken() {
-  const now = Date.now();
-  if (cachedToken && now < tokenExpiry - 5 * 60 * 1000) return cachedToken;
-  console.log('🔑 Solicitando nuevo token Tuya...');
-  const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
-  if (!tokenData.success) throw new Error('Error obteniendo token Tuya');
-  cachedToken = tokenData.result.access_token;
-  tokenExpiry = now + (tokenData.result.expire_time || 7200) * 1000;
-  return cachedToken;
+// Wrapper simple para llamadas a la API
+async function tuyaAPI(method, path, body) {
+  const result = await tuyaClient.request({ method, path, body });
+  return result;
 }
 
-// --- 5. TUYA HTTP (solo para comandos, no polling) ---
-async function tuyaRequest(method, urlPath, body = null, token = '') {
-  const t = Date.now().toString();
-  const nonce = crypto.randomUUID();
-  const bodyStr = body ? JSON.stringify(body) : '';
-  const strToSign = [method.toUpperCase(), crypto.createHash('sha256').update(bodyStr).digest('hex'), '', urlPath].join('\n');
-  const signSeed = token
-    ? (TUYA_CLIENT_ID + token + t + nonce + strToSign)
-    : (TUYA_CLIENT_ID + t + nonce + strToSign);
-  const signature = crypto.createHmac('sha256', TUYA_CLIENT_SECRET).update(signSeed).digest('hex').toUpperCase();
-  const headers = {
-    'client_id': TUYA_CLIENT_ID, 'sign': signature, 't': t, 'nonce': nonce,
-    'sign_method': 'HMAC-SHA256', 'Content-Type': 'application/json'
-  };
-  if (token) headers['access_token'] = token;
-  const response = await fetch(`https://openapi.tuya${TUYA_REGION}.com` + urlPath, { method, headers, body: bodyStr || undefined });
-  return response.json();
-}
-
-// --- 6. SENSORES Y ESTADO ---
+// --- 5. SENSORES Y ESTADO ---
 const SENSOR_LUZ_ID = 'bfc5d2d1da002201c6pcbl';
 const SENSORES_AGUA = [
   { id: 'bfcbcf5e1f2b903dedyx4i', nombre: 'Jose' },
@@ -119,101 +108,73 @@ let sensorAlarmaActiva = false;
 let sensorOffline = false;
 const aguaActiva = {};
 const dispositivosOffline = {};
-const deviceStateCache = {}; // Estado actualizado por MQTT, sin llamadas HTTP
+const deviceStateCache = {};
 
-// --- 7. MQTT DE TUYA (0 API calls, eventos en tiempo real) ---
-function conectarMQTT() {
-  const regionMap = {
-    eu: 'mqtts://m1.tuyaeu.com:8883',
-    us: 'mqtts://m1.tuyaus.com:8883',
-    cn: 'mqtts://m1.tuyacn.com:8883',
-    in: 'mqtts://m1.tuyain.com:8883'
-  };
-  const brokerUrl = regionMap[TUYA_REGION] || regionMap['eu'];
+// --- 6. TUYA MESSAGE QUEUE (SDK oficial - recibe eventos sin polling) ---
+function conectarMensajeria() {
+  console.log('📡 Conectando al Message Queue de Tuya...');
 
-  const t = Date.now().toString();
-  const nonce = crypto.randomBytes(8).toString('hex'); // 16 chars
+  const mqttClient = new TuyaMQTTClient({
+    accessKey: TUYA_CLIENT_ID,
+    secretKey: TUYA_CLIENT_SECRET,
+    mqttConfig: {
+      // URL del broker según región
+      url: `mqtts://m1.tuya${TUYA_REGION}.com:8883`,
+    },
+    linkListener: {
+      // Se llama cuando llega un mensaje de cualquier dispositivo
+      onMessage: async (topic, message) => {
+        try {
+          console.log('📨 Mensaje Tuya recibido:', JSON.stringify(message).substring(0, 200));
+          const { bizCode, devId, bizData } = message;
+          if (!devId) return;
 
-  // Formato correcto según docs Tuya MQTT:
-  // clientId = {accessId}{random16chars}
-  const mqttClientId = `${TUYA_CLIENT_ID}${nonce}`;
+          // Actualizar caché
+          deviceStateCache[devId] = { ...deviceStateCache[devId], updatedAt: Date.now() };
 
-  // username = {accessId}|timestamp={t},nonce={nonce},signMethod=hmacSha256,accessType=1
-  const username = `${TUYA_CLIENT_ID}|timestamp=${t},nonce=${nonce},signMethod=hmacSha256,accessType=1`;
-
-  // password = HMAC-SHA256("{accessId}{t}{nonce}")
-  const strToSign = `${TUYA_CLIENT_ID}${t}${nonce}`;
-  const password = crypto.createHmac('sha256', TUYA_CLIENT_SECRET).update(strToSign).digest('hex');
-
-  console.log('📡 Conectando a Tuya MQTT...');
-  console.log('🔗 Broker:', brokerUrl);
-  console.log('🆔 ClientId:', mqttClientId);
-
-  const client = mqtt.connect(brokerUrl, {
-    clientId: mqttClientId,
-    username,
-    password,
-    rejectUnauthorized: false,
-    reconnectPeriod: 5000,
-    connectTimeout: 10000,
-  });
-
-  client.on('connect', () => {
-    console.log('✅ MQTT conectado — escuchando eventos Tuya en tiempo real');
-    const dispositivos = [SENSOR_LUZ_ID, TUYA_DEVICE_ID, ...SENSORES_AGUA.map(s => s.id)];
-    dispositivos.forEach(devId => {
-      client.subscribe(`tylink/${devId}/thing/property/report`, { qos: 0 });
-      client.subscribe(`tylink/${devId}/device/report/info`, { qos: 0 });
-    });
-    console.log(`📡 Suscrito a ${dispositivos.length} dispositivos`);
-  });
-
-  client.on('message', async (topic, message) => {
-    try {
-      const payload = JSON.parse(message.toString());
-      const partes = topic.split('/');
-      const devId = partes[1];
-      const tipoEvento = partes.slice(2).join('/');
-
-      console.log(`📨 MQTT [${devId}] ${tipoEvento}`);
-      deviceStateCache[devId] = { ...deviceStateCache[devId], updatedAt: Date.now() };
-
-      if (tipoEvento === 'device/report/info') {
-        const online = payload.data?.online ?? payload.online;
-        if (online === true)  await procesarOnline(devId);
-        if (online === false) await procesarOffline(devId);
-      } else if (tipoEvento === 'thing/property/report') {
-        const props = payload.data?.properties || payload.properties || [];
-        await procesarCambioEstado(devId, props);
-      }
-    } catch (e) {
-      console.error('Error MQTT mensaje:', e.message);
+          switch (bizCode) {
+            case 'online':
+              await procesarOnline(devId);
+              break;
+            case 'offline':
+              await procesarOffline(devId);
+              break;
+            case 'statusReport':
+            case 'devicePropertyMessage':
+            case 'deviceEventMessage': {
+              const props = bizData?.properties || bizData?.status || [];
+              await procesarCambioEstado(devId, props);
+              break;
+            }
+          }
+        } catch (e) {
+          console.error('Error procesando mensaje:', e.message);
+        }
+      },
+      onConnect: () => console.log('✅ Message Queue conectado — eventos en tiempo real activos'),
+      onError: (e) => console.error('❌ Error Message Queue:', e.message || e),
+      onClose: () => console.log('⚠️ Message Queue desconectado, reconectando...'),
     }
   });
 
-  client.on('error',     (e) => console.error('❌ MQTT error:', e.message));
-  client.on('reconnect', ()  => console.log('🔄 MQTT reconectando...'));
-  client.on('offline',   ()  => console.log('⚠️ MQTT offline'));
-
-  return client;
+  mqttClient.start();
+  return mqttClient;
 }
 
 async function procesarOnline(devId) {
+  deviceStateCache[devId] = { ...deviceStateCache[devId], online: true };
   if (devId === SENSOR_LUZ_ID && sensorOffline) {
     sensorOffline = false;
-    deviceStateCache[devId] = { ...deviceStateCache[devId], online: true };
     await new Log({ usuario: 'Verisure', accion: '✅ Centralita reconectada' }).save();
     await sendPushNotification('sensor_online', 'Verisure');
   } else if (devId === TUYA_DEVICE_ID && dispositivosOffline['panel']) {
     dispositivosOffline['panel'] = false;
-    deviceStateCache[devId] = { ...deviceStateCache[devId], online: true };
     await new Log({ usuario: 'Verisure', accion: '✅ Panel Alarma reconectado' }).save();
     await sendPushNotification('panel_online', 'Verisure');
   } else {
     const sensor = SENSORES_AGUA.find(s => s.id === devId);
     if (sensor && dispositivosOffline[devId]) {
       dispositivosOffline[devId] = false;
-      deviceStateCache[devId] = { ...deviceStateCache[devId], online: true };
       await new Log({ usuario: 'Verisure', accion: `✅ Sensor Agua ${sensor.nombre} reconectado` }).save();
       await sendPushNotification('dispositivo_online_' + devId, 'Verisure');
     }
@@ -221,21 +182,19 @@ async function procesarOnline(devId) {
 }
 
 async function procesarOffline(devId) {
+  deviceStateCache[devId] = { ...deviceStateCache[devId], online: false };
   if (devId === SENSOR_LUZ_ID && !sensorOffline) {
     sensorOffline = true;
-    deviceStateCache[devId] = { ...deviceStateCache[devId], online: false };
     await new Log({ usuario: 'Verisure', accion: '⚠️ Centralita desconectada' }).save();
     await sendPushNotification('sensor_offline', 'Verisure');
   } else if (devId === TUYA_DEVICE_ID && !dispositivosOffline['panel']) {
     dispositivosOffline['panel'] = true;
-    deviceStateCache[devId] = { ...deviceStateCache[devId], online: false };
     await new Log({ usuario: 'Verisure', accion: '⚠️ Panel Alarma desconectado' }).save();
     await sendPushNotification('panel_offline', 'Verisure');
   } else {
     const sensor = SENSORES_AGUA.find(s => s.id === devId);
     if (sensor && !dispositivosOffline[devId]) {
       dispositivosOffline[devId] = true;
-      deviceStateCache[devId] = { ...deviceStateCache[devId], online: false };
       await new Log({ usuario: 'Verisure', accion: `⚠️ Sensor Agua ${sensor.nombre} desconectado` }).save();
       await sendPushNotification('dispositivo_offline_' + devId, 'Verisure');
     }
@@ -277,7 +236,7 @@ async function procesarCambioEstado(devId, props) {
   }
 }
 
-// --- 8. PUSH NOTIFICATIONS ---
+// --- 7. PUSH NOTIFICATIONS ---
 async function sendPushNotification(action, triggeredBy) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
   const notificarATodos = ['sos','sensor_luz','sensor_offline','sensor_online','panel_offline','panel_online'].includes(action)
@@ -308,7 +267,7 @@ async function sendPushNotification(action, triggeredBy) {
   }));
 }
 
-// --- 9. USUARIOS ---
+// --- 8. USUARIOS ---
 app.get('/api/usuarios', async (req, res) => { try { res.json(await User.find({}, '-password')); } catch (e) { res.status(500).json([]); } });
 app.post('/api/usuarios', async (req, res) => {
   try {
@@ -325,7 +284,7 @@ app.delete('/api/usuarios/:username', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- 10. AUTH ---
+// --- 9. AUTH ---
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -362,7 +321,7 @@ app.post('/api/change-pin', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- 11. PUSH ---
+// --- 10. PUSH ---
 app.get('/api/push/vapid-public', (req, res) => res.json({ publicKey: VAPID_PUBLIC }));
 app.post('/api/push/subscribe', async (req, res) => {
   try {
@@ -384,16 +343,19 @@ app.post('/api/push/prefs', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- 12. CONTROL ALARMA ---
+// --- 11. CONTROL ALARMA ---
 app.post('/api/control', async (req, res) => {
   const { action, user, alarmStatus } = req.body;
   const mapping = { disarm: 'switch_1', arm_home: 'switch_2', arm_away: 'switch_3', sos: 'switch_4' };
   const nombres = { disarm: 'Alarma Desarmada', arm_home: 'Alarma armada (modo noche)', arm_away: 'Alarma armada (total)', sos: 'PÁNICO / SOS' };
   try {
-    const token = await getTuyaToken();
-    const deviceInfo = await tuyaRequest('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`, null, token);
+    const deviceInfo = await tuyaAPI('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
     if (!deviceInfo.result?.online) return res.json({ success: false, error: 'Panel desconectado.' });
-    const result = await tuyaRequest('POST', `/v1.0/devices/${TUYA_DEVICE_ID}/commands`, { commands: [{ code: mapping[action], value: true }] }, token);
+
+    const result = await tuyaAPI('POST', `/v1.0/devices/${TUYA_DEVICE_ID}/commands`, {
+      commands: [{ code: mapping[action], value: true }]
+    });
+
     if (result.success) {
       await new Log({ usuario: user || 'Verisure', accion: nombres[action] || action }).save();
       await Config.findOneAndUpdate({ id: 'global_config' }, { $set: { alarmStatus } }, { upsert: true });
@@ -403,14 +365,14 @@ app.post('/api/control', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// --- 13. HISTORIAL Y CONFIG ---
+// --- 12. HISTORIAL Y CONFIG ---
 app.get('/api/logs',      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(30)); } catch (e) { res.status(500).json([]); } });
 app.get('/api/historial', async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(20)); } catch (e) { res.status(500).json([]); } });
 app.get('/api/config',    async (req, res) => { try { res.json(await Config.findOne({ id: 'global_config' }) || {}); } catch (e) { res.status(500).json({}); } });
 app.post('/api/config',   async (req, res) => { try { await Config.findOneAndUpdate({ id: 'global_config' }, req.body, { upsert: true }); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); } });
 app.get('/api/status',    async (req, res) => { try { const c = await Config.findOne({ id: 'global_config' }); res.json({ alarmStatus: c?.alarmStatus || 'disarmed' }); } catch (e) { res.status(500).send(e.message); } });
 
-// --- 14. DISPOSITIVOS (caché MQTT, 0 calls si ya hay datos) ---
+// --- 13. DISPOSITIVOS ---
 const LISTA_DISPOSITIVOS = [
   { id: 'bfc5d2d1da002201c6pcbl', nombre: 'Centralita Alarma',    icono: '🛡️', ubicacion: 'Es el corazón de tu alarma'           },
   { id: TUYA_DEVICE_ID,          nombre: 'Panel Alarma',          icono: '🛜', ubicacion: 'Es la unidad de control de tu alarma' },
@@ -428,7 +390,6 @@ app.get('/api/dispositivos', async (req, res) => {
     );
 
     if (todosEnCache) {
-      // Datos frescos de MQTT — 0 API calls
       return res.json(LISTA_DISPOSITIVOS.map(d => ({
         ...d,
         online:  deviceStateCache[d.id]?.online ?? false,
@@ -436,12 +397,11 @@ app.get('/api/dispositivos', async (req, res) => {
       })));
     }
 
-    // Primera carga: consulta Tuya una vez y llena la caché
+    // Primera carga: consulta Tuya una vez
     console.log('🌐 Primera carga dispositivos desde Tuya API');
-    const token = await getTuyaToken();
     const results = await Promise.all(LISTA_DISPOSITIVOS.map(async d => {
       try {
-        const data = await tuyaRequest('GET', `/v1.0/devices/${d.id}`, null, token);
+        const data = await tuyaAPI('GET', `/v1.0/devices/${d.id}`);
         const bateria = data.result?.status?.find(s => s.code === 'battery_percentage')?.value ?? null;
         const online  = data.result?.online || false;
         deviceStateCache[d.id] = { online, bateria, updatedAt: ahora };
@@ -454,9 +414,9 @@ app.get('/api/dispositivos', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// --- 15. ARRANQUE ---
+// --- 14. ARRANQUE ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor activo en puerto ${PORT}`);
-  setTimeout(() => conectarMQTT(), 2000);
+  setTimeout(() => conectarMensajeria(), 3000);
 });
