@@ -369,7 +369,7 @@ app.get('/alerta-alarma', async (req, res) => {
       return res.status(401).send("No autorizado");
     }
 
-    console.log('🚨 [MacroDroid] ¡AVISO RECIBIDO Y VALIDADO!');
+    console.log('🚨 [MacroDroid] ¡AVISO DE ALARMA RECIBIDO Y VALIDADO!');
     
     // Guardar el log y enviar notificación
     await new Log({ 
