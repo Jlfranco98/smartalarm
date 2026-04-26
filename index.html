@@ -1119,38 +1119,33 @@ const CATEGORIAS = {
 };
 
 function clasificarEvento(l) {
-  // 1. Unificamos todo el texto para buscar
   const texto = ((l.accion || l.action || '') + ' ' + (l.tipo || '') + ' ' + (l.sensor || '')).toLowerCase();
 
-  // --- PRIORIDAD 1: SALTOS (Alarma y Agua) ---
-  if (texto.includes('saltada') || texto.includes('fuga') || texto.includes('agua') || texto.includes('pánico') || texto.includes('sos')) {
-    let subid = 'alarma';
-    if (texto.includes('agua')) subid = 'agua';
-    if (texto.includes('pánico') || texto.includes('sos')) subid = 'sos';
-    return { cat: 'saltos', sub: subid };
+  // 1. PRIORIDAD MÁXIMA: SOS / PÁNICO (Categoría propia)
+  if (texto.includes('pánico') || texto.includes('sos') || texto.includes('panic')) {
+    return { cat: 'acciones', sub: 'sos' }; 
   }
 
-  // --- PRIORIDAD 2: ERRORES ---
-  // Buscamos errores antes que armados para que "Desconectado" no entre en "Conectado"
-  if (texto.includes('desconectado') || texto.includes('offline') || texto.includes('batería') || texto.includes('pila') || texto.includes('sin señal')) {
-    let subid = 'desconectado';
-    if (texto.includes('batería') || texto.includes('pila')) subid = 'bateria';
-    return { cat: 'errores', sub: subid };
+  // 2. SALTOS (Alarma y Agua)
+  if (texto.includes('saltada') || texto.includes('fuga') || texto.includes('agua')) {
+    return { cat: 'saltos', sub: texto.includes('agua') ? 'agua' : 'alarma' };
   }
 
-  // --- PRIORIDAD 3: ACCIONES (Armado/Desarmado) ---
-  // Buscamos por las keywords de tu objeto CATEGORIAS
+  // 3. ERRORES
+  if (texto.includes('desconectado') || texto.includes('offline') || texto.includes('batería')) {
+    return { cat: 'errores', sub: texto.includes('batería') ? 'bateria' : 'desconectado' };
+  }
+
+  // 4. RESTO DE ACCIONES (Armados, etc.)
   for (const [catId, cfg] of Object.entries(CATEGORIAS)) {
-    if (catId === 'saltos' || catId === 'errores') continue; // Ya los hemos comprobado arriba
+    if (catId === 'saltos' || catId === 'errores') continue;
     for (const sub of cfg.subcats) {
       if (sub.keywords.some(k => texto.includes(k.toLowerCase()))) {
         return { cat: catId, sub: sub.id };
       }
     }
   }
-
-  // Si no encaja en nada, lo dejamos como info general
-  return { cat: 'todo', sub: 'todo' };
+  return { cat: 'acciones', sub: null };
 }
 
 function setFiltroCategoria(cat) {
@@ -1249,52 +1244,84 @@ function buildLogItem(l, full = false) {
     }
   }
 
-  const texto = ((l.accion || l.action || '') + ' ' + (l.tipo || '')).toLowerCase();
-  
-  // 1. Clasificamos para obtener la categoría
+  // 1. Clasificamos el evento para saber qué es
   const cl = clasificarEvento(l);
+  const texto = ((l.accion || l.action || '')).toLowerCase();
 
-  // 2. Definimos Colores y Etiquetas (Ajustado para tus necesidades)
+  // 2. Variables de estilo por defecto
   let catColor = '#1a1a1a'; 
   let catLabel = '';
+  let dotStyle = ''; // Para forzar color en el punto
   let dotClass = 'hi-armed'; // Verde por defecto
 
-  if (cl.cat === 'saltos') {
-    catColor = '#e8192c'; // Rojo Alarma
-    catLabel = '🚨 SALTO';
-    dotClass = 'hi-disarmed'; // Usamos la clase de color fuerte (rojo/naranja)
-  } else if (cl.cat === 'errores') {
-    catColor = '#ff8c00'; // Naranja Error
+  // 3. ASIGNACIÓN DE CATEGORÍAS VISUALES
+  
+  // --- CASO ESPECIAL: SOS / PÁNICO ---
+  if (cl.sub === 'sos' || texto.includes('pánico') || texto.includes('sos')) {
+    catColor = '#7d3fc8'; // Púrpura distintivo
+    catLabel = '🆘 SOS';
+    dotStyle = 'background: #7d3fc8 !important; box-shadow: 0 0 8px #7d3fc866;';
+  } 
+  // --- CASO: SALTOS (Alarma / Agua) ---
+  else if (cl.cat === 'saltos') {
+    catColor = '#e8192c'; // Rojo
+    catLabel = cl.sub === 'agua' ? '💧 AGUA' : '🚨 SALTO';
+    dotStyle = 'background: #e8192c !important; box-shadow: 0 0 8px #e8192c66;';
+  } 
+  // --- CASO: ERRORES ---
+  else if (cl.cat === 'errores') {
+    catColor = '#ff8c00'; // Naranja
     catLabel = '⚠️ ERROR';
-    dotClass = 'hi-home'; // Color intermedio
-  } else if (cl.cat === 'acciones') {
-    catColor = '#00b562'; // Verde Acción
-    // Solo ponemos etiqueta si es algo especial como SOS
-    if (texto.includes('sos') || texto.includes('pánico')) {
-      catLabel = '🆘 SOS';
-      catColor = '#e8192c';
-    } else {
-      catLabel = '🔐 ACCIÓN';
-    }
+    dotClass = 'hi-home'; 
+  } 
+  // --- CASO: ACCIONES (Armados, etc.) ---
+  else {
+    catColor = '#00b562'; // Verde
+    catLabel = '🔐 ACCIÓN';
     
-    // Ajuste del punto izquierdo
-    if (texto.includes('desarmad') || texto.includes('disarm')) dotClass = 'hi-disarmed';
-    if (texto.includes('noche') || texto.includes('parcial')) dotClass = 'hi-home';
+    // Ajuste de icono y color de punto según el tipo de armado
+    if (texto.includes('desarmad') || texto.includes('disarm')) {
+      dotClass = 'hi-disarmed';
+      catColor = '#666'; // Gris para desarmado
+    } else if (texto.includes('noche') || texto.includes('parcial')) {
+      dotClass = 'hi-home';
+    }
   }
 
   return `
-    <div class="hist-item" style="display:flex; align-items:center; padding:12px; border-bottom:1px solid rgba(0,0,0,0.05)">
-      <div class="hi-dot ${dotClass}" style="${cl.cat === 'saltos' ? 'background:#e8192c !important' : ''}"></div>
-      <div class="hi-info" style="flex:1">
-        <div class="hi-action" style="display:flex; align-items:center; gap:5px; font-weight:700">
+    <div class="hist-item" style="display:flex; align-items:center; padding:12px; border-bottom:1px solid rgba(0,0,0,0.05); background:white">
+      <div class="hi-dot ${dotClass}" style="${dotStyle}"></div>
+      
+      <div class="hi-info" style="flex:1; margin-left:12px">
+        <div class="hi-action" style="display:flex; align-items:center; gap:6px; font-weight:800; font-size:13.5px; color:#1a1a1a">
           ${l.accion || l.action || 'Acción'}
-          ${catLabel ? `<span style="font-size:9px; font-weight:800; color:${catColor}; background:${catColor}15; padding:2px 8px; border-radius:12px; border:1px solid ${catColor}30; white-space:nowrap">${catLabel}</span>` : ''}
+          
+          <span style="
+            font-size:9px; 
+            font-weight:900; 
+            color:${catColor}; 
+            background:${catColor}15; 
+            padding:2px 8px; 
+            border-radius:12px; 
+            border:1px solid ${catColor}30; 
+            white-space:nowrap;
+            letter-spacing: 0.5px;
+          ">
+            ${catLabel}
+          </span>
         </div>
-        <div class="hi-user" style="font-size:11px; color:#666; font-weight:600">${l.usuario || l.user || 'Sistema'}</div>
+        
+        <div class="hi-user" style="font-size:11.5px; color:#666; font-weight:600; margin-top:2px">
+          ${l.usuario || l.user || 'Sistema'}
+        </div>
       </div>
-      <div class="hi-time" style="font-size:11px; color:#999; font-weight:700; text-align:right; min-width:100px">${fechaTexto}</div>
+      
+      <div class="hi-time" style="font-size:11px; color:#999; font-weight:700; text-align:right; min-width:90px">
+        ${fechaTexto}
+      </div>
     </div>`;
 }
+  
 function renderLog() {
   const items = S.log || [];
 
