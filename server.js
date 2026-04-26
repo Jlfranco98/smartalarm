@@ -5,7 +5,10 @@ const path     = require('path');
 const mongoose = require('mongoose');
 const bcrypt   = require('bcryptjs');
 const webpush  = require('web-push');
-const { TuyaContext, TuyaMqttClient } = require('@tuya/tuya-connector-nodejs');
+
+// Importación dinámica y segura del SDK de Tuya
+const TuyaSDK = require('@tuya/tuya-connector-nodejs');
+const TuyaContext = TuyaSDK.TuyaContext;
 
 const app = express();
 app.use(express.json());
@@ -83,17 +86,19 @@ const PushSub   = mongoose.model('PushSub',   pushSubSchema);
 const NotifPref = mongoose.model('NotifPref', notifPrefSchema);
 
 // --- 4. CLIENTE TUYA (SDK oficial) ---
-// Gestiona token automáticamente, no hay que pedirlo manualmente
 const tuyaClient = new TuyaContext({
   baseUrl: BASE_URL,
   accessKey: TUYA_CLIENT_ID,
   secretKey: TUYA_CLIENT_SECRET,
 });
 
-// Wrapper simple para llamadas a la API
 async function tuyaAPI(method, path, body) {
-  const result = await tuyaClient.request({ method, path, body });
-  return result;
+  try {
+    return await tuyaClient.request({ method, path, body });
+  } catch (error) {
+    console.error(`❌ Error en API Tuya (${method} ${path}):`, error.message);
+    return { success: false, error: error.message };
+  }
 }
 
 // --- 5. SENSORES Y ESTADO ---
@@ -110,55 +115,66 @@ const aguaActiva = {};
 const dispositivosOffline = {};
 const deviceStateCache = {};
 
-// --- 6. TUYA MESSAGE QUEUE (SDK oficial - recibe eventos sin polling) ---
+// --- 6. TUYA MESSAGE QUEUE (Salvaguardado contra crasheos) ---
 function conectarMensajeria() {
-  console.log('📡 Conectando al Message Queue de Tuya...');
+  console.log('📡 Intentando conectar al Message Queue de Tuya...');
 
-  const mqttClient = new TuyaMqttClient({
-    accessKey: TUYA_CLIENT_ID,
-    secretKey: TUYA_CLIENT_SECRET,
-    mqttConfig: {
-      // URL del broker según región
-      url: `mqtts://m1.tuya${TUYA_REGION}.com:8883`,
-    },
-    linkListener: {
-      // Se llama cuando llega un mensaje de cualquier dispositivo
-      onMessage: async (topic, message) => {
-        try {
-          console.log('📨 Mensaje Tuya recibido:', JSON.stringify(message).substring(0, 200));
-          const { bizCode, devId, bizData } = message;
-          if (!devId) return;
+  try {
+    // Extraemos el constructor si existe (evita errores de case sensitivity)
+    const TuyaMqttConstructor = TuyaSDK.TuyaMqttClient || TuyaSDK.TuyaMQTTClient;
 
-          // Actualizar caché
-          deviceStateCache[devId] = { ...deviceStateCache[devId], updatedAt: Date.now() };
-
-          switch (bizCode) {
-            case 'online':
-              await procesarOnline(devId);
-              break;
-            case 'offline':
-              await procesarOffline(devId);
-              break;
-            case 'statusReport':
-            case 'devicePropertyMessage':
-            case 'deviceEventMessage': {
-              const props = bizData?.properties || bizData?.status || [];
-              await procesarCambioEstado(devId, props);
-              break;
-            }
-          }
-        } catch (e) {
-          console.error('Error procesando mensaje:', e.message);
-        }
-      },
-      onConnect: () => console.log('✅ Message Queue conectado — eventos en tiempo real activos'),
-      onError: (e) => console.error('❌ Error Message Queue:', e.message || e),
-      onClose: () => console.log('⚠️ Message Queue desconectado, reconectando...'),
+    if (!TuyaMqttConstructor) {
+      console.warn('⚠️ AVISO: El cliente MQTT no está disponible en la versión actual del SDK de Tuya.');
+      console.warn('⚠️ El servidor seguirá encendido y la API funcionará, pero no recibirás eventos push en tiempo real de sensores.');
+      return; // Cortamos la ejecución aquí para que NO crashee
     }
-  });
 
-  mqttClient.start();
-  return mqttClient;
+    const mqttClient = new TuyaMqttConstructor({
+      accessKey: TUYA_CLIENT_ID,
+      secretKey: TUYA_CLIENT_SECRET,
+      mqttConfig: {
+        url: `mqtts://m1.tuya${TUYA_REGION}.com:8883`,
+      },
+      linkListener: {
+        onMessage: async (topic, message) => {
+          try {
+            console.log('📨 Mensaje Tuya recibido:', JSON.stringify(message).substring(0, 200));
+            const { bizCode, devId, bizData } = message;
+            if (!devId) return;
+
+            deviceStateCache[devId] = { ...deviceStateCache[devId], updatedAt: Date.now() };
+
+            switch (bizCode) {
+              case 'online':
+                await procesarOnline(devId);
+                break;
+              case 'offline':
+                await procesarOffline(devId);
+                break;
+              case 'statusReport':
+              case 'devicePropertyMessage':
+              case 'deviceEventMessage': {
+                const props = bizData?.properties || bizData?.status || [];
+                await procesarCambioEstado(devId, props);
+                break;
+              }
+            }
+          } catch (e) {
+            console.error('❌ Error procesando mensaje MQTT:', e.message);
+          }
+        },
+        onConnect: () => console.log('✅ Message Queue conectado — eventos en tiempo real activos'),
+        onError: (e) => console.error('❌ Error Message Queue:', e.message || e),
+        onClose: () => console.log('⚠️ Message Queue desconectado, reconectando...'),
+      }
+    });
+
+    mqttClient.start();
+    return mqttClient;
+
+  } catch (error) {
+    console.error('❌ Error crítico al arrancar mensajería Tuya (Ignorado para mantener el servidor vivo):', error.message);
+  }
 }
 
 async function procesarOnline(devId) {
@@ -397,7 +413,6 @@ app.get('/api/dispositivos', async (req, res) => {
       })));
     }
 
-    // Primera carga: consulta Tuya una vez
     console.log('🌐 Primera carga dispositivos desde Tuya API');
     const results = await Promise.all(LISTA_DISPOSITIVOS.map(async d => {
       try {
