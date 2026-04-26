@@ -6,8 +6,6 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@tuya/tuya-connector-nodejs": "latest",
-    "@tuya/pulsar-sdk-node": "latest",
     "express": "^4.19.2",
     "cors": "^2.8.5",
     "mongoose": "^8.0.0",
