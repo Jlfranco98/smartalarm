@@ -13,12 +13,16 @@ app.use(express.static(path.join(__dirname, '.')));
 
 // --- 1. VARIABLES DE ENTORNO ---
 const MONGO_URI          = process.env.MONGO_URL || process.env.MONGODB_URI;
-const TUYA_CLIENT_ID     = process.env.TUYA_CLIENT_ID;
-const TUYA_CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;
-const TUYA_DEVICE_ID     = process.env.TUYA_DEVICE_KEY;
+const TUYA_CLIENT_ID     = process.env.TUYA_CLIENT_ID;       // Cuenta B: agua + panel
+const TUYA_CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET;   // Cuenta B
+const TUYA_DEVICE_ID     = process.env.TUYA_DEVICE_KEY;      // Panel alarma
 const TUYA_REGION        = process.env.TUYA_REGION || 'eu';
 const VAPID_PUBLIC       = process.env.VAPID_PUBLIC_KEY  || '';
 const VAPID_PRIVATE      = process.env.VAPID_PRIVATE_KEY || '';
+
+// Cuenta A: solo sensor de luz (alarma crítica)
+const TUYA_CLIENT_ID_ALARMA     = process.env.TUYA_CLIENT_ID_ALARMA;
+const TUYA_CLIENT_SECRET_ALARMA = process.env.TUYA_CLIENT_SECRET_ALARMA;
 
 const REGION_URL = {
   eu: 'https://openapi.tuyaeu.com',
@@ -29,8 +33,8 @@ const REGION_URL = {
 const BASE_URL = REGION_URL[TUYA_REGION] || REGION_URL['eu'];
 
 // ⏱️ DOS VELOCIDADES:
-const POLL_ALARMA_MS  = 3 * 60 * 1000;  // 3 min — sensor de luz (alarma crítica)
-const POLL_NORMAL_MS  = 15 * 60 * 1000; // 15 min — agua, panel, estado general
+const POLL_ALARMA_MS = 1 * 60 * 1000;  // 1 min — sensor de luz (cuenta separada, 30k para él solo)
+const POLL_NORMAL_MS = 15 * 60 * 1000; // 15 min — agua + panel
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails('mailto:admin@smartalarm.app', VAPID_PUBLIC, VAPID_PRIVATE);
@@ -84,15 +88,27 @@ const Config    = mongoose.model('Config',    configSchema);
 const PushSub   = mongoose.model('PushSub',   pushSubSchema);
 const NotifPref = mongoose.model('NotifPref', notifPrefSchema);
 
-// --- 4. CLIENTE TUYA (gestiona token automáticamente) ---
-const tuyaClient = new TuyaContext({
+// --- 4. DOS CLIENTES TUYA ---
+
+// Cliente A: sensor de luz (cuenta exclusiva para la alarma)
+const tuyaClientAlarma = new TuyaContext({
+  baseUrl: BASE_URL,
+  accessKey: TUYA_CLIENT_ID_ALARMA,
+  secretKey: TUYA_CLIENT_SECRET_ALARMA,
+});
+
+// Cliente B: agua + panel (cuenta principal)
+const tuyaClientNormal = new TuyaContext({
   baseUrl: BASE_URL,
   accessKey: TUYA_CLIENT_ID,
   secretKey: TUYA_CLIENT_SECRET,
 });
 
-async function tuyaAPI(method, path, body) {
-  return await tuyaClient.request({ method, path, body });
+async function tuyaAlarma(method, path, body) {
+  return await tuyaClientAlarma.request({ method, path, body });
+}
+async function tuyaNormal(method, path, body) {
+  return await tuyaClientNormal.request({ method, path, body });
 }
 
 // --- 5. ESTADO EN MEMORIA ---
@@ -109,10 +125,10 @@ const aguaActiva = {};
 const dispositivosOffline = {};
 const deviceStateCache = {};
 
-// --- 6. POLLING RÁPIDO: SENSOR DE LUZ (alarma) — cada 3 minutos ---
+// --- 6. POLLING RÁPIDO: SENSOR DE LUZ — cada 1 minuto (cuenta A) ---
 async function checkSensorLuz() {
   try {
-    const data = await tuyaAPI('GET', `/v1.0/devices/${SENSOR_LUZ_ID}`);
+    const data = await tuyaAlarma('GET', `/v1.0/devices/${SENSOR_LUZ_ID}`);
     const isOnline = data.result?.online === true;
     deviceStateCache[SENSOR_LUZ_ID] = { ...deviceStateCache[SENSOR_LUZ_ID], online: isOnline, updatedAt: Date.now() };
 
@@ -129,7 +145,7 @@ async function checkSensorLuz() {
     }
     if (!isOnline) return;
 
-    const statusData = await tuyaAPI('GET', `/v1.0/devices/${SENSOR_LUZ_ID}/status`);
+    const statusData = await tuyaAlarma('GET', `/v1.0/devices/${SENSOR_LUZ_ID}/status`);
     const brightProp = statusData.result?.find(p => p.code === 'bright_value');
     if (!brightProp) return;
 
@@ -150,7 +166,7 @@ async function checkSensorLuz() {
   }
 }
 
-// --- 7. POLLING LENTO: AGUA + PANEL — cada 15 minutos ---
+// --- 7. POLLING LENTO: AGUA + PANEL — cada 15 minutos (cuenta B) ---
 async function checkSensoresLentos() {
   console.log(`🔄 [${new Date().toLocaleTimeString()}] Polling agua + panel...`);
   await Promise.all([
@@ -161,7 +177,7 @@ async function checkSensoresLentos() {
 
 async function checkPanelAlarma() {
   try {
-    const data = await tuyaAPI('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
+    const data = await tuyaNormal('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
     const isOnline = data.result?.online === true;
     deviceStateCache[TUYA_DEVICE_ID] = { online: isOnline, updatedAt: Date.now() };
 
@@ -179,7 +195,7 @@ async function checkPanelAlarma() {
 
 async function checkSensorAgua(sensor) {
   try {
-    const data = await tuyaAPI('GET', `/v1.0/devices/${sensor.id}`);
+    const data = await tuyaNormal('GET', `/v1.0/devices/${sensor.id}`);
     const isOnline = data.result?.online === true;
     deviceStateCache[sensor.id] = { online: isOnline, updatedAt: Date.now() };
 
@@ -196,7 +212,7 @@ async function checkSensorAgua(sensor) {
     }
     if (!isOnline) return;
 
-    const statusData = await tuyaAPI('GET', `/v1.0/devices/${sensor.id}/status`);
+    const statusData = await tuyaNormal('GET', `/v1.0/devices/${sensor.id}/status`);
     const stateProp = statusData.result?.find(p => p.code === 'watersensor_state');
     if (!stateProp) return;
 
@@ -318,15 +334,15 @@ app.post('/api/push/prefs', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- 12. CONTROL ALARMA ---
+// --- 12. CONTROL ALARMA (usa cuenta B, el panel está ahí) ---
 app.post('/api/control', async (req, res) => {
   const { action, user, alarmStatus } = req.body;
   const mapping = { disarm: 'switch_1', arm_home: 'switch_2', arm_away: 'switch_3', sos: 'switch_4' };
   const nombres = { disarm: 'Alarma Desarmada', arm_home: 'Alarma armada (modo noche)', arm_away: 'Alarma armada (total)', sos: 'PÁNICO / SOS' };
   try {
-    const deviceInfo = await tuyaAPI('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
+    const deviceInfo = await tuyaNormal('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
     if (!deviceInfo.result?.online) return res.json({ success: false, error: 'Panel desconectado.' });
-    const result = await tuyaAPI('POST', `/v1.0/devices/${TUYA_DEVICE_ID}/commands`, {
+    const result = await tuyaNormal('POST', `/v1.0/devices/${TUYA_DEVICE_ID}/commands`, {
       commands: [{ code: mapping[action], value: true }]
     });
     if (result.success) {
@@ -366,7 +382,6 @@ app.get('/api/dispositivos', async (req, res) => {
         ...d, online: deviceStateCache[d.id]?.online ?? false, bateria: deviceStateCache[d.id]?.bateria ?? null,
       })));
     }
-    // Fuerza actualización si la caché está vacía
     await Promise.all([checkSensorLuz(), checkSensoresLentos()]);
     res.json(LISTA_DISPOSITIVOS.map(d => ({
       ...d, online: deviceStateCache[d.id]?.online ?? false, bateria: deviceStateCache[d.id]?.bateria ?? null,
@@ -378,18 +393,14 @@ app.get('/api/dispositivos', async (req, res) => {
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor activo en puerto ${PORT}`);
-  console.log(`⚡ Polling alarma (sensor luz): cada ${POLL_ALARMA_MS / 60000} minutos`);
-  console.log(`🔄 Polling normal (agua+panel): cada ${POLL_NORMAL_MS / 60000} minutos`);
+  console.log(`⚡ Cuenta A (alarma): polling cada ${POLL_ALARMA_MS / 60000} min`);
+  console.log(`🔄 Cuenta B (agua+panel): polling cada ${POLL_NORMAL_MS / 60000} min`);
 
-  // Primer check al arrancar
   setTimeout(async () => {
     await checkSensorLuz();
     await checkSensoresLentos();
   }, 3000);
 
-  // Polling rápido: solo sensor de luz (alarma crítica)
   setInterval(() => checkSensorLuz(), POLL_ALARMA_MS);
-
-  // Polling lento: agua + panel
   setInterval(() => checkSensoresLentos(), POLL_NORMAL_MS);
 });
