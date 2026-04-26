@@ -237,7 +237,7 @@ async function sendPushNotification(action, triggeredBy) {
   const subs = await PushSub.find({ username: { $in: prefs.map(p => p.username) } });
   if (!subs.length) return;
   const labels = {
-    arm_away: '🔒 Alarma armada (total)', arm_home: '🌙 Alarma armada (modo noche)',
+    arm_away: '🔒 Alarma armada (total)', arm_home: '🌙 Modo noche activado',
     disarm: '🔓 Alarma desarmada', sos: '🆘 PÁNICO / SOS', sensor_luz: '🚨 ¡ALARMA SALTADA!',
     sensor_offline: '⚠️ Centralita desconectada', sensor_online: '✅ Centralita reconectada',
     sensor_agua_bfcbcf5e1f2b903dedyx4i: '💧 Fuga de agua — Jose',
@@ -338,7 +338,7 @@ app.post('/api/push/prefs', async (req, res) => {
 app.post('/api/control', async (req, res) => {
   const { action, user, alarmStatus } = req.body;
   const mapping = { disarm: 'switch_1', arm_home: 'switch_2', arm_away: 'switch_3', sos: 'switch_4' };
-  const nombres = { disarm: 'Alarma Desarmada', arm_home: 'Alarma armada (modo noche)', arm_away: 'Alarma armada (total)', sos: 'PÁNICO / SOS' };
+  const nombres = { disarm: 'Alarma Desarmada', arm_home: 'Modo noche activado', arm_away: 'Alarma armada (total)', sos: 'PÁNICO / SOS' };
   try {
     const deviceInfo = await tuyaNormal('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
     if (!deviceInfo.result?.online) return res.json({ success: false, error: 'Panel desconectado.' });
