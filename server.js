@@ -1,11 +1,9 @@
 const express  = require('express');
-const crypto   = require('crypto');
 const cors     = require('cors');
 const path     = require('path');
 const mongoose = require('mongoose');
 const bcrypt   = require('bcryptjs');
 const webpush  = require('web-push');
-const mqtt     = require('mqtt');
 const { TuyaContext } = require('@tuya/tuya-connector-nodejs');
 
 const app = express();
@@ -22,8 +20,17 @@ const TUYA_REGION        = process.env.TUYA_REGION || 'eu';
 const VAPID_PUBLIC       = process.env.VAPID_PUBLIC_KEY  || '';
 const VAPID_PRIVATE      = process.env.VAPID_PRIVATE_KEY || '';
 
-const REGION_URL = { eu: 'https://openapi.tuyaeu.com', us: 'https://openapi.tuyaus.com', cn: 'https://openapi.tuyacn.com', in: 'https://openapi.tuyain.com' };
+const REGION_URL = {
+  eu: 'https://openapi.tuyaeu.com',
+  us: 'https://openapi.tuyaus.com',
+  cn: 'https://openapi.tuyacn.com',
+  in: 'https://openapi.tuyain.com',
+};
 const BASE_URL = REGION_URL[TUYA_REGION] || REGION_URL['eu'];
+
+// ⏱️ DOS VELOCIDADES:
+const POLL_ALARMA_MS  = 3 * 60 * 1000;  // 3 min — sensor de luz (alarma crítica)
+const POLL_NORMAL_MS  = 15 * 60 * 1000; // 15 min — agua, panel, estado general
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails('mailto:admin@smartalarm.app', VAPID_PUBLIC, VAPID_PRIVATE);
@@ -77,7 +84,7 @@ const Config    = mongoose.model('Config',    configSchema);
 const PushSub   = mongoose.model('PushSub',   pushSubSchema);
 const NotifPref = mongoose.model('NotifPref', notifPrefSchema);
 
-// --- 4. CLIENTE TUYA HTTP (solo para comandos) ---
+// --- 4. CLIENTE TUYA (gestiona token automáticamente) ---
 const tuyaClient = new TuyaContext({
   baseUrl: BASE_URL,
   accessKey: TUYA_CLIENT_ID,
@@ -88,7 +95,7 @@ async function tuyaAPI(method, path, body) {
   return await tuyaClient.request({ method, path, body });
 }
 
-// --- 5. SENSORES Y ESTADO ---
+// --- 5. ESTADO EN MEMORIA ---
 const SENSOR_LUZ_ID = 'bfc5d2d1da002201c6pcbl';
 const SENSORES_AGUA = [
   { id: 'bfcbcf5e1f2b903dedyx4i', nombre: 'Jose' },
@@ -102,164 +109,106 @@ const aguaActiva = {};
 const dispositivosOffline = {};
 const deviceStateCache = {};
 
-// --- 6. MQTT CLOUD MESSAGE QUEUE DE TUYA ---
-// Formato específico para proyectos cloud (distinto al de dispositivos físicos)
-function conectarMQTT() {
-  const BROKER_MAP = {
-    eu: 'mqtts://m1.tuyaeu.com:8883',
-    us: 'mqtts://m1.tuyaus.com:8883',
-    cn: 'mqtts://m1.tuyacn.com:8883',
-    in: 'mqtts://m1.tuyain.com:8883',
-  };
-  const brokerUrl = BROKER_MAP[TUYA_REGION] || BROKER_MAP['eu'];
+// --- 6. POLLING RÁPIDO: SENSOR DE LUZ (alarma) — cada 3 minutos ---
+async function checkSensorLuz() {
+  try {
+    const data = await tuyaAPI('GET', `/v1.0/devices/${SENSOR_LUZ_ID}`);
+    const isOnline = data.result?.online === true;
+    deviceStateCache[SENSOR_LUZ_ID] = { ...deviceStateCache[SENSOR_LUZ_ID], online: isOnline, updatedAt: Date.now() };
 
-  const t = Date.now().toString();
-  const nonce = crypto.randomBytes(8).toString('hex'); // 16 chars hex
-
-  // Formato Cloud MQ (accessId como base, no deviceId)
-  const clientId = `${TUYA_CLIENT_ID}${nonce}`;
-  const username  = `${TUYA_CLIENT_ID}|signMethod=hmacSha256,timestamp=${t},nonce=${nonce},accessType=1`;
-  const strToSign = `${TUYA_CLIENT_ID}${t}${nonce}`;
-  const password  = crypto.createHmac('sha256', TUYA_CLIENT_SECRET).update(strToSign).digest('hex');
-
-  console.log('📡 Conectando al broker MQTT de Tuya Cloud...');
-  console.log(`🔗 Broker: ${brokerUrl}`);
-
-  const client = mqtt.connect(brokerUrl, {
-    clientId,
-    username,
-    password,
-    rejectUnauthorized: false,
-    protocolVersion: 4, // MQTT 3.1.1
-    reconnectPeriod: 5000,
-    connectTimeout: 15000,
-    keepalive: 60,
-  });
-
-  client.on('connect', () => {
-    console.log('✅ MQTT conectado — eventos en tiempo real activos');
-    // Topic del Message Queue: {accessId}/out/event
-    const topic = `${TUYA_CLIENT_ID}/out/event`;
-    client.subscribe(topic, { qos: 0 }, (err) => {
-      if (err) console.error('❌ Error suscripción:', err.message);
-      else console.log(`📡 Suscrito al topic: ${topic}`);
-    });
-  });
-
-  client.on('message', async (topic, message) => {
-    try {
-      const raw = JSON.parse(message.toString());
-      console.log('📨 Mensaje recibido:', JSON.stringify(raw).substring(0, 300));
-
-      // El mensaje puede venir cifrado con AES-GCM si está configurado así
-      // Si viene en claro, lo procesamos directamente
-      const payload = raw.data ? raw : raw;
-      const { bizCode, devId, bizData } = payload;
-
-      if (!devId) return;
-      deviceStateCache[devId] = { ...deviceStateCache[devId], updatedAt: Date.now() };
-
-      switch (bizCode) {
-        case 'online':
-        case 'deviceOnline':
-          await procesarOnline(devId);
-          break;
-        case 'offline':
-        case 'deviceOffline':
-          await procesarOffline(devId);
-          break;
-        case 'statusReport':
-        case 'devicePropertyMessage':
-        case 'deviceEventMessage': {
-          const props = bizData?.properties || bizData?.status || [];
-          await procesarCambioEstado(devId, Array.isArray(props) ? props : []);
-          break;
-        }
-      }
-    } catch (e) {
-      console.error('Error procesando mensaje MQTT:', e.message);
+    if (!isOnline && !sensorOffline) {
+      sensorOffline = true;
+      await new Log({ usuario: 'Verisure', accion: '⚠️ Centralita desconectada' }).save();
+      await sendPushNotification('sensor_offline', 'Verisure');
+      return;
     }
-  });
-
-  client.on('error',     (e) => console.error('❌ MQTT error:', e.message));
-  client.on('reconnect', ()  => console.log('🔄 MQTT reconectando...'));
-  client.on('offline',   ()  => console.log('⚠️ MQTT offline'));
-  client.on('close',     ()  => console.log('🔌 MQTT conexión cerrada'));
-
-  return client;
-}
-
-// --- 7. PROCESADORES DE EVENTOS ---
-async function procesarOnline(devId) {
-  deviceStateCache[devId] = { ...deviceStateCache[devId], online: true };
-  if (devId === SENSOR_LUZ_ID && sensorOffline) {
-    sensorOffline = false;
-    await new Log({ usuario: 'Verisure', accion: '✅ Centralita reconectada' }).save();
-    await sendPushNotification('sensor_online', 'Verisure');
-  } else if (devId === TUYA_DEVICE_ID && dispositivosOffline['panel']) {
-    dispositivosOffline['panel'] = false;
-    await new Log({ usuario: 'Verisure', accion: '✅ Panel Alarma reconectado' }).save();
-    await sendPushNotification('panel_online', 'Verisure');
-  } else {
-    const sensor = SENSORES_AGUA.find(s => s.id === devId);
-    if (sensor && dispositivosOffline[devId]) {
-      dispositivosOffline[devId] = false;
-      await new Log({ usuario: 'Verisure', accion: `✅ Sensor Agua ${sensor.nombre} reconectado` }).save();
-      await sendPushNotification('dispositivo_online_' + devId, 'Verisure');
+    if (isOnline && sensorOffline) {
+      sensorOffline = false;
+      await new Log({ usuario: 'Verisure', accion: '✅ Centralita reconectada' }).save();
+      await sendPushNotification('sensor_online', 'Verisure');
     }
+    if (!isOnline) return;
+
+    const statusData = await tuyaAPI('GET', `/v1.0/devices/${SENSOR_LUZ_ID}/status`);
+    const brightProp = statusData.result?.find(p => p.code === 'bright_value');
+    if (!brightProp) return;
+
+    const lux = brightProp.value;
+    console.log(`💡 [${new Date().toLocaleTimeString()}] Centralita: ${lux} LUX`);
+
+    if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
+      sensorAlarmaActiva = true;
+      console.log('🚨 ALARMA DETECTADA');
+      await new Log({ usuario: 'Verisure', accion: '🚨 Alarma saltada' }).save();
+      await sendPushNotification('sensor_luz', 'Verisure');
+    } else if (lux <= LUX_UMBRAL && sensorAlarmaActiva) {
+      sensorAlarmaActiva = false;
+      console.log('✅ Alarma resetada');
+    }
+  } catch (e) {
+    console.error('❌ Error sensor luz:', e.message);
   }
 }
 
-async function procesarOffline(devId) {
-  deviceStateCache[devId] = { ...deviceStateCache[devId], online: false };
-  if (devId === SENSOR_LUZ_ID && !sensorOffline) {
-    sensorOffline = true;
-    await new Log({ usuario: 'Verisure', accion: '⚠️ Centralita desconectada' }).save();
-    await sendPushNotification('sensor_offline', 'Verisure');
-  } else if (devId === TUYA_DEVICE_ID && !dispositivosOffline['panel']) {
-    dispositivosOffline['panel'] = true;
-    await new Log({ usuario: 'Verisure', accion: '⚠️ Panel Alarma desconectado' }).save();
-    await sendPushNotification('panel_offline', 'Verisure');
-  } else {
-    const sensor = SENSORES_AGUA.find(s => s.id === devId);
-    if (sensor && !dispositivosOffline[devId]) {
-      dispositivosOffline[devId] = true;
+// --- 7. POLLING LENTO: AGUA + PANEL — cada 15 minutos ---
+async function checkSensoresLentos() {
+  console.log(`🔄 [${new Date().toLocaleTimeString()}] Polling agua + panel...`);
+  await Promise.all([
+    checkPanelAlarma(),
+    ...SENSORES_AGUA.map(s => checkSensorAgua(s))
+  ]);
+}
+
+async function checkPanelAlarma() {
+  try {
+    const data = await tuyaAPI('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
+    const isOnline = data.result?.online === true;
+    deviceStateCache[TUYA_DEVICE_ID] = { online: isOnline, updatedAt: Date.now() };
+
+    if (!isOnline && !dispositivosOffline['panel']) {
+      dispositivosOffline['panel'] = true;
+      await new Log({ usuario: 'Verisure', accion: '⚠️ Panel Alarma desconectado' }).save();
+      await sendPushNotification('panel_offline', 'Verisure');
+    } else if (isOnline && dispositivosOffline['panel']) {
+      dispositivosOffline['panel'] = false;
+      await new Log({ usuario: 'Verisure', accion: '✅ Panel Alarma reconectado' }).save();
+      await sendPushNotification('panel_online', 'Verisure');
+    }
+  } catch (e) { console.error('❌ Error panel:', e.message); }
+}
+
+async function checkSensorAgua(sensor) {
+  try {
+    const data = await tuyaAPI('GET', `/v1.0/devices/${sensor.id}`);
+    const isOnline = data.result?.online === true;
+    deviceStateCache[sensor.id] = { online: isOnline, updatedAt: Date.now() };
+
+    if (!isOnline && !dispositivosOffline[sensor.id]) {
+      dispositivosOffline[sensor.id] = true;
       await new Log({ usuario: 'Verisure', accion: `⚠️ Sensor Agua ${sensor.nombre} desconectado` }).save();
-      await sendPushNotification('dispositivo_offline_' + devId, 'Verisure');
+      await sendPushNotification('dispositivo_offline_' + sensor.id, 'Verisure');
+      return;
     }
-  }
-}
+    if (isOnline && dispositivosOffline[sensor.id]) {
+      dispositivosOffline[sensor.id] = false;
+      await new Log({ usuario: 'Verisure', accion: `✅ Sensor Agua ${sensor.nombre} reconectado` }).save();
+      await sendPushNotification('dispositivo_online_' + sensor.id, 'Verisure');
+    }
+    if (!isOnline) return;
 
-async function procesarCambioEstado(devId, props) {
-  if (!props?.length) return;
-  if (devId === SENSOR_LUZ_ID) {
-    const brightProp = props.find(p => p.code === 'bright_value');
-    if (brightProp) {
-      const lux = brightProp.value;
-      console.log(`💡 Centralita: ${lux} LUX`);
-      if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
-        sensorAlarmaActiva = true;
-        await new Log({ usuario: 'Verisure', accion: '🚨 Alarma saltada' }).save();
-        await sendPushNotification('sensor_luz', 'Verisure');
-      } else if (lux <= LUX_UMBRAL && sensorAlarmaActiva) {
-        sensorAlarmaActiva = false;
-      }
+    const statusData = await tuyaAPI('GET', `/v1.0/devices/${sensor.id}/status`);
+    const stateProp = statusData.result?.find(p => p.code === 'watersensor_state');
+    if (!stateProp) return;
+
+    const estado = stateProp.value;
+    if (estado === 'alarm' && !aguaActiva[sensor.id]) {
+      aguaActiva[sensor.id] = true;
+      await new Log({ usuario: 'Verisure', accion: `💧 Fuga de agua detectada — ${sensor.nombre}` }).save();
+      await sendPushNotification('sensor_agua_' + sensor.id, `Sensor ${sensor.nombre}`);
+    } else if (estado === 'normal' && aguaActiva[sensor.id]) {
+      aguaActiva[sensor.id] = false;
     }
-  }
-  const sensor = SENSORES_AGUA.find(s => s.id === devId);
-  if (sensor) {
-    const stateProp = props.find(p => p.code === 'watersensor_state');
-    if (stateProp) {
-      const estado = stateProp.value;
-      if (estado === 'alarm' && !aguaActiva[devId]) {
-        aguaActiva[devId] = true;
-        await new Log({ usuario: 'Verisure', accion: `💧 Fuga de agua detectada — ${sensor.nombre}` }).save();
-        await sendPushNotification('sensor_agua_' + devId, `Sensor ${sensor.nombre}`);
-      } else if (estado === 'normal' && aguaActiva[devId]) {
-        aguaActiva[devId] = false;
-      }
-    }
-  }
+  } catch (e) { console.error(`❌ Error agua ${sensor.nombre}:`, e.message); }
 }
 
 // --- 8. PUSH NOTIFICATIONS ---
@@ -408,32 +357,39 @@ const LISTA_DISPOSITIVOS = [
 app.get('/api/dispositivos', async (req, res) => {
   try {
     const ahora = Date.now();
-    const UNA_HORA = 60 * 60 * 1000;
+    const VEINTE_MIN = 20 * 60 * 1000;
     const todosEnCache = LISTA_DISPOSITIVOS.every(d =>
-      deviceStateCache[d.id] && (ahora - deviceStateCache[d.id].updatedAt) < UNA_HORA
+      deviceStateCache[d.id] && (ahora - deviceStateCache[d.id].updatedAt) < VEINTE_MIN
     );
     if (todosEnCache) {
       return res.json(LISTA_DISPOSITIVOS.map(d => ({
         ...d, online: deviceStateCache[d.id]?.online ?? false, bateria: deviceStateCache[d.id]?.bateria ?? null,
       })));
     }
-    console.log('🌐 Carga inicial dispositivos desde Tuya API');
-    const results = await Promise.all(LISTA_DISPOSITIVOS.map(async d => {
-      try {
-        const data = await tuyaAPI('GET', `/v1.0/devices/${d.id}`);
-        const bateria = data.result?.status?.find(s => s.code === 'battery_percentage')?.value ?? null;
-        const online  = data.result?.online || false;
-        deviceStateCache[d.id] = { online, bateria, updatedAt: ahora };
-        return { ...d, online, bateria };
-      } catch (e) { return { ...d, online: false, bateria: null }; }
-    }));
-    res.json(results);
+    // Fuerza actualización si la caché está vacía
+    await Promise.all([checkSensorLuz(), checkSensoresLentos()]);
+    res.json(LISTA_DISPOSITIVOS.map(d => ({
+      ...d, online: deviceStateCache[d.id]?.online ?? false, bateria: deviceStateCache[d.id]?.bateria ?? null,
+    })));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // --- 15. ARRANQUE ---
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Servidor activo en puerto ${PORT}`);
-  setTimeout(() => conectarMQTT(), 3000);
+  console.log(`⚡ Polling alarma (sensor luz): cada ${POLL_ALARMA_MS / 60000} minutos`);
+  console.log(`🔄 Polling normal (agua+panel): cada ${POLL_NORMAL_MS / 60000} minutos`);
+
+  // Primer check al arrancar
+  setTimeout(async () => {
+    await checkSensorLuz();
+    await checkSensoresLentos();
+  }, 3000);
+
+  // Polling rápido: solo sensor de luz (alarma crítica)
+  setInterval(() => checkSensorLuz(), POLL_ALARMA_MS);
+
+  // Polling lento: agua + panel
+  setInterval(() => checkSensoresLentos(), POLL_NORMAL_MS);
 });
