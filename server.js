@@ -7,8 +7,8 @@ const bcrypt   = require('bcryptjs');
 const webpush  = require('web-push');
 
 // Importación dinámica y segura del SDK de Tuya
-const TuyaSDK = require('@tuya/tuya-connector-nodejs');
-const TuyaContext = TuyaSDK.TuyaContext;
+const { TuyaContext } = require('@tuya/tuya-connector-nodejs');
+const TuyaPulsarClient = require('@tuya/pulsar-sdk-node');
 
 const app = express();
 app.use(express.json());
@@ -117,64 +117,45 @@ const deviceStateCache = {};
 
 // --- 6. TUYA MESSAGE QUEUE (Salvaguardado contra crasheos) ---
 function conectarMensajeria() {
-  console.log('📡 Intentando conectar al Message Queue de Tuya...');
+  console.log('📡 Conectando al Message Service de Tuya (Pulsar)...');
 
-  try {
-    // Extraemos el constructor si existe (evita errores de case sensitivity)
-    const TuyaMqttConstructor = TuyaSDK.TuyaMqttClient || TuyaSDK.TuyaMQTTClient;
+  const client = new TuyaPulsarClient({
+    accessKey: TUYA_CLIENT_ID,
+    secretKey: TUYA_CLIENT_SECRET,
+    region: TUYA_REGION.toUpperCase(), // EU, US, etc.
+  });
 
-    if (!TuyaMqttConstructor) {
-      console.warn('⚠️ AVISO: El cliente MQTT no está disponible en la versión actual del SDK de Tuya.');
-      console.warn('⚠️ El servidor seguirá encendido y la API funcionará, pero no recibirás eventos push en tiempo real de sensores.');
-      return; // Cortamos la ejecución aquí para que NO crashee
-    }
+  client.on('message', async (message) => {
+    try {
+      // El SDK descifra el mensaje automáticamente
+      const payload = JSON.parse(message.payload);
+      const { bizCode, devId, status } = payload;
 
-    const mqttClient = new TuyaMqttConstructor({
-      accessKey: TUYA_CLIENT_ID,
-      secretKey: TUYA_CLIENT_SECRET,
-      mqttConfig: {
-        url: `mqtts://m1.tuya${TUYA_REGION}.com:8883`,
-      },
-      linkListener: {
-        onMessage: async (topic, message) => {
-          try {
-            console.log('📨 Mensaje Tuya recibido:', JSON.stringify(message).substring(0, 200));
-            const { bizCode, devId, bizData } = message;
-            if (!devId) return;
+      console.log(`📨 Evento Tuya: ${bizCode} de dispositivo ${devId}`);
 
-            deviceStateCache[devId] = { ...deviceStateCache[devId], updatedAt: Date.now() };
+      // Actualizar caché de estado para la web
+      deviceStateCache[devId] = { ...deviceStateCache[devId], updatedAt: Date.now() };
 
-            switch (bizCode) {
-              case 'online':
-                await procesarOnline(devId);
-                break;
-              case 'offline':
-                await procesarOffline(devId);
-                break;
-              case 'statusReport':
-              case 'devicePropertyMessage':
-              case 'deviceEventMessage': {
-                const props = bizData?.properties || bizData?.status || [];
-                await procesarCambioEstado(devId, props);
-                break;
-              }
-            }
-          } catch (e) {
-            console.error('❌ Error procesando mensaje MQTT:', e.message);
-          }
-        },
-        onConnect: () => console.log('✅ Message Queue conectado — eventos en tiempo real activos'),
-        onError: (e) => console.error('❌ Error Message Queue:', e.message || e),
-        onClose: () => console.log('⚠️ Message Queue desconectado, reconectando...'),
+      // Procesar según el tipo de evento
+      if (bizCode === 'online')  await procesarOnline(devId);
+      if (bizCode === 'offline') await procesarOffline(devId);
+      
+      // Si el sensor detecta agua o luz, viene en 'status'
+      if (status && status.length > 0) {
+        await procesarCambioEstado(devId, status);
       }
-    });
 
-    mqttClient.start();
-    return mqttClient;
+      client.ack(message); // Confirmar recepción
+    } catch (e) {
+      console.error('❌ Error en mensaje Pulsar:', e.message);
+    }
+  });
 
-  } catch (error) {
-    console.error('❌ Error crítico al arrancar mensajería Tuya (Ignorado para mantener el servidor vivo):', error.message);
-  }
+  client.on('error', (err) => {
+    console.error('⚠️ Error conexión Pulsar:', err);
+  });
+
+  client.connect();
 }
 
 async function procesarOnline(devId) {
