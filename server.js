@@ -33,8 +33,15 @@ const REGION_URL = {
 const BASE_URL = REGION_URL[TUYA_REGION] || REGION_URL['eu'];
 
 // ⏱️ DOS VELOCIDADES:
-const POLL_ALARMA_MS = 1 * 60 * 1000;  // 1 min — sensor de luz (cuenta separada, 30k para él solo)
-const POLL_NORMAL_MS = 15 * 60 * 1000; // 15 min — agua + panel
+// CUENTA A: 1 dispositivo crítico (Alarma)
+// Se queda igual: 1.5 min para no pasarnos de 30k.
+const POLL_ALARMA_MS = 1.5 * 60 * 1000; 
+
+// CUENTA B: 4 dispositivos (Agua, Panel + 2 extras)
+// Bajamos de 6 a 8 minutos.
+// Gasto polling: 21,600 calls/mes.
+// Te quedan 8,400 calls/mes LIBRES para comandos.
+const POLL_NORMAL_MS = 8 * 60 * 1000;
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails('mailto:admin@smartalarm.app', VAPID_PUBLIC, VAPID_PRIVATE);
@@ -125,7 +132,7 @@ const aguaActiva = {};
 const dispositivosOffline = {};
 const deviceStateCache = {};
 
-// --- 6. POLLING RÁPIDO: SENSOR DE LUZ — cada 1 minuto (cuenta A) ---
+// --- 6. POLLING RÁPIDO: SENSOR DE LUZ (CUENTA A)
 async function checkSensorLuz() {
   try {
     const data = await tuyaAlarma('GET', `/v1.0/devices/${SENSOR_LUZ_ID}`);
@@ -150,7 +157,7 @@ async function checkSensorLuz() {
     if (!brightProp) return;
 
     const lux = brightProp.value;
-    console.log(`💡 [${new Date().toLocaleTimeString()}] Centralita: ${lux} LUX`);
+    console.log(`💡 Comprobando Centralita: ${lux} LUX`);
 
     if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
       sensorAlarmaActiva = true;
@@ -166,9 +173,9 @@ async function checkSensorLuz() {
   }
 }
 
-// --- 7. POLLING LENTO: AGUA + PANEL — cada 15 minutos (cuenta B) ---
+// --- 7. POLLING LENTO: AGUA + PANEL (CUENTA B)
 async function checkSensoresLentos() {
-  console.log(`🔄 [${new Date().toLocaleTimeString()}] Polling agua + panel...`);
+  console.log(`🔄 Comprobando sensores agua + panel...`);
   await Promise.all([
     checkPanelAlarma(),
     ...SENSORES_AGUA.map(s => checkSensorAgua(s))
