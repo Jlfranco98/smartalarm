@@ -354,18 +354,29 @@ app.post('/api/control', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// --- RUTA PARA MACRODROID (Aviso instantáneo) ---
+// --- RUTA PARA MACRODROID CON SEGURIDAD (TOKEN) ---
 app.get('/alerta-alarma', async (req, res) => {
   try {
-    console.log('🚨 [MacroDroid] ¡AVISO RECIBIDO!');
+    // 1. Definimos una clave secreta (pon la que tu quieras)
+    const CLAVE_SECRETA = "842g980wrehg8u3gvbw43"; 
     
-    // 1. Guardar el log inmediatamente
+    // 2. Recogemos el token que viene en la URL
+    const tokenRecibido = req.query.token;
+
+    // 3. Verificamos si la clave es correcta
+    if (tokenRecibido !== CLAVE_SECRETA) {
+      console.log('❌ Intento de acceso no autorizado a la alarma');
+      return res.status(401).send("No autorizado");
+    }
+
+    console.log('🚨 [MacroDroid] ¡AVISO RECIBIDO Y VALIDADO!');
+    
+    // Guardar el log y enviar notificación
     await new Log({ 
       usuario: 'Verisure', 
       accion: '🚨 ALARMA SALTADA' 
     }).save();
 
-    // 2. Enviar la notificación push a los móviles
     await sendPushNotification('sensor_luz', 'Verisure');
 
     res.status(200).send("✅ Alerta procesada");
