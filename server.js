@@ -491,7 +491,7 @@ async function checkSensorAgua(sensor, token) {
 }
 
 // Sensor de luz (alarma) cada 10 segundos
-// setInterval(async () => {
+setInterval(async () => {
   try {
     const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
     if (!tokenData.success) return;
@@ -500,7 +500,7 @@ async function checkSensorAgua(sensor, token) {
 }, 10000);
 
 // Panel y sensores de agua cada 30 segundos
-// setInterval(async () => {
+setInterval(async () => {
   try {
     const tokenData = await tuyaRequest('GET', '/v1.0/token?grant_type=1');
     if (!tokenData.success) return;
