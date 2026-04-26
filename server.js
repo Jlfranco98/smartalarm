@@ -132,15 +132,25 @@ function conectarMQTT() {
   const brokerUrl = regionMap[TUYA_REGION] || regionMap['eu'];
 
   const t = Date.now().toString();
-  const nonce = crypto.randomUUID().replace(/-/g, '');
-  const strToSign = `clientId${TUYA_CLIENT_ID}timestamp${t}nonce${nonce}`;
+  const nonce = crypto.randomBytes(8).toString('hex'); // 16 chars
+
+  // Formato correcto según docs Tuya MQTT:
+  // clientId = {accessId}{random16chars}
+  const mqttClientId = `${TUYA_CLIENT_ID}${nonce}`;
+
+  // username = {accessId}|timestamp={t},nonce={nonce},signMethod=hmacSha256,accessType=1
+  const username = `${TUYA_CLIENT_ID}|timestamp=${t},nonce=${nonce},signMethod=hmacSha256,accessType=1`;
+
+  // password = HMAC-SHA256("{accessId}{t}{nonce}")
+  const strToSign = `${TUYA_CLIENT_ID}${t}${nonce}`;
   const password = crypto.createHmac('sha256', TUYA_CLIENT_SECRET).update(strToSign).digest('hex');
-  const username = `${TUYA_CLIENT_ID}|signMethod=hmacSha256,timestamp=${t},nonce=${nonce},accessType=1`;
 
   console.log('📡 Conectando a Tuya MQTT...');
+  console.log('🔗 Broker:', brokerUrl);
+  console.log('🆔 ClientId:', mqttClientId);
 
   const client = mqtt.connect(brokerUrl, {
-    clientId: `tuyalink_${TUYA_CLIENT_ID}`,
+    clientId: mqttClientId,
     username,
     password,
     rejectUnauthorized: false,
