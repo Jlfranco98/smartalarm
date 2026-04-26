@@ -34,7 +34,7 @@ const BASE_URL = REGION_URL[TUYA_REGION] || REGION_URL['eu'];
 
 // ⏱️ DOS VELOCIDADES OPTIMIZADAS:
 const POLL_ALARMA_MS = 5 * 60 * 1000;  // 5 min (CUENTA A - Respaldo, ya que MacroDroid es el principal)
-const POLL_NORMAL_MS = 8 * 60 * 1000;  // 8 min (CUENTA B - Equilibrio agua + panel)
+const POLL_NORMAL_MS = 10 * 60 * 1000;  // 8 min (CUENTA B - Equilibrio agua + panel)
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails('mailto:admin@smartalarm.app', VAPID_PUBLIC, VAPID_PRIVATE);
@@ -354,7 +354,7 @@ app.post('/api/control', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// --- RUTA PARA MACRODROID CON SEGURIDAD (TOKEN) ---
+// --- RUTA PARA MACRODROID ALARMA ---
 app.get('/alerta-alarma', async (req, res) => {
   try {
     // 1. Definimos una clave secreta (pon la que tu quieras)
@@ -382,6 +382,39 @@ app.get('/alerta-alarma', async (req, res) => {
     res.status(200).send("✅ Alerta procesada");
   } catch (e) {
     console.error('❌ Error en alerta MacroDroid:', e.message);
+    res.status(500).send("Error");
+  }
+});
+
+app.get('/alerta-agua', async (req, res) => {
+  try {
+    const { token, sensor } = req.query; // sensor será "Jose", "Cocina" o "Pasillo"
+    const CLAVE_SECRETA = "842g980wrehg8u3gvbw43";
+
+    if (token !== CLAVE_SECRETA) return res.status(401).send("No autorizado");
+
+    // 🔍 BUSCADOR DINÁMICO:
+    // Buscamos en tu array SENSORES_AGUA el que tenga el nombre que viene de MacroDroid
+    const datosSensor = SENSORES_AGUA.find(s => s.nombre.toLowerCase() === sensor.toLowerCase());
+    
+    // Si lo encuentra, usamos su ID. Si no, usamos uno genérico para no romper el código.
+    const sensorId = datosSensor ? datosSensor.id : 'desconocido';
+
+    console.log(`💧 [MacroDroid] Fuga detectada en: ${sensor} (ID identificado: ${sensorId})`);
+
+    // 1. Guardar log con el nombre exacto
+    await new Log({ 
+      usuario: 'Verisure', 
+      accion: `💧 Fuga de agua detectada — ${sensor}` 
+    }).save();
+
+    // 2. Enviar notificación push con el ID correcto
+    // Ahora 'sensor_agua_' + sensorId se convertirá en, por ejemplo, 'sensor_agua_bf92df...'
+    await sendPushNotification('sensor_agua_' + sensorId, `Aviso MacroDroid: ${sensor}`);
+
+    res.status(200).send("✅ Alerta de agua procesada");
+  } catch (e) {
+    console.error('❌ Error en alerta agua:', e.message);
     res.status(500).send("Error");
   }
 });
