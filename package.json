@@ -7,12 +7,12 @@
   },
   "dependencies": {
     "@tuya/tuya-connector-nodejs": "latest",
+    "@tuya/pulsar-sdk-node": "latest",
     "express": "^4.19.2",
     "cors": "^2.8.5",
     "mongoose": "^8.0.0",
     "bcryptjs": "^2.4.3",
-    "web-push": "^3.6.7",
-    "mqtt": "^5.0.0"
+    "web-push": "^3.6.7"
   },
   "engines": {
     "node": ">=18.0.0"
