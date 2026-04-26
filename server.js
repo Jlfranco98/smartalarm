@@ -5,7 +5,7 @@ const path     = require('path');
 const mongoose = require('mongoose');
 const bcrypt   = require('bcryptjs');
 const webpush  = require('web-push');
-const { TuyaContext, TuyaMQTTClient } = require('@tuya/tuya-connector-nodejs');
+const { TuyaContext, TuyaMqttClient } = require('@tuya/tuya-connector-nodejs');
 
 const app = express();
 app.use(express.json());
@@ -114,7 +114,7 @@ const deviceStateCache = {};
 function conectarMensajeria() {
   console.log('📡 Conectando al Message Queue de Tuya...');
 
-  const mqttClient = new TuyaMQTTClient({
+  const mqttClient = new TuyaMqttClient({
     accessKey: TUYA_CLIENT_ID,
     secretKey: TUYA_CLIENT_SECRET,
     mqttConfig: {
