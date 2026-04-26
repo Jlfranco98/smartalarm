@@ -159,27 +159,6 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .hi-time{font-size:12px;color:var(--muted);font-weight:700;text-align:right}
 
 /* ══════════════════════════════════════════════════════════
-   FILTROS HISTORIAL
-══════════════════════════════════════════════════════════ */
-.hist-filters{padding:0 16px 4px;position:sticky;top:0;background:var(--bg);z-index:5;padding-top:8px}
-.hf-row{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:4px}
-.hf-row::-webkit-scrollbar{display:none}
-.hf-chip{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
-.hf-chip:active{transform:scale(0.95)}
-.hf-chip.active{background:var(--red);border-color:var(--red);color:#fff}
-.hf-chip.cat-acciones.active{background:var(--green);border-color:var(--green);color:#fff}
-.hf-chip.cat-saltos.active{background:#ff8c00;border-color:#ff8c00;color:#fff}
-.hf-chip.cat-errores.active{background:#7d3fc8;border-color:#7d3fc8;color:#fff}
-.hf-section-label{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding:10px 16px 4px;display:flex;align-items:center;gap:6px}
-.hf-date-row{display:flex;gap:8px;padding:6px 16px 8px}
-.hf-date-input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text);background:var(--white);outline:none}
-.hf-date-input:focus{border-color:var(--red)}
-.hf-clear-btn{padding:8px 14px;border:1.5px solid var(--border);border-radius:12px;background:var(--white);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--muted);cursor:pointer}
-.hf-count{font-size:11px;color:var(--muted);font-weight:700;padding:0 16px 8px}
-.hist-empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:14px;font-weight:700}
-.hist-empty-icon{font-size:36px;margin-bottom:10px}
-
-/* ══════════════════════════════════════════════════════════
    PAGE: MI CUENTA
 ══════════════════════════════════════════════════════════ */
 .account-hero{background:var(--white);padding:28px 20px;margin:16px 16px 0;border-radius:20px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06)}
@@ -346,41 +325,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
     <!-- ── HISTORIAL ── -->
     <div class="page" id="pg-historial">
-      <div class="sec-hdr" style="padding-bottom:4px"><span class="sec-title">Historial de actividad</span></div>
-
-      <!-- Filtros -->
-      <div class="hist-filters">
-        <!-- Fila 1: Categorías -->
-        <div class="hf-row">
-          <button class="hf-chip active" id="fc-todo" onclick="setFiltroCategoria('todo')">🔍 Todos</button>
-          <button class="hf-chip cat-acciones" id="fc-acciones" onclick="setFiltroCategoria('acciones')">🔐 Acciones</button>
-          <button class="hf-chip cat-saltos" id="fc-saltos" onclick="setFiltroCategoria('saltos')">🚨 Saltos</button>
-          <button class="hf-chip cat-errores" id="fc-errores" onclick="setFiltroCategoria('errores')">⚠️ Errores</button>
-        </div>
-
-        <!-- Fila 2: Subcategorías (dinámicas) -->
-        <div class="hf-row" id="hf-subcats" style="display:none;margin-top:4px"></div>
-
-        <!-- Fila 3: Fecha y hora -->
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 2px">
-          <div class="hf-section-label" style="padding:0">📅 Filtrar por fecha</div>
-          <button class="hf-clear-btn" onclick="limpiarFiltros()" style="margin-right:0">✕ Limpiar</button>
-        </div>
-        <div class="hf-date-row" style="padding:0 0 6px">
-          <div style="flex:1">
-            <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">Desde</div>
-            <input type="datetime-local" class="hf-date-input" id="hf-desde" onchange="renderLogFiltrado()">
-          </div>
-          <div style="flex:1">
-            <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">Hasta</div>
-            <input type="datetime-local" class="hf-date-input" id="hf-hasta" onchange="renderLogFiltrado()">
-          </div>
-        </div>
-
-        <!-- Contador de resultados -->
-        <div class="hf-count" id="hf-count"></div>
-      </div>
-
+      <div class="sec-hdr"><span class="sec-title">Historial de actividad</span></div>
       <div class="hist-list" id="full-log"></div>
     </div>
 
@@ -923,7 +868,7 @@ function navTo(page){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('pg-'+page).classList.add('active');
   const nb=document.getElementById('nav-'+page); if(nb)nb.classList.add('active');
-  if(page==='historial'){ renderLog(); renderLogFiltrado(); }
+  if(page==='historial')renderLog();
   if(page==='admin')renderUsersAdmin();
   if(page==='cuenta')loadConfigForm();
   if(page==='dispositivos')renderDispositivos();
@@ -1085,175 +1030,9 @@ async function applyAction(action, userName) {
   }
 }
 
-// ── Filtros de Historial ────────────────────────────────────────────────────
-let F = { categoria: 'todo', subcategoria: 'todo' };
-
-const CATEGORIAS = {
-  acciones: {
-    label: '🔐 Acciones',
-    subcats: [
-      { id: 'armado', label: '🔒 Armados', keywords: ['arm_away','Conectad','Armado total','arm away'] },
-      { id: 'desarmado', label: '🔓 Desarmados', keywords: ['disarm','Desconect','Desarmad'] },
-      { id: 'noche', label: '🌙 Modo noche', keywords: ['arm_home','noche','parcial','casa'] },
-      { id: 'sos', label: '🆘 Pánico/SOS', keywords: ['sos','PÁNICO','SOS','panico','pánico'] },
-    ]
-  },
-  saltos: {
-    label: '🚨 Saltos',
-    subcats: [
-      { id: 'alarma', label: '🚨 Alarma saltada', keywords: ['alarma saltada','alarm triggered','disparo','intrusion','intrusión'] },
-      { id: 'agua', label: '💧 Sensor de agua', keywords: ['agua','water','inundac'] },
-      { id: 'movimiento', label: '👁 Movimiento', keywords: ['movimiento','motion','pir'] },
-    ]
-  },
-  errores: {
-    label: '⚠️ Errores',
-    subcats: [
-      { id: 'desconectado', label: '📵 Sensor desconectado', keywords: ['desconectado','offline','sin señal','lost','disconnect'] },
-      { id: 'reconectado', label: '✅ Sensor reconectado', keywords: ['reconectado','online','restored','reconnect','volvió'] },
-      { id: 'bateria', label: '🔋 Batería baja', keywords: ['batería','bateria','battery','pila'] },
-    ]
-  }
-};
-
-function clasificarEvento(l) {
-  const texto = ((l.accion || l.action || '') + ' ' + (l.tipo || '') + ' ' + (l.sensor || '')).toLowerCase();
-  for (const [cat, cfg] of Object.entries(CATEGORIAS)) {
-    for (const sub of cfg.subcats) {
-      if (sub.keywords.some(k => texto.includes(k.toLowerCase()))) return { cat, sub: sub.id };
-    }
-  }
-  // Fallback: si tiene acción de sistema considerarlo acción
-  if (texto.includes('arm') || texto.includes('disarm') || texto.includes('conect') || texto.includes('desconect')) {
-    return { cat: 'acciones', sub: 'armado' };
-  }
-  return { cat: 'acciones', sub: null };
-}
-
-function setFiltroCategoria(cat) {
-  F.categoria = cat;
-  F.subcategoria = 'todo';
-  // Chips de categoría
-  ['todo','acciones','saltos','errores'].forEach(id => {
-    const el = document.getElementById('fc-' + id);
-    if (el) el.classList.toggle('active', id === cat);
-  });
-  // Subcategorías
-  const subcatRow = document.getElementById('hf-subcats');
-  if (cat === 'todo') {
-    subcatRow.style.display = 'none';
-    subcatRow.innerHTML = '';
-  } else {
-    const cfg = CATEGORIAS[cat];
-    subcatRow.style.display = 'flex';
-    subcatRow.innerHTML = `<button class="hf-chip active" onclick="setFiltroSub('todo')">Todos</button>` +
-      cfg.subcats.map(s => `<button class="hf-chip" id="fsc-${s.id}" onclick="setFiltroSub('${s.id}')">${s.label}</button>`).join('');
-  }
-  renderLogFiltrado();
-}
-
-function setFiltroSub(sub) {
-  F.subcategoria = sub;
-  document.querySelectorAll('#hf-subcats .hf-chip').forEach(el => el.classList.remove('active'));
-  const id = sub === 'todo' ? null : document.getElementById('fsc-' + sub);
-  if (sub === 'todo') {
-    document.querySelector('#hf-subcats .hf-chip')?.classList.add('active');
-  } else if (id) {
-    id.classList.add('active');
-  }
-  renderLogFiltrado();
-}
-
-function limpiarFiltros() {
-  F = { categoria: 'todo', subcategoria: 'todo' };
-  document.getElementById('hf-desde').value = '';
-  document.getElementById('hf-hasta').value = '';
-  setFiltroCategoria('todo');
-}
-
-function renderLogFiltrado() {
-  const items = S.log || [];
-  const desde = document.getElementById('hf-desde')?.value ? new Date(document.getElementById('hf-desde').value) : null;
-  const hasta = document.getElementById('hf-hasta')?.value ? new Date(document.getElementById('hf-hasta').value) : null;
-
-  const filtrados = items.filter(l => {
-    // Filtro fecha
-    if (desde || hasta) {
-      let raw = l.fecha?.$date || l.fecha;
-      if (!raw) return false;
-      const d = new Date(raw);
-      if (isNaN(d.getTime())) return false;
-      if (desde && d < desde) return false;
-      if (hasta && d > hasta) return false;
-    }
-    // Filtro categoría
-    if (F.categoria !== 'todo') {
-      const cl = clasificarEvento(l);
-      if (cl.cat !== F.categoria) return false;
-      if (F.subcategoria !== 'todo' && cl.sub !== F.subcategoria) return false;
-    }
-    return true;
-  });
-
-  const countEl = document.getElementById('hf-count');
-  if (countEl) {
-    const total = items.length;
-    countEl.textContent = filtrados.length === total ? `${total} evento${total !== 1 ? 's' : ''}` :
-      `${filtrados.length} de ${total} evento${total !== 1 ? 's' : ''}`;
-  }
-
-  const el = document.getElementById('full-log');
-  if (!el) return;
-  if (!filtrados.length) {
-    el.innerHTML = `<div class="hist-empty"><div class="hist-empty-icon">🔍</div>Sin resultados para este filtro</div>`;
-    return;
-  }
-  el.innerHTML = filtrados.map(l => buildLogItem(l, true)).join('');
-}
-
-function buildLogItem(l, full = false) {
-  let raw = l.fecha?.$date || l.fecha;
-  let fechaTexto = "Sincronizando...";
-  if (raw) {
-    const d = new Date(raw);
-    if (!isNaN(d.getTime())) {
-      const dia = d.getDate().toString().padStart(2,'0');
-      const mes = (d.getMonth()+1).toString().padStart(2,'0');
-      const anio = d.getFullYear();
-      const horas = d.getHours().toString().padStart(2,'0');
-      const minutos = d.getMinutes().toString().padStart(2,'0');
-      fechaTexto = full ? `${dia}/${mes}/${anio} · ${horas}:${minutos}h` : `${dia}/${mes} - ${horas}:${minutos}h`;
-    }
-  }
-  const texto = ((l.accion || l.action || '') + ' ' + (l.tipo || '')).toLowerCase();
-  const dotClass =
-    texto.includes('desconect') || texto.includes('disarm') || texto.includes('desarmad') ? 'hi-disarmed' :
-    texto.includes('noche') || texto.includes('casa') || texto.includes('parcial') || texto.includes('arm_home') ? 'hi-home' :
-    'hi-armed';
-  // Etiqueta de categoría de color
-  const cl = clasificarEvento(l);
-  const catColor = cl.cat === 'saltos' ? 'var(--orange)' : cl.cat === 'errores' ? '#7d3fc8' : cl.cat === 'acciones' ? 'var(--green)' : 'var(--muted)';
-  const catLabel = cl.cat === 'saltos' ? '🚨 Salto' : cl.cat === 'errores' ? '⚠️ Error' : '';
-  return `
-    <div class="hist-item">
-      <div class="hi-dot ${dotClass}"></div>
-      <div class="hi-info">
-        <div class="hi-action">${l.accion || l.action || 'Acción'}${catLabel ? ` <span style="font-size:10px;font-weight:700;color:${catColor};margin-left:5px;background:${catColor}1a;padding:2px 7px;border-radius:10px">${catLabel}</span>` : ''}</div>
-        <div class="hi-user">${l.usuario || l.user || 'Sistema'}</div>
-      </div>
-      <div class="hi-time" style="min-width:140px">${fechaTexto}</div>
-    </div>`;
-}
-
 function renderLog() {
   const items = S.log || [];
 
-  // Para página de historial, aplicar filtros si está activa
-  if (document.getElementById('full-log')) {
-    renderLogFiltrado();
-  }
-
-  // Historial mini en INICIO (último evento)
   const html = items.length ? items.map(l => {
     // 1. EXTRAEMOS LA FECHA DE LA BASE DE DATOS
     // Importante: No creamos un "new Date()" vacío si no hay dato
@@ -1291,10 +1070,34 @@ function renderLog() {
       </div>`;
   }).join('') : '<div class="err-small">No hay ningún evento reciente</div>';
 
-  // Inyectamos el último evento en el home
-  const htmlHome = items.slice(0, 1).map(l => buildLogItem(l, false)).join('');
+  // 1. Generamos el HTML para el INICIO (Solo el último evento)
+  const htmlHome = items.slice(0, 1).map(l => {
+    let raw = l.fecha?.$date || l.fecha;
+    let fechaTexto = "Sincronizando...";
+    if (raw) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) {
+        const dia = d.getDate().toString().padStart(2, '0');
+        const mes = (d.getMonth() + 1).toString().padStart(2, '0');
+        const horas = d.getHours().toString().padStart(2, '0');
+        const minutos = d.getMinutes().toString().padStart(2, '0');
+        fechaTexto = `${dia}/${mes} - ${horas}:${minutos}h`;
+      }
+    }
+    const dotClass = 
+  (l.accion === 'Desarmado' || l.accion === 'disarm' || l.accion?.includes('Desarmada')) ? 'hi-disarmed' :
+  (l.accion?.includes('noche') || l.accion?.includes('casa') || l.accion?.includes('parcial')) ? 'hi-home' :
+  'hi-armed';
+    return `<div class="hist-item"><div class="hi-dot ${dotClass}"></div><div class="hi-info"><div class="hi-action">${l.accion || l.action || 'Acción'}</div><div class="hi-user">${l.usuario || l.user || 'Sistema'}</div></div><div class="hi-time">${fechaTexto}</div></div>`;
+  }).join('');
+
+  // 2. Inyectamos en cada contenedor (Sustituye tus líneas marcadas por esto)
   if (document.getElementById('home-log')) {
     document.getElementById('home-log').innerHTML = items.length > 0 ? htmlHome : '<div class="err-small">No hay eventos registrados</div>';
+  }
+  if (document.getElementById('full-log')) {
+    // Para el historial completo usamos la variable 'html' original que ya tienes en tu código
+    document.getElementById('full-log').innerHTML = items.length > 0 ? html : '<div class="err-small">No hay ningún evento registrado</div>';
   }
 }
 
