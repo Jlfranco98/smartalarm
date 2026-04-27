@@ -143,6 +143,18 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .pm-err{font-size:13px;color:var(--red);text-align:center;min-height:18px;font-weight:700}
 .pm-cancel{width:100%;padding:14px;background:transparent;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer;margin-top:4px}
 
+/* SOS confirm modal */
+.sos-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.sos-modal-bg.open{opacity:1;pointer-events:all}
+.sos-modal{background:var(--white);border-radius:24px;padding:28px 24px;width:calc(100% - 48px);max-width:340px;transform:scale(0.9);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.sos-modal-bg.open .sos-modal{transform:scale(1)}
+.sos-modal-icon{font-size:52px;text-align:center;margin-bottom:12px}
+.sos-modal-title{font-size:20px;font-weight:900;text-align:center;color:#7d0000;margin-bottom:8px}
+.sos-modal-sub{font-size:13px;color:var(--muted);text-align:center;font-weight:600;margin-bottom:24px;line-height:1.5}
+.sos-modal-btn-confirm{width:100%;padding:16px;background:#7d0000;color:#fff;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;margin-bottom:10px;transition:background .15s}
+.sos-modal-btn-confirm:active{background:#5a0000}
+.sos-modal-btn-cancel{width:100%;padding:14px;background:transparent;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer}
+
 /* ══════════════════════════════════════════════════════════
    PAGE: HISTORIAL
 ══════════════════════════════════════════════════════════ */
@@ -592,6 +604,17 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 </div><!-- /s-app -->
 
 <!-- PIN Modal -->
+<!-- SOS confirm modal -->
+<div class="sos-modal-bg" id="sos-modal-bg">
+  <div class="sos-modal">
+    <div class="sos-modal-icon">🆘</div>
+    <div class="sos-modal-title">¿ACTIVAR MODO PÁNICO?</div>
+    <div class="sos-modal-sub">Se alertará a <strong>TODOS los usuarios</strong> inmediatamente con tu ubicación.</div>
+    <button class="sos-modal-btn-confirm" onclick="confirmarSos()">⚠️ SÍ, ACTIVAR PÁNICO</button>
+    <button class="sos-modal-btn-cancel" onclick="cerrarSosModal()">Cancelar</button>
+  </div>
+</div>
+
 <div class="pin-modal-bg" id="pin-modal-bg" onclick="closePinOutside(event)">
   <div class="pin-modal">
     <div class="pm-title" id="pm-title">Confirmar acción</div>
@@ -991,7 +1014,15 @@ function updateStatusUI() {
 }
 
 function openSos() {
-  if (!confirm('⚠️ ¿Activar MODO PÁNICO?\n\nSe alertará a TODOS los usuarios inmediatamente.')) return;
+  document.getElementById('sos-modal-bg').classList.add('open');
+}
+
+function cerrarSosModal() {
+  document.getElementById('sos-modal-bg').classList.remove('open');
+}
+
+function confirmarSos() {
+  cerrarSosModal();
   pinAction = 'sos'; pinBuffer = '';
   document.getElementById('pm-title').textContent = '🆘 Confirmar PÁNICO';
   document.getElementById('pm-sub').textContent = 'Ingresa tu PIN para confirmar';
