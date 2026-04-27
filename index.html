@@ -1798,7 +1798,7 @@ async function renderDispositivos() {
       <div class="hist-item" style="background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.04);display:flex;align-items:center;gap:12px">
         <div style="font-size:28px;flex-shrink:0">🌍</div>
         <div style="flex:1">
-          <div class="hi-action">Móvil de Seguridad</div>
+          <div class="hi-action">Servidor</div>
           <div class="hi-user" style="font-size:11px;font-weight:600">${hb.vivo ? ultimoPulso : '⚠️ Sin pulso — posible caída'}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
@@ -1809,7 +1809,7 @@ async function renderDispositivos() {
         </div>
       </div>`;
 
-    el.innerHTML = htmlDispositivos + htmlMovil;
+    el.innerHTML = htmlMovil + htmlDispositivos;
   } catch(e) {
     el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:13px;font-weight:700">Error al consultar dispositivos</div>';
   }
