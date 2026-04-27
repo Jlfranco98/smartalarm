@@ -1093,8 +1093,8 @@ const CATEGORIAS = {
     label: '🔐 Acciones',
     subcats: [
       { id: 'armado', label: '🔒 Armado total', keywords: ['arm_away', 'Alarma armada (total)', 'Armado total', 'Modo total activado'] },
-      { id: 'desarmado', label: '🔓 Desarmados', keywords: ['disarm', 'Alarma desarmada', 'Desarmad', 'Alarma Desarmada'] },
       { id: 'noche', label: '🌙 Modo noche', keywords: ['arm_home', 'modo noche', 'Alarma armada (modo noche)', 'Modo noche activado'] },
+      { id: 'desarmado', label: '🔓 Desarmados', keywords: ['disarm', 'Alarma desarmada', 'Desarmad', 'Alarma Desarmada'] },
       { id: 'sos', label: '🆘 Pánico/SOS', keywords: ['sos', 'PÁNICO', 'SOS'] },
     ]
   },
@@ -1102,16 +1102,15 @@ const CATEGORIAS = {
     label: '🚨 Saltos',
     subcats: [
       { id: 'alarma', label: '🚨 Alarma saltada', keywords: ['ALARMA SALTADA', 'alarma saltada'] },
-      { id: 'agua', label: '💧 Sensor de agua', keywords: ['Fuga de agua', 'agua detectada'] },
-      { id: 'movimiento', label: '👁 Movimiento', keywords: ['movimiento', 'motion'] },
+      { id: 'agua', label: '💧 Fugas de agua', keywords: ['Fuga de agua', 'agua detectada'] },
     ]
   },
   errores: {
     label: '⚙️ Sistema',
     subcats: [
       // Priorizamos palabras que no estén en "Acciones"
-      { id: 'desconectado', label: '📵 Sensor desconectado', keywords: ['desconectado', 'offline', 'Centralita desconectada'] },
-      { id: 'reconectado', label: '✅ Sensor reconectado', keywords: ['reconectado', 'online', 'Centralita reconectada'] },
+      { id: 'desconectado', label: '📵 Desconexiónes', keywords: ['desconectado', 'offline', 'Centralita desconectada'] },
+      { id: 'reconectado', label: '✅ Reconexiones', keywords: ['reconectado', 'online', 'Centralita reconectada'] },
       { id: 'bateria', label: '🔋 Batería baja', keywords: ['batería', 'bateria', 'pila'] },
     ]
   }
