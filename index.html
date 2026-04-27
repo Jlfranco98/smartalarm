@@ -1768,9 +1768,17 @@ async function renderDispositivos() {
   if (!el) return;
   el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;font-weight:700">Consultando dispositivos...</div>';
   try {
-    const res = await fetch('/api/dispositivos');
-    const data = await res.json();
-    el.innerHTML = data.map(d => `
+    const [resDisp, resHb] = await Promise.all([
+      fetch('/api/dispositivos'),
+      fetch('/api/heartbeat-status')
+    ]);
+    const data = await resDisp.json();
+    const hb   = await resHb.json();
+
+    const minutos = Math.floor(hb.segundosDesdeUltimoPulso / 60);
+    const ultimoPulso = minutos < 1 ? 'Hace menos de 1 min' : `Hace ${minutos} min`;
+
+    const htmlDispositivos = data.map(d => `
       <div class="hist-item" style="background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.04);display:flex;align-items:center;gap:12px">
         <div style="font-size:28px;flex-shrink:0">${d.icono}</div>
         <div style="flex:1">
@@ -1785,11 +1793,27 @@ async function renderDispositivos() {
           ${d.bateria !== null && d.bateria !== undefined ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">🔋 ${d.bateria}%</div>` : ''}
         </div>
       </div>`).join('');
+
+    const htmlMovil = `
+      <div class="hist-item" style="background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.04);display:flex;align-items:center;gap:12px">
+        <div style="font-size:28px;flex-shrink:0">🌍</div>
+        <div style="flex:1">
+          <div class="hi-action">Móvil de Seguridad</div>
+          <div class="hi-user" style="font-size:11px;font-weight:600">${hb.vivo ? ultimoPulso : '⚠️ Sin pulso — posible caída'}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;background:${hb.vivo ? '#EAF3DE' : '#FCEBEB'};color:${hb.vivo ? '#3B6D11' : '#A32D2D'}">
+            <div style="width:7px;height:7px;border-radius:50%;background:${hb.vivo ? '#34c759' : '#ff4444'}"></div>
+            ${hb.vivo ? 'Online' : 'Offline'}
+          </div>
+        </div>
+      </div>`;
+
+    el.innerHTML = htmlDispositivos + htmlMovil;
   } catch(e) {
     el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:13px;font-weight:700">Error al consultar dispositivos</div>';
   }
 }
-
 </script>
 </body>
 </html>
