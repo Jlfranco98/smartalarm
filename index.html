@@ -1097,6 +1097,8 @@ const CATEGORIAS = {
       { id: 'desarmado', label: '🔓 Desarmados', keywords: ['disarm', 'Alarma desarmada', 'Desarmad', 'Alarma Desarmada'] },
       { id: 'noche', label: '🌙 Modo noche', keywords: ['arm_home', 'modo noche', 'Alarma armada (modo noche)', 'Modo noche activado'] },
       { id: 'sos', label: '🆘 Pánico/SOS', keywords: ['sos', 'PÁNICO', 'SOS'] },
+      { id: 'desconectado', label: '📵 Sensor desconectado', keywords: ['desconectado', 'offline', 'Centralita desconectada', 'MacroDroid sin respuesta', 'caído'] },
+      { id: 'reconectado', label: '✅ Sensor reconectado', keywords: ['reconectado', 'online', 'Centralita reconectada', 'MacroDroid respondiendo', 'reactivado'] },
     ]
   },
   saltos: {
@@ -1132,9 +1134,12 @@ function clasificarEvento(l) {
   }
 
   // 3. ERRORES
-  if (texto.includes('desconectado') || texto.includes('offline') || texto.includes('batería')) {
-    return { cat: 'errores', sub: texto.includes('batería') ? 'bateria' : 'desconectado' };
-  }
+if (texto.includes('desconectado') || texto.includes('offline') || texto.includes('batería') || texto.includes('caído') || texto.includes('sin respuesta')) {
+  return { cat: 'errores', sub: texto.includes('batería') ? 'bateria' : 'desconectado' };
+}
+if (texto.includes('reconectado') || texto.includes('reactivado')) {
+  return { cat: 'errores', sub: 'reconectado' };
+}
 
   // 4. RESTO DE ACCIONES (Armados, etc.)
   for (const [catId, cfg] of Object.entries(CATEGORIAS)) {
