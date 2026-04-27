@@ -447,7 +447,7 @@ app.get('/alerta-agua', async (req, res) => {
 
     // 2. Enviar notificación push con el ID correcto
     // Ahora 'sensor_agua_' + sensorId se convertirá en, por ejemplo, 'sensor_agua_bf92df...'
-    await sendPushNotification('sensor_agua_' + sensorId, `Aviso MacroDroid: ${sensor}`);
+    await sendPushNotification('sensor_agua_' + sensorId, `Verisure`);
 
     res.status(200).send("✅ Alerta de agua procesada");
   } catch (e) {
