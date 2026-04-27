@@ -124,6 +124,9 @@ let sensorOffline = false;
 const aguaActiva = {};
 const dispositivosOffline = {};
 const deviceStateCache = {};
+let ultimoHeartbeat = Date.now(); // Arranca asumiendo que está vivo
+let heartbeatAlertaEnviada = false;
+const HEARTBEAT_TIMEOUT_MS = 10 * 60 * 1000; // 10 min sin pulso = alerta
 
 // --- 6. POLLING RÁPIDO: SENSOR DE LUZ (CUENTA A)
 async function checkSensorLuz() {
@@ -250,6 +253,7 @@ async function sendPushNotification(action, triggeredBy) {
     dispositivo_online_bf92df2609b5192252oyym: '✅ Sensor Agua Cocina reconectado',
     dispositivo_online_bff7dcc64693fab3acucza: '✅ Sensor Agua Pasillo reconectado',
     panel_offline: '⚠️ Panel Alarma desconectado', panel_online: '✅ Panel Alarma reconectado',
+    macrodroid_offline: '⚠️ Servidor de seguridad caído',
   };
   const payload = JSON.stringify({ title: labels[action] || action, body: `Por: ${triggeredBy}`, icon: '/icon-192.png', badge: '/icon-192.png' });
   await Promise.allSettled(subs.map(async sub => {
@@ -358,7 +362,7 @@ app.post('/api/control', async (req, res) => {
 app.get('/alerta-alarma', async (req, res) => {
   try {
     // 1. Definimos una clave secreta (pon la que tu quieras)
-    const CLAVE_SECRETA = "842g980wrehg8u3gvbw43"; 
+    const CLAVE_SECRETA = process.env.MACRODROID_SECRET; 
     
     // 2. Recogemos el token que viene en la URL
     const tokenRecibido = req.query.token;
@@ -389,7 +393,7 @@ app.get('/alerta-alarma', async (req, res) => {
 app.get('/alerta-agua', async (req, res) => {
   try {
     const { token, sensor } = req.query; // sensor será "Jose", "Cocina" o "Pasillo"
-    const CLAVE_SECRETA = "842g980wrehg8u3gvbw43";
+    const CLAVE_SECRETA = process.env.MACRODROID_SECRET;
 
     if (token !== CLAVE_SECRETA) return res.status(401).send("No autorizado");
 
@@ -418,6 +422,30 @@ app.get('/alerta-agua', async (req, res) => {
     res.status(500).send("Error");
   }
 });
+
+// --- HEARTBEAT ENDPOINT ---
+app.get('/heartbeat', (req, res) => {
+  const token = req.query.token;
+  if (token !== process.env.MACRODROID_SECRET) {
+    return res.status(401).send('No autorizado');
+  }
+  ultimoHeartbeat = Date.now();
+  heartbeatAlertaEnviada = false; // Reset para poder volver a alertar si vuelve a caerse
+  console.log(`💓 [${new Date().toLocaleTimeString()}] Heartbeat recibido del servidor de seguridad`);
+  res.status(200).send('OK');
+});
+
+// Comprueba cada 5 minutos si el móvil sigue vivo
+setInterval(async () => {
+  const ahora = Date.now();
+  const tiempoSinHeartbeat = ahora - ultimoHeartbeat;
+  if (tiempoSinHeartbeat > HEARTBEAT_TIMEOUT_MS && !heartbeatAlertaEnviada) {
+    heartbeatAlertaEnviada = true;
+    console.log('⚠️ Servidor de seguridad sin respuesta — enviando alerta');
+    await new Log({ usuario: 'Sistema', accion: '⚠️ Servidor de seguridad caído — MacroDroid sin respuesta' }).save();
+    await sendPushNotification('macrodroid_offline', 'MacroDroid');
+  }
+}, 5 * 60 * 1000);
 
 // --- 13. HISTORIAL Y CONFIG ---
 app.get('/api/logs',      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(30)); } catch (e) { res.status(500).json([]); } });
