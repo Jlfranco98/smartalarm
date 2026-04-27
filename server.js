@@ -444,13 +444,18 @@ app.get('/heartbeat', (req, res) => {
 
 // Comprueba cada 5 minutos si el móvil sigue vivo
 setInterval(async () => {
-  const ahora = Date.now();
-  const tiempoSinHeartbeat = ahora - ultimoHeartbeat;
-  if (tiempoSinHeartbeat > HEARTBEAT_TIMEOUT_MS && !heartbeatAlertaEnviada) {
-    heartbeatAlertaEnviada = true;
-    console.log('⚠️ Servidor de seguridad sin respuesta — enviando alerta');
-    await new Log({ usuario: 'Sistema', accion: '⚠️ Servidor de seguridad caído — MacroDroid sin respuesta' }).save();
-    await sendPushNotification('macrodroid_offline', 'MacroDroid');
+  try {
+    const ahora = Date.now();
+    const tiempoSinHeartbeat = ahora - ultimoHeartbeat;
+    console.log(`🔍 Check heartbeat: ${Math.floor(tiempoSinHeartbeat / 60000)} min sin pulso`);
+    if (tiempoSinHeartbeat > HEARTBEAT_TIMEOUT_MS && !heartbeatAlertaEnviada) {
+      heartbeatAlertaEnviada = true;
+      console.log('⚠️ Servidor de seguridad sin respuesta — enviando alerta');
+      await new Log({ usuario: 'Sistema', accion: '⚠️ Servidor de seguridad caído — MacroDroid sin respuesta' }).save();
+      await sendPushNotification('macrodroid_offline', 'MacroDroid');
+    }
+  } catch(e) {
+    console.error('❌ Error en check heartbeat:', e.message);
   }
 }, 5 * 60 * 1000);
 
