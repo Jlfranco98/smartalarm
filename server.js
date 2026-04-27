@@ -233,11 +233,20 @@ async function checkSensorAgua(sensor) {
 // --- 8. PUSH NOTIFICATIONS ---
 async function sendPushNotification(action, triggeredBy) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
-  const notificarATodos = ['sos','sensor_luz','sensor_offline','sensor_online','panel_offline','panel_online','macrodroid_offline'].includes(action)
+  
+  const notificarATodos = ['sos','sensor_luz','sensor_offline','sensor_online','panel_offline','panel_online','macrodroid_offline','macrodroid_online'].includes(action)
     || action.startsWith('sensor_agua_') || action.startsWith('dispositivo_offline_') || action.startsWith('dispositivo_online_');
-  const prefs = notificarATodos ? await NotifPref.find({}) : await NotifPref.find({ [action]: true });
-  if (!prefs.length) return;
-  const subs = await PushSub.find({ username: { $in: prefs.map(p => p.username) } });
+
+  let subs;
+  if (notificarATodos) {
+    // Notificar a TODOS los dispositivos registrados sin importar preferencias
+    subs = await PushSub.find({});
+  } else {
+    const prefs = await NotifPref.find({ [action]: true });
+    if (!prefs.length) return;
+    subs = await PushSub.find({ username: { $in: prefs.map(p => p.username) } });
+  }
+
   if (!subs.length) return;
   const labels = {
     arm_away: '🔒 Modo total activado', arm_home: '🌙 Modo noche activado',
@@ -254,6 +263,7 @@ async function sendPushNotification(action, triggeredBy) {
     dispositivo_online_bff7dcc64693fab3acucza: '✅ Sensor Agua Pasillo reconectado',
     panel_offline: '⚠️ Panel Alarma desconectado', panel_online: '✅ Panel Alarma reconectado',
     macrodroid_offline: '⚠️ Servidor de seguridad caído',
+    macrodroid_online: '✅ Servidor de seguridad reactivado',
   };
   const payload = JSON.stringify({ title: labels[action] || action, body: `Por: ${triggeredBy}`, icon: '/icon-192.png', badge: '/icon-192.png' });
   await Promise.allSettled(subs.map(async sub => {
@@ -431,14 +441,24 @@ app.get('/alerta-agua', async (req, res) => {
 });
 
 // --- HEARTBEAT ENDPOINT ---
-app.get('/heartbeat', (req, res) => {
+app.get('/heartbeat', async (req, res) => {
   const token = req.query.token;
   if (token !== process.env.MACRODROID_SECRET) {
     return res.status(401).send('No autorizado');
   }
+  
+  // Si estaba caído y vuelve, notificar
+  if (heartbeatAlertaEnviada) {
+    heartbeatAlertaEnviada = false;
+    console.log('✅ Servidor de seguridad reactivado');
+    await new Log({ usuario: 'Sistema', accion: '✅ Servidor de seguridad reactivado — MacroDroid respondiendo' }).save();
+    await sendPushNotification('macrodroid_online', 'MacroDroid');
+  } else {
+    heartbeatAlertaEnviada = false;
+  }
+
   ultimoHeartbeat = Date.now();
-  heartbeatAlertaEnviada = false; // Reset para poder volver a alertar si vuelve a caerse
-  console.log(`🌍 Heartbeat recibido del servidor de seguridad`);
+  console.log('💓 Heartbeat recibido del servidor de seguridad');
   res.status(200).send('OK');
 });
 
