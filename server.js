@@ -467,7 +467,7 @@ app.get('/heartbeat', async (req, res) => {
   if (heartbeatAlertaEnviada) {
     heartbeatAlertaEnviada = false;
     console.log('✅ Servidor de seguridad reactivado');
-    await new Log({ usuario: 'Sistema', accion: '✅ Servidor de seguridad reactivado — MacroDroid respondiendo' }).save();
+    await new Log({ usuario: 'Sistema', accion: '✅ Servidor de seguridad reconectado' }).save();
     await sendPushNotification('macrodroid_online', 'MacroDroid');
   } else {
     heartbeatAlertaEnviada = false;
@@ -487,7 +487,7 @@ setInterval(async () => {
     if (tiempoSinHeartbeat > HEARTBEAT_TIMEOUT_MS && !heartbeatAlertaEnviada) {
       heartbeatAlertaEnviada = true;
       console.log('⚠️ Servidor de seguridad sin respuesta — enviando alerta');
-      await new Log({ usuario: 'Sistema', accion: '⚠️ Servidor de seguridad caído — MacroDroid sin respuesta' }).save();
+      await new Log({ usuario: 'Sistema', accion: '⚠️ Servidor de seguridad caído' }).save();
       await sendPushNotification('macrodroid_offline', 'MacroDroid');
     }
   } catch(e) {
