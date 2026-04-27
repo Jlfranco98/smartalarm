@@ -337,6 +337,13 @@ app.post('/api/push/prefs', async (req, res) => {
     res.json({ success: true });
   } catch (e) { res.status(500).json({ success: false }); }
 });
+// --- HEARTBEAT STATUS ---
+app.get('/api/heartbeat-status', (req, res) => {
+  const ahora = Date.now();
+  const segundos = Math.floor((ahora - ultimoHeartbeat) / 1000);
+  const vivo = (ahora - ultimoHeartbeat) < HEARTBEAT_TIMEOUT_MS;
+  res.json({ vivo, segundosDesdeUltimoPulso: segundos });
+});
 
 // --- 12. CONTROL ALARMA (usa cuenta B, el panel está ahí) ---
 app.post('/api/control', async (req, res) => {
