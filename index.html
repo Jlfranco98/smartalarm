@@ -1079,6 +1079,21 @@ async function applyAction(action, userName) {
                    action === 'arm_away' ? 'armed' : 
                    action === 'arm_home' ? 'arm_home' : 
                    S.alarmStatus;
+
+  // Capturar ubicación si es SOS
+  let ubicacion = null;
+  if (action === 'sos') {
+    toast2('📍 Obteniendo ubicación...');
+    try {
+      ubicacion = await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, precision: Math.round(pos.coords.accuracy) }),
+          () => resolve(null),
+          { timeout: 5000, maximumAge: 0 }
+        );
+      });
+    } catch(e) { ubicacion = null; }
+  }
   
   toast2('Comunicando con la alarma...');
   try {
