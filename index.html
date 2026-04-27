@@ -1333,7 +1333,7 @@ function buildLogItem(l, full = false) {
             if (mapsMatch) {
               const url = mapsMatch[0];
               const precision = accion.match(/\(±\d+m\)/)?.[0] || '';
-              return `PÁNICO / SOS — <a href="${url}" target="_blank" style="color:#7d3fc8;text-decoration:underline;font-weight:900">📍 Ver ubicación ${precision}</a>`;
+              return `PÁNICO / SOS — <a href="${url}" target="_blank" style="color:#7d3fc8;text-decoration:underline;font-weight:900">📍 Ver ubicación </a>`;
             }
             return accion;
           })()}
