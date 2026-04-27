@@ -1093,9 +1093,9 @@ const CATEGORIAS = {
     label: '🔐 Acciones',
     subcats: [
       // Usamos palabras más exactas para evitar que "Desconectado" entre en "Conectado"
-      { id: 'armado', label: '🔒 Armados', keywords: ['arm_away', 'Alarma armada (total)', 'Armado total'] },
-      { id: 'desarmado', label: '🔓 Desarmados', keywords: ['disarm', 'Alarma desarmada', 'Desarmad'] },
-      { id: 'noche', label: '🌙 Modo noche', keywords: ['arm_home', 'modo noche', 'Alarma armada (modo noche)'] },
+      { id: 'armado', label: '🔒 Armado total', keywords: ['arm_away', 'Alarma armada (total)', 'Armado total', 'Modo total activado'] },
+      { id: 'desarmado', label: '🔓 Desarmados', keywords: ['disarm', 'Alarma desarmada', 'Desarmad', 'Alarma Desarmada'] },
+      { id: 'noche', label: '🌙 Modo noche', keywords: ['arm_home', 'modo noche', 'Alarma armada (modo noche)', 'Modo noche activado'] },
       { id: 'sos', label: '🆘 Pánico/SOS', keywords: ['sos', 'PÁNICO', 'SOS'] },
     ]
   },
@@ -1283,7 +1283,7 @@ function buildLogItem(l, full = false) {
     if (texto.includes('desarmad') || texto.includes('disarm')) {
       dotClass = 'hi-disarmed';
       catColor = '#00b562'; //verde
-    } else if (texto.includes('noche') || texto.includes('parcial')) {
+    } else if (texto.includes('noche') || texto.includes('parcial') || texto.includes('noche activado')) {
       dotClass = 'hi-home';
     }
   }
