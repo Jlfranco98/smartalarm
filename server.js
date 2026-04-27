@@ -447,7 +447,7 @@ app.get('/alerta-agua', async (req, res) => {
 
     // 2. Enviar notificación push con el ID correcto
     // Ahora 'sensor_agua_' + sensorId se convertirá en, por ejemplo, 'sensor_agua_bf92df...'
-    await sendPushNotification('sensor_agua_' + sensorId, `Verisure`);
+    await sendPushNotification('sensor_agua_' + sensorId, `Aviso MacroDroid: ${sensor}`);
 
     res.status(200).send("✅ Alerta de agua procesada");
   } catch (e) {
@@ -467,7 +467,7 @@ app.get('/heartbeat', async (req, res) => {
   if (heartbeatAlertaEnviada) {
     heartbeatAlertaEnviada = false;
     console.log('✅ Servidor de seguridad reactivado');
-    await new Log({ usuario: 'Sistema', accion: '✅ Servidor de seguridad reconectado' }).save();
+    await new Log({ usuario: 'Sistema', accion: '✅ Servidor de seguridad reactivado — MacroDroid respondiendo' }).save();
     await sendPushNotification('macrodroid_online', 'MacroDroid');
   } else {
     heartbeatAlertaEnviada = false;
@@ -487,7 +487,7 @@ setInterval(async () => {
     if (tiempoSinHeartbeat > HEARTBEAT_TIMEOUT_MS && !heartbeatAlertaEnviada) {
       heartbeatAlertaEnviada = true;
       console.log('⚠️ Servidor de seguridad sin respuesta — enviando alerta');
-      await new Log({ usuario: 'Sistema', accion: '⚠️ Servidor de seguridad caído' }).save();
+      await new Log({ usuario: 'Sistema', accion: '⚠️ Servidor de seguridad caído — MacroDroid sin respuesta' }).save();
       await sendPushNotification('macrodroid_offline', 'MacroDroid');
     }
   } catch(e) {
