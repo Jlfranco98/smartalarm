@@ -54,7 +54,7 @@ self.addEventListener('fetch', e => {
 
 // ── Push: mostrar notificación ─────────────────────────────────────────────
 self.addEventListener('push', e => {
-  let data = { title: 'Smart Alarm', body: 'Nueva notificación', icon: '/icon-192.png' };
+  let data = { title: 'Smart Alarm', body: 'Nueva notificación', icon: '/icon-192.png', data: { url: '/' } };
   try { data = e.data.json(); } catch(err) {}
   e.waitUntil(
     self.registration.showNotification(data.title, {
@@ -63,7 +63,8 @@ self.addEventListener('push', e => {
       badge:   data.badge || '/icon-192.png',
       vibrate: [200, 100, 200],
       tag:     'alarm-status',
-      renotify: true
+      renotify: true,
+      data:    data.data || { url: '/' }
     })
   );
 });
@@ -71,8 +72,14 @@ self.addEventListener('push', e => {
 // ── Push: al pulsar la notificación, abrir la app ─────────────────────────
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  const url = e.notification.data?.url || '/';
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cls => {
+      // Si la URL es Google Maps, abrirla directamente
+      if (url.includes('maps.google.com')) {
+        return clients.openWindow(url);
+      }
+      // Si no, foco en la app o abrir /
       const app = cls.find(c => c.url.includes(self.location.origin));
       if (app) return app.focus();
       return clients.openWindow('/');

@@ -231,7 +231,7 @@ async function checkSensorAgua(sensor) {
 }
 
 // --- 8. PUSH NOTIFICATIONS ---
-async function sendPushNotification(action, triggeredBy) {
+async function sendPushNotification(action, triggeredBy, ubicacion = null) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
   
   const notificarATodos = ['sos','sensor_luz','sensor_offline','sensor_online','panel_offline','panel_online','macrodroid_offline','macrodroid_online'].includes(action)
@@ -239,7 +239,6 @@ async function sendPushNotification(action, triggeredBy) {
 
   let subs;
   if (notificarATodos) {
-    // Notificar a TODOS los dispositivos registrados sin importar preferencias
     subs = await PushSub.find({});
   } else {
     const prefs = await NotifPref.find({ [action]: true });
@@ -265,7 +264,20 @@ async function sendPushNotification(action, triggeredBy) {
     macrodroid_offline: '⚠️ Servidor de seguridad caído',
     macrodroid_online: '✅ Servidor de seguridad reactivado',
   };
-  const payload = JSON.stringify({ title: labels[action] || action, body: `Por: ${triggeredBy}`, icon: '/icon-192.png', badge: '/icon-192.png' });
+
+  const mapsUrl = ubicacion ? `https://maps.google.com/?q=${ubicacion.lat},${ubicacion.lng}` : null;
+  const body = action === 'sos' && mapsUrl
+    ? `${triggeredBy} — 📍 Pulsa para ver ubicación (±${ubicacion.precision}m)`
+    : `Por: ${triggeredBy}`;
+
+  const payload = JSON.stringify({
+    title: labels[action] || action,
+    body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    data: mapsUrl ? { url: mapsUrl } : { url: '/' }
+  });
+
   await Promise.allSettled(subs.map(async sub => {
     try { await webpush.sendNotification(sub.subscription, payload); }
     catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await PushSub.deleteOne({ _id: sub._id }); }
@@ -357,7 +369,7 @@ app.get('/api/heartbeat-status', (req, res) => {
 
 // --- 12. CONTROL ALARMA (usa cuenta B, el panel está ahí) ---
 app.post('/api/control', async (req, res) => {
-  const { action, user, alarmStatus } = req.body;
+  const { action, user, alarmStatus, ubicacion } = req.body;
   const mapping = { disarm: 'switch_1', arm_home: 'switch_2', arm_away: 'switch_3', sos: 'switch_4' };
   const nombres = { disarm: 'Alarma Desarmada', arm_home: 'Modo noche activado', arm_away: 'Modo total activado', sos: 'PÁNICO / SOS' };
   try {
@@ -367,9 +379,13 @@ app.post('/api/control', async (req, res) => {
       commands: [{ code: mapping[action], value: true }]
     });
     if (result.success) {
-      await new Log({ usuario: user || 'Verisure', accion: nombres[action] || action }).save();
+      const mapsUrl = ubicacion ? `https://maps.google.com/?q=${ubicacion.lat},${ubicacion.lng}` : null;
+      const accionLog = action === 'sos' && mapsUrl
+        ? `PÁNICO / SOS — 📍 ${mapsUrl} (±${ubicacion.precision}m)`
+        : nombres[action] || action;
+      await new Log({ usuario: user || 'Verisure', accion: accionLog }).save();
       await Config.findOneAndUpdate({ id: 'global_config' }, { $set: { alarmStatus } }, { upsert: true });
-      sendPushNotification(action, user || 'Verisure').catch(console.error);
+      sendPushNotification(action, user || 'Verisure', ubicacion).catch(console.error);
     }
     res.json({ success: result.success, result: result.result });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
