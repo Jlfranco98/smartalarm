@@ -355,7 +355,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           <button class="hf-chip active" id="fc-todo" onclick="setFiltroCategoria('todo')">🔍 Todos</button>
           <button class="hf-chip cat-acciones" id="fc-acciones" onclick="setFiltroCategoria('acciones')">🔐 Acciones</button>
           <button class="hf-chip cat-saltos" id="fc-saltos" onclick="setFiltroCategoria('saltos')">🚨 Saltos</button>
-          <button class="hf-chip cat-errores" id="fc-errores" onclick="setFiltroCategoria('errores')">⚠️ Errores</button>
+          <button class="hf-chip cat-errores" id="fc-errores" onclick="setFiltroCategoria('errores')">⚙️ Sistema</button>
         </div>
 
         <!-- Fila 2: Subcategorías (dinámicas) -->
@@ -1048,22 +1048,7 @@ async function applyAction(action, userName) {
                    action === 'arm_away' ? 'armed' : 
                    action === 'arm_home' ? 'arm_home' : 
                    S.alarmStatus;
-
-  // Capturar ubicación si es SOS
-  let ubicacion = null;
-  if (action === 'sos') {
-    toast2('📍 Obteniendo ubicación...');
-    try {
-      ubicacion = await new Promise((resolve) => {
-        navigator.geolocation.getCurrentPosition(
-          pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, precision: Math.round(pos.coords.accuracy) }),
-          () => resolve(null),
-          { timeout: 5000, maximumAge: 0 }
-        );
-      });
-    } catch(e) { ubicacion = null; }
-  }
-
+  
   toast2('Comunicando con la alarma...');
   try {
     const response = await fetch('/api/control', {
@@ -1073,8 +1058,7 @@ async function applyAction(action, userName) {
         action,
         user: userName,
         deviceId: S.config.deviceId,
-        alarmStatus: nextStatus,
-        ubicacion
+        alarmStatus: nextStatus
       })
     });
 
@@ -1126,7 +1110,7 @@ const CATEGORIAS = {
     ]
   },
   errores: {
-    label: '⚠️ Errores',
+    label: '⚙️ Sistema',
     subcats: [
       // Priorizamos palabras que no estén en "Acciones"
       { id: 'desconectado', label: '📵 Sensor desconectado', keywords: ['desconectado', 'offline', 'Centralita desconectada'] },
@@ -1292,7 +1276,7 @@ function buildLogItem(l, full = false) {
   // --- CASO: ERRORES ---
   else if (cl.cat === 'errores') {
     catColor = '#ff8c00'; // Naranja
-    catLabel = '⚠️ ERROR';
+    catLabel = '⚙️ SISTEMA';
     dotClass = 'hi-home'; 
   } 
   // --- CASO: ACCIONES (Armados, etc.) ---
@@ -1315,7 +1299,17 @@ function buildLogItem(l, full = false) {
       
       <div class="hi-info" style="flex:1; margin-left:12px">
         <div class="hi-action" style="display:flex; align-items:center; gap:6px; font-weight:800; font-size:13.5px; color:#1a1a1a">
-          ${l.accion || l.action || 'Acción'}
+          ${(() => {
+            const accion = l.accion || l.action || 'Acción';
+            // Si contiene una URL de maps, la reemplazamos por un enlace clicable
+            const mapsMatch = accion.match(/https:\/\/maps\.google\.com\/\?q=[\d.,\-]+/);
+            if (mapsMatch) {
+              const url = mapsMatch[0];
+              const precision = accion.match(/\(±\d+m\)/)?.[0] || '';
+              return `PÁNICO / SOS — <a href="${url}" target="_blank" style="color:#7d3fc8;text-decoration:underline;font-weight:900">📍 Ver ubicación ${precision}</a>`;
+            }
+            return accion;
+          })()}
           
           <span style="
             font-size:9px; 
