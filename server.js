@@ -233,7 +233,7 @@ async function checkSensorAgua(sensor) {
 // --- 8. PUSH NOTIFICATIONS ---
 async function sendPushNotification(action, triggeredBy) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
-  const notificarATodos = ['sos','sensor_luz','sensor_offline','sensor_online','panel_offline','panel_online'].includes(action)
+  const notificarATodos = ['sos','sensor_luz','sensor_offline','sensor_online','panel_offline','panel_online','macrodroid_offline'].includes(action)
     || action.startsWith('sensor_agua_') || action.startsWith('dispositivo_offline_') || action.startsWith('dispositivo_online_');
   const prefs = notificarATodos ? await NotifPref.find({}) : await NotifPref.find({ [action]: true });
   if (!prefs.length) return;
