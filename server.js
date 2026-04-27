@@ -438,7 +438,7 @@ app.get('/heartbeat', (req, res) => {
   }
   ultimoHeartbeat = Date.now();
   heartbeatAlertaEnviada = false; // Reset para poder volver a alertar si vuelve a caerse
-  console.log(`💓 [${new Date().toLocaleTimeString()}] Heartbeat recibido del servidor de seguridad`);
+  console.log(`🌍 Heartbeat recibido del servidor de seguridad`);
   res.status(200).send('OK');
 });
 
