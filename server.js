@@ -34,7 +34,7 @@ const BASE_URL = REGION_URL[TUYA_REGION] || REGION_URL['eu'];
 
 // ⏱️ DOS VELOCIDADES OPTIMIZADAS:
 const POLL_ALARMA_MS = 5 * 60 * 1000;  // 5 min (CUENTA A - Respaldo, ya que MacroDroid es el principal)
-const POLL_NORMAL_MS = 10 * 60 * 1000;  // 8 min (CUENTA B - Equilibrio agua + panel)
+const POLL_NORMAL_MS = 15 * 60 * 1000;  // 15 min (CUENTA B - Equilibrio agua + panel)
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails('mailto:admin@smartalarm.app', VAPID_PUBLIC, VAPID_PRIVATE);
