@@ -248,7 +248,11 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
    PAGE: MI CUENTA
 ══════════════════════════════════════════════════════════ */
 .account-hero{background:var(--white);padding:28px 20px;margin:16px 16px 0;border-radius:20px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.acc-avatar{width:72px;height:72px;border-radius:50%;background:var(--red-light);border:3px solid var(--red);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:var(--red);margin:0 auto 12px}
+.acc-avatar-wrap{position:relative;width:88px;height:88px;margin:0 auto 14px;cursor:pointer}
+.acc-avatar-wrap:active{opacity:.85}
+.acc-avatar{width:88px;height:88px;border-radius:50%;background:var(--red-light);border:3px solid var(--red);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:var(--red)}
+.acc-avatar-img{width:88px;height:88px;border-radius:50%;border:3px solid var(--red);object-fit:cover;position:absolute;inset:0}
+.acc-avatar-overlay{position:absolute;bottom:0;right:0;width:28px;height:28px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .acc-name{font-size:20px;font-weight:900}
 .acc-email{font-size:13px;color:var(--muted);font-weight:600;margin-top:2px}
 .acc-role{display:inline-block;margin-top:10px;padding:4px 14px;background:var(--red-light);border-radius:20px;font-size:11px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.05em}
@@ -485,7 +489,13 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
     <!-- ── CUENTA / CONFIGURACIÓN ── -->
     <div class="page" id="pg-cuenta">
       <div class="account-hero">
-        <div class="acc-avatar" id="acc-av">--</div>
+        <!-- Avatar con foto y botón de cambio -->
+        <div class="acc-avatar-wrap" onclick="triggerAvatarUpload()">
+          <div class="acc-avatar" id="acc-av">--</div>
+          <img class="acc-avatar-img" id="acc-av-img" src="" alt="" style="display:none">
+          <div class="acc-avatar-overlay">📷</div>
+        </div>
+        <input type="file" id="acc-avatar-input" accept="image/*" style="display:none" onchange="handleAvatarChange(event)">
         <div class="acc-name" id="acc-name">Usuario</div>
         <div class="acc-email" id="acc-email">usuario@email.com</div>
         <div class="acc-role" id="acc-role">Usuario</div>
@@ -511,6 +521,19 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           </div>
         </div>
 
+        <div class="sl-item" onclick="toggleNamePanel()">
+          <div class="sl-icon">✏️</div>
+          <div class="sl-label">Cambiar nombre</div>
+          <div class="sl-arrow">›</div>
+        </div>
+        <div id="name-panel" style="display:none">
+          <div class="admin-card" style="margin-bottom:8px">
+            <div class="form-field"><label>Nombre actual</label><input id="new-name" type="text" placeholder="Tu nombre completo" autocorrect="off"></div>
+            <button class="btn-add" onclick="changeName()" style="margin-top:4px;width:100%">Guardar nombre</button>
+            <div class="err-small" id="name-err" style="text-align:center;margin-top:5px"></div>
+          </div>
+        </div>
+
         <div class="sl-item" onclick="togglePinPanel()">
           <div class="sl-icon">🔑</div>
           <div class="sl-label">Cambiar contraseña</div>
@@ -519,11 +542,10 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
         <div id="pin-panel" style="display:none">
           <div class="admin-card" style="margin-bottom:8px">
             <div class="form-field"><label>Contraseña actual</label><input id="old-pass" type="password" placeholder="••••••••"></div>
-            <div class="form-field"><label>Nueva contraseña</label><input id="new-pass" type="password" placeholder="••••••••"></div>
-            <button class="btn-add" onclick="changePassword()" style="margin-top:10px; width:100%">
-            Cambiar contraseña
-           </button>
-           <div class="err-small" id="pass-err" style="text-align:center; margin-top:5px"></div>
+            <div class="form-field"><label>Nueva contraseña</label><input id="new-pass" type="password" placeholder="Mínimo 6 caracteres"></div>
+            <div class="form-field"><label>Repetir nueva contraseña</label><input id="new-pass2" type="password" placeholder="Repite la contraseña"></div>
+            <button class="btn-add" onclick="changePassword()" style="margin-top:10px;width:100%">Cambiar contraseña</button>
+            <div class="err-small" id="pass-err" style="text-align:center;margin-top:5px"></div>
           </div>
         </div>
 
@@ -887,16 +909,22 @@ function gestionarVisibilidadAdmin() {
     }
 }
   
-// ── Cambio de Contraseña (Único y Corregido) ───────────────────────────────
+// ── Cambio de Contraseña ──────────────────────────────────────────────────
 async function changePassword() {
-  const elOld = document.getElementById('old-pass');
-  const elNew = document.getElementById('new-pass');
-  const elErr = document.getElementById('pass-err');
+  const elOld  = document.getElementById('old-pass');
+  const elNew  = document.getElementById('new-pass');
+  const elNew2 = document.getElementById('new-pass2');
+  const elErr  = document.getElementById('pass-err');
 
-  if (!elOld.value || !elNew.value) {
-    elErr.style.color = "#ff4d4d";
-    elErr.textContent = 'Rellena ambos campos';
-    return;
+  elErr.style.color = '#ff4d4d';
+  if (!elOld.value || !elNew.value || !elNew2.value) {
+    elErr.textContent = 'Rellena todos los campos'; return;
+  }
+  if (elNew.value.length < 6) {
+    elErr.textContent = 'La contraseña debe tener mínimo 6 caracteres'; return;
+  }
+  if (elNew.value !== elNew2.value) {
+    elErr.textContent = 'Las contraseñas nuevas no coinciden'; return;
   }
 
   try {
@@ -912,17 +940,136 @@ async function changePassword() {
     const data = await response.json();
 
     if (data.success) {
-      elErr.style.color = "#28a745";
+      elErr.style.color = '#28a745';
       elErr.textContent = data.message || 'Contraseña actualizada correctamente';
-      elOld.value = ''; elNew.value = '';
+      elOld.value = ''; elNew.value = ''; elNew2.value = '';
       if (typeof toast2 === 'function') toast2('Contraseña actualizada');
     } else {
-      elErr.style.color = "#ff4d4d";
+      elErr.style.color = '#ff4d4d';
       elErr.textContent = data.message || 'Error al cambiar';
     }
   } catch (e) {
     elErr.textContent = 'Error de conexión';
   }
+}
+
+// ── Cambio de nombre ───────────────────────────────────────────────────────
+function toggleNamePanel() {
+  const panel = document.getElementById('name-panel');
+  const visible = panel.style.display === 'none';
+  panel.style.display = visible ? 'block' : 'none';
+  if (visible) {
+    document.getElementById('new-name').value = S.currentUser.name || '';
+    document.getElementById('name-err').textContent = '';
+  }
+}
+
+async function changeName() {
+  const elName = document.getElementById('new-name');
+  const elErr  = document.getElementById('name-err');
+  const nombre = elName.value.trim();
+  elErr.style.color = '#ff4d4d';
+
+  if (!nombre || nombre.length < 2) {
+    elErr.textContent = 'El nombre debe tener al menos 2 caracteres'; return;
+  }
+
+  try {
+    const response = await fetch('/api/change-name', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: S.currentUser.username, name: nombre })
+    });
+    const data = await response.json();
+    if (data.success) {
+      S.currentUser.name = nombre;
+      save();
+      // Actualizar UI
+      document.getElementById('acc-name').textContent = nombre;
+      document.getElementById('tb-addr').innerHTML = `Usuario, <span class="user-name-style">${nombre}</span>`;
+      document.getElementById('acc-av').textContent = nombre.slice(0,2).toUpperCase();
+      elErr.style.color = '#28a745';
+      elErr.textContent = 'Nombre actualizado correctamente';
+      if (typeof toast2 === 'function') toast2('Nombre actualizado');
+    } else {
+      elErr.textContent = data.message || 'Error al cambiar el nombre';
+    }
+  } catch (e) {
+    elErr.textContent = 'Error de conexión';
+  }
+}
+
+// ── Avatar / Foto de perfil ────────────────────────────────────────────────
+function triggerAvatarUpload() {
+  document.getElementById('acc-avatar-input').click();
+}
+
+function handleAvatarChange(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    if (typeof toast2 === 'function') toast2('⚠️ La imagen no debe superar 2MB');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const size = 200;
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2;
+      const sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+      applyAvatar(compressed);
+      saveAvatarToServer(compressed);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveAvatarToServer(dataUrl) {
+  try {
+    toast2('Subiendo foto...');
+    const res = await fetch('/api/change-avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: S.currentUser.username, avatar: dataUrl })
+    });
+    const data = await res.json();
+    if (data.success) {
+      S.currentUser.avatar = dataUrl;
+      save();
+      toast2('✅ Foto guardada');
+    } else {
+      toast2('⚠️ ' + (data.message || 'Error al guardar foto'));
+    }
+  } catch(e) {
+    toast2('⚠️ Error de conexión al subir foto');
+  }
+}
+
+function applyAvatar(dataUrl) {
+  const imgEl  = document.getElementById('acc-av-img');
+  const initEl = document.getElementById('acc-av');
+  if (dataUrl) {
+    imgEl.src = dataUrl;
+    imgEl.style.display = 'block';
+    initEl.style.display = 'none';
+  } else {
+    imgEl.style.display = 'none';
+    initEl.style.display = 'flex';
+  }
+}
+
+function loadAvatar() {
+  if (!S.currentUser) return;
+  // Usar avatar del servidor (viene en S.currentUser.avatar tras login)
+  applyAvatar(S.currentUser.avatar || null);
 }
 
 // ── Historial y Usuarios ────────────────────────────────────────────────────
@@ -1042,7 +1189,8 @@ setInterval(() => {
   // 3. ACTUALIZACIÓN DE VISTAS
   updateStatusUI(); // Ahora pintará el estado real traído en el paso anterior
   renderLog();      // Ahora pintará el historial real del servidor
-  renderUsersAdmin(); 
+  renderUsersAdmin();
+  loadAvatar(); 
   
   // 4. RELLENAR FORMULARIO
   loadConfigForm();

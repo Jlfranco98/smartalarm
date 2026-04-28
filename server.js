@@ -53,7 +53,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   pin: String,
   role: { type: String, default: 'user' },
-  isNew: { type: Boolean, default: true }
+  isNew: { type: Boolean, default: true },
+  avatar: { type: String, default: null }
 }, { collection: 'users', timestamps: true, suppressReservedKeysWarning: true });
 
 const logSchema = new mongoose.Schema({
@@ -307,22 +308,54 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
     if (user && await bcrypt.compare(password, user.password))
-      res.json({ success: true, user: { name: user.name, username: user.username, role: user.role, pin: user.pin, isNew: user.isNew } });
+      res.json({ success: true, user: { name: user.name, username: user.username, role: user.role, pin: user.pin, isNew: user.isNew, avatar: user.avatar || null } });
     else res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
   } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/change-password', async (req, res) => {
   try {
-    const { username, newPassword } = req.body;
+    const { username, currentPassword, newPassword } = req.body;
+    if (!username || !currentPassword || !newPassword)
+      return res.status(400).json({ success: false, message: 'Faltan campos obligatorios.' });
     const forbidden = ['password','pass','123','1234','12345','123456','admin','qwerty'];
-    if (forbidden.includes(newPassword.toLowerCase())) return res.json({ success: false, message: 'Contraseña demasiado fácil.' });
+    if (forbidden.includes(newPassword.toLowerCase()))
+      return res.json({ success: false, message: 'Contraseña demasiado fácil.' });
     const user = await User.findOne({ username });
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    if (await bcrypt.compare(newPassword, user.password)) return res.json({ success: false, message: 'Debe ser diferente a la anterior.' });
+    // Validar contraseña actual
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) return res.json({ success: false, message: 'La contraseña actual es incorrecta.' });
+    // Que no sea igual a la anterior
+    if (await bcrypt.compare(newPassword, user.password))
+      return res.json({ success: false, message: 'La nueva contraseña debe ser diferente a la anterior.' });
     await User.updateOne({ username }, { $set: { password: await bcrypt.hash(newPassword, 10), isNew: false } });
-    res.json({ success: true, message: 'Contraseña actualizada' });
+    res.json({ success: true, message: 'Contraseña actualizada correctamente' });
   } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/change-name', async (req, res) => {
+  try {
+    const { username, name } = req.body;
+    if (!username || !name || name.trim().length < 2)
+      return res.status(400).json({ success: false, message: 'Nombre no válido.' });
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    await User.updateOne({ username }, { $set: { name: name.trim() } });
+    res.json({ success: true, message: 'Nombre actualizado correctamente' });
+  } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/change-avatar', async (req, res) => {
+  try {
+    const { username, avatar } = req.body;
+    if (!username) return res.status(400).json({ success: false, message: 'Falta el usuario.' });
+    // Validar tamaño (~2MB en base64 ≈ ~2.7MB string)
+    if (avatar && avatar.length > 3 * 1024 * 1024)
+      return res.status(400).json({ success: false, message: 'Imagen demasiado grande (máx 2MB).' });
+    await User.updateOne({ username }, { $set: { avatar: avatar || null } });
+    res.json({ success: true, message: 'Foto actualizada correctamente' });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.post('/api/change-pin', async (req, res) => {
