@@ -146,9 +146,12 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 /* SOS confirm modal */
 .sos-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
 .sos-modal-bg.open{opacity:1;pointer-events:all}
+.sos-modal-bg.pulsing{animation:sosBgPulse 1s ease-in-out infinite}
+@keyframes sosBgPulse{0%,100%{background:rgba(0,0,0,.75)}50%{background:rgba(100,0,0,.85)}}
 .sos-modal{background:var(--white);border-radius:24px;padding:32px 24px 24px;width:calc(100% - 48px);max-width:340px;transform:scale(0.9);transition:transform .3s cubic-bezier(.4,0,.2,1);text-align:center}
 .sos-modal-bg.open .sos-modal{transform:scale(1)}
-.sos-modal-icon{font-size:52px;text-align:center;margin-bottom:12px}
+.sos-modal-icon{font-size:52px;text-align:center;margin-bottom:12px;animation:sosIconPulse 1s ease-in-out infinite}
+@keyframes sosIconPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 .sos-modal-title{font-size:20px;font-weight:900;text-align:center;color:#7d0000;margin-bottom:8px}
 .sos-modal-sub{font-size:13px;color:var(--muted);text-align:center;font-weight:600;margin-bottom:24px;line-height:1.5}
 .sos-countdown-wrap{position:relative;width:120px;height:120px;margin:0 auto 24px}
@@ -156,6 +159,8 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .sos-countdown-bg{fill:none;stroke:#f5e0e0;stroke-width:7}
 .sos-countdown-circle{fill:none;stroke:#7d0000;stroke-width:7;stroke-linecap:round;stroke-dasharray:314;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear}
 .sos-countdown-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;color:#7d0000;font-family:'Nunito',sans-serif}
+.sos-countdown-num.tick{animation:sosTick .3s ease-out}
+@keyframes sosTick{0%{transform:scale(1.4)}100%{transform:scale(1)}}
 .sos-modal-btn-now{width:100%;padding:16px;background:#7d0000;color:#fff;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;margin-bottom:10px;transition:background .15s}
 .sos-modal-btn-now:active{background:#5a0000}
 .sos-modal-btn-cancel{width:100%;padding:14px;background:transparent;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer}
@@ -1030,23 +1035,26 @@ let sosSegundos = 10;
 
 function openSos() {
   sosSegundos = 10;
-  document.getElementById('sos-num').textContent = '10';
+  const numEl = document.getElementById('sos-num');
+  numEl.textContent = '10';
+  numEl.className = 'sos-countdown-num';
+
   // Reset círculo
   const circle = document.getElementById('sos-circle');
   circle.style.transition = 'none';
   circle.style.strokeDashoffset = '0';
-  document.getElementById('sos-modal-bg').classList.add('open');
+
+  const bg = document.getElementById('sos-modal-bg');
+  bg.classList.add('open');
 
   // Pedir permiso de ubicación YA al abrir el modal (fix iOS)
-  // iOS solo permite geolocation en respuesta a un gesto de usuario
-  // Lo pedimos aquí para que el permiso esté listo cuando se envíe
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 1000, maximumAge: 60000 });
   }
 
-  // Pequeño delay para que el CSS transition funcione
   setTimeout(() => {
     circle.style.transition = 'stroke-dashoffset 1s linear';
+    bg.classList.add('pulsing');
     iniciarCuentaAtras();
   }, 100);
 }
@@ -1055,19 +1063,27 @@ function iniciarCuentaAtras() {
   if (sosTimer) clearInterval(sosTimer);
   const circle = document.getElementById('sos-circle');
   const numEl  = document.getElementById('sos-num');
-  const total  = 314; // 2 * π * r (r=50 en viewBox 100)
+  const total  = 314;
 
   sosTimer = setInterval(() => {
     sosSegundos--;
     numEl.textContent = sosSegundos;
+
+    // Animación de tick en el número
+    numEl.className = 'sos-countdown-num';
+    void numEl.offsetWidth; // fuerza reflow para reiniciar animación
+    numEl.className = 'sos-countdown-num tick';
+
     // Avanzar el círculo
     circle.style.strokeDashoffset = total - (total * (sosSegundos / 10));
-    if (navigator.vibrate) navigator.vibrate(100);
+
+    // Vibración Android
+    if (navigator.vibrate) navigator.vibrate(150);
 
     if (sosSegundos <= 0) {
       clearInterval(sosTimer);
       sosTimer = null;
-      if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+      if (navigator.vibrate) navigator.vibrate([400, 100, 400, 100, 400]);
       enviarSosAhora();
     }
   }, 1000);
@@ -1075,13 +1091,20 @@ function iniciarCuentaAtras() {
 
 function cancelarSos() {
   if (sosTimer) { clearInterval(sosTimer); sosTimer = null; }
-  document.getElementById('sos-modal-bg').classList.remove('open');
+  const bg = document.getElementById('sos-modal-bg');
+  bg.classList.remove('open', 'pulsing');
 }
 
 async function enviarSosAhora() {
   if (sosTimer) { clearInterval(sosTimer); sosTimer = null; }
-  document.getElementById('sos-modal-bg').classList.remove('open');
+  const bg = document.getElementById('sos-modal-bg');
+  bg.classList.remove('open', 'pulsing');
+
+  // Enviar alerta
   await applyAction('sos', S.currentUser.name);
+
+  // Abrir marcador con 112 (el usuario solo tiene que pulsar llamar)
+  setTimeout(() => { window.location.href = 'tel:112'; }, 1500);
 }
 
 function cerrarSosModal() { cancelarSos(); }
