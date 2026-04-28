@@ -184,7 +184,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
 /* Icono circular en la línea */
 .hi-icon-wrap{position:absolute;left:-44px;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.hi-icon-wrap.ic-accion{background:#e8f5e9;border:2px solid #34c759}
+.hi-icon-wrap.ic-accion{background:#e8f5e9;border:2px solid #FF8669}
 .hi-icon-wrap.ic-disarm{background:#e8f5e9;border:2px solid #34c759}
 .hi-icon-wrap.ic-noche{background:#fff3e0;border:2px solid var(--orange)}
 .hi-icon-wrap.ic-salto{background:#fdecea;border:2px solid var(--red)}
@@ -1925,7 +1925,7 @@ async function renderDispositivos() {
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;background:${d.online ? '#EAF3DE' : '#FCEBEB'};color:${d.online ? '#3B6D11' : '#A32D2D'}">
-            <div style="width:7px;height:7px;border-radius:50%;background:${d.online ? '#34c759' : '#ff4444'}"></div>
+            <div style="width:7px;height:7px;border-radius:50%;background:${d.online ? '' : '#ff4444'}"></div>
             ${d.online ? 'Online' : 'Offline'}
           </div>
           ${d.bateria !== null && d.bateria !== undefined ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">🔋 ${d.bateria}%</div>` : ''}
@@ -1941,7 +1941,7 @@ async function renderDispositivos() {
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;background:${hb.vivo ? '#EAF3DE' : '#FCEBEB'};color:${hb.vivo ? '#3B6D11' : '#A32D2D'}">
-            <div style="width:7px;height:7px;border-radius:50%;background:${hb.vivo ? '#34c759' : '#ff4444'}"></div>
+            <div style="width:7px;height:7px;border-radius:50%;background:${hb.vivo ? '' : '#ff4444'}"></div>
             ${hb.vivo ? 'Online' : 'Offline'}
           </div>
         </div>
