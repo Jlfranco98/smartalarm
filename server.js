@@ -496,8 +496,8 @@ setInterval(async () => {
 }, 5 * 60 * 1000);
 
 // --- 13. HISTORIAL Y CONFIG ---
-app.get('/api/logs',      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(30)); } catch (e) { res.status(500).json([]); } });
-app.get('/api/historial', async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(20)); } catch (e) { res.status(500).json([]); } });
+app.get('/api/logs',      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
+app.get('/api/historial', async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
 app.get('/api/config',    async (req, res) => { try { res.json(await Config.findOne({ id: 'global_config' }) || {}); } catch (e) { res.status(500).json({}); } });
 app.post('/api/config',   async (req, res) => { try { await Config.findOneAndUpdate({ id: 'global_config' }, req.body, { upsert: true }); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); } });
 app.get('/api/status',    async (req, res) => { try { const c = await Config.findOne({ id: 'global_config' }); res.json({ alarmStatus: c?.alarmStatus || 'disarmed' }); } catch (e) { res.status(500).send(e.message); } });
