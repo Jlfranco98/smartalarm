@@ -229,6 +229,21 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .hist-empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:14px;font-weight:700}
 .hist-empty-icon{font-size:36px;margin-bottom:10px}
 
+/* ── Collapsible filter panel ─────────────────────────────────────── */
+.hf-filter-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;flex-shrink:0}
+.hf-filter-toggle.active{background:var(--red);border-color:var(--red);color:#fff}
+.hf-toggle-arrow{font-size:10px;transition:transform .25s;display:inline-block}
+.hf-toggle-arrow.open{transform:rotate(180deg)}
+.hf-panel-collapsed{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1),opacity .25s;opacity:0}
+.hf-panel-collapsed.open{max-height:400px;opacity:1}
+
+/* ── Pagination ───────────────────────────────────────────────────── */
+.pg-btn{padding:8px 16px;border-radius:12px;border:1.5px solid var(--border);background:var(--white);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s}
+.pg-btn:active{transform:scale(.95)}
+.pg-btn.disabled{opacity:.35;pointer-events:none}
+.pg-btn.current{background:var(--red);border-color:var(--red);color:#fff}
+.pg-info{font-size:12px;font-weight:800;color:var(--muted);white-space:nowrap}
+
 /* ══════════════════════════════════════════════════════════
    PAGE: MI CUENTA
 ══════════════════════════════════════════════════════════ */
@@ -421,40 +436,50 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
     <div class="page" id="pg-historial">
       <div class="sec-hdr" style="padding-bottom:4px"><span class="sec-title">Historial de actividad</span></div>
 
-      <!-- Filtros -->
+      <!-- Filtros colapsables -->
       <div class="hist-filters">
-        <!-- Fila 1: Categorías -->
-        <div class="hf-row">
-          <button class="hf-chip active" id="fc-todo" onclick="setFiltroCategoria('todo')">🔍 Todos</button>
-          <button class="hf-chip cat-acciones" id="fc-acciones" onclick="setFiltroCategoria('acciones')">🔐 Acciones</button>
-          <button class="hf-chip cat-saltos" id="fc-saltos" onclick="setFiltroCategoria('saltos')">🚨 Saltos</button>
-          <button class="hf-chip cat-errores" id="fc-errores" onclick="setFiltroCategoria('errores')">⚙️ Sistema</button>
+        <!-- Barra superior: contador + botón filtros -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 4px">
+          <div class="hf-count" id="hf-count" style="padding:0;font-size:12px"></div>
+          <button class="hf-filter-toggle" id="hf-toggle-btn" onclick="toggleFiltros()">
+            <span id="hf-toggle-icon">⚙️</span> Filtros
+            <span class="hf-toggle-arrow" id="hf-toggle-arrow">▾</span>
+          </button>
         </div>
 
-        <!-- Fila 2: Subcategorías (dinámicas) -->
-        <div class="hf-row" id="hf-subcats" style="display:none;margin-top:4px"></div>
-
-        <!-- Fila 3: Fecha y hora -->
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 2px">
-          <div class="hf-section-label" style="padding:0">📅 Filtrar por fecha</div>
-          <button class="hf-clear-btn" onclick="limpiarFiltros()" style="margin-right:0">✕ Limpiar</button>
-        </div>
-        <div class="hf-date-row" style="padding:0 0 6px">
-          <div style="flex:1">
-            <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">Desde</div>
-            <input type="datetime-local" class="hf-date-input" id="hf-desde" onchange="renderLogFiltrado()">
+        <!-- Panel colapsable -->
+        <div id="hf-panel" class="hf-panel-collapsed">
+          <!-- Fila 1: Categorías -->
+          <div class="hf-section-label" style="padding:8px 0 4px">Categoría</div>
+          <div class="hf-row">
+            <button class="hf-chip active" id="fc-todo" onclick="setFiltroCategoria('todo')">🔍 Todos</button>
+            <button class="hf-chip cat-acciones" id="fc-acciones" onclick="setFiltroCategoria('acciones')">🔐 Acciones</button>
+            <button class="hf-chip cat-saltos" id="fc-saltos" onclick="setFiltroCategoria('saltos')">🚨 Saltos</button>
+            <button class="hf-chip cat-errores" id="fc-errores" onclick="setFiltroCategoria('errores')">⚙️ Sistema</button>
           </div>
-          <div style="flex:1">
-            <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">Hasta</div>
-            <input type="datetime-local" class="hf-date-input" id="hf-hasta" onchange="renderLogFiltrado()">
-          </div>
-        </div>
 
-        <!-- Contador de resultados -->
-        <div class="hf-count" id="hf-count"></div>
+          <!-- Fila 2: Subcategorías (dinámicas) -->
+          <div class="hf-row" id="hf-subcats" style="display:none;margin-top:4px"></div>
+
+          <!-- Fila 3: Fecha y hora -->
+          <div class="hf-section-label" style="padding:10px 0 4px">Fecha</div>
+          <div class="hf-date-row" style="padding:0 0 4px">
+            <div style="flex:1">
+              <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">Desde</div>
+              <input type="datetime-local" class="hf-date-input" id="hf-desde" onchange="renderLogFiltrado()">
+            </div>
+            <div style="flex:1">
+              <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">Hasta</div>
+              <input type="datetime-local" class="hf-date-input" id="hf-hasta" onchange="renderLogFiltrado()">
+            </div>
+          </div>
+          <button class="hf-clear-btn" onclick="limpiarFiltros()" style="width:100%;margin-bottom:8px">✕ Limpiar filtros</button>
+        </div>
       </div>
 
       <div class="hist-list" id="full-log"></div>
+      <!-- Paginación -->
+      <div id="hist-pagination" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 16px 8px"></div>
     </div>
 
     <!-- ── CUENTA / CONFIGURACIÓN ── -->
@@ -1326,6 +1351,7 @@ if (texto.includes('reconectado') || texto.includes('reactivado')) {
 function setFiltroCategoria(cat) {
   F.categoria = cat;
   F.subcategoria = 'todo';
+  histPage = 1;
   // Chips de categoría
   ['todo','acciones','saltos','errores'].forEach(id => {
     const el = document.getElementById('fc-' + id);
@@ -1347,6 +1373,7 @@ function setFiltroCategoria(cat) {
 
 function setFiltroSub(sub) {
   F.subcategoria = sub;
+  histPage = 1;
   document.querySelectorAll('#hf-subcats .hf-chip').forEach(el => el.classList.remove('active'));
   const id = sub === 'todo' ? null : document.getElementById('fsc-' + sub);
   if (sub === 'todo') {
@@ -1359,12 +1386,17 @@ function setFiltroSub(sub) {
 
 function limpiarFiltros() {
   F = { categoria: 'todo', subcategoria: 'todo' };
+  histPage = 1;
   document.getElementById('hf-desde').value = '';
   document.getElementById('hf-hasta').value = '';
   setFiltroCategoria('todo');
 }
 
-function renderLogFiltrado() {
+const HIST_PER_PAGE = 30;
+let histPage = 1;
+
+function renderLogFiltrado(resetPage = true) {
+  if (resetPage) histPage = 1;
   const items = S.log || [];
   const desde = document.getElementById('hf-desde')?.value ? new Date(document.getElementById('hf-desde').value) : null;
   const hasta = document.getElementById('hf-hasta')?.value ? new Date(document.getElementById('hf-hasta').value) : null;
@@ -1386,26 +1418,36 @@ function renderLogFiltrado() {
     return true;
   });
 
+  const total = items.length;
+  const totalFiltrados = filtrados.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltrados / HIST_PER_PAGE));
+  histPage = Math.min(histPage, totalPages);
+
   const countEl = document.getElementById('hf-count');
   if (countEl) {
-    const total = items.length;
-    countEl.textContent = filtrados.length === total ? `${total} evento${total !== 1 ? 's' : ''}` :
-      `${filtrados.length} de ${total} evento${total !== 1 ? 's' : ''}`;
+    const base = totalFiltrados === total ? `${total} evento${total !== 1 ? 's' : ''}` :
+      `${totalFiltrados} de ${total} evento${total !== 1 ? 's' : ''}`;
+    countEl.textContent = totalPages > 1 ? `${base}  ·  pág. ${histPage}/${totalPages}` : base;
   }
 
   const el = document.getElementById('full-log');
   if (!el) return;
   if (!filtrados.length) {
     el.innerHTML = `<div class="hist-empty"><div class="hist-empty-icon">🔍</div>Sin resultados para este filtro</div>`;
+    renderPaginacion(0, 1, 1);
     return;
   }
+
+  // Página actual
+  const inicio = (histPage - 1) * HIST_PER_PAGE;
+  const pagina = filtrados.slice(inicio, inicio + HIST_PER_PAGE);
 
   // Agrupar por día
   const grupos = {};
   const hoy = new Date();
   const ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1);
 
-  filtrados.forEach(l => {
+  pagina.forEach(l => {
     let raw = l.fecha?.$date || l.fecha;
     let diaKey = 'Sin fecha';
     let diaLabel = 'Sin fecha';
@@ -1425,7 +1467,6 @@ function renderLogFiltrado() {
     grupos[diaKey].items.push(l);
   });
 
-  // Renderizar grupos
   el.innerHTML = Object.keys(grupos).sort((a,b) => b.localeCompare(a)).map(key => {
     const g = grupos[key];
     return `
@@ -1436,6 +1477,57 @@ function renderLogFiltrado() {
         </div>
       </div>`;
   }).join('');
+
+  renderPaginacion(totalFiltrados, histPage, totalPages);
+}
+
+function renderPaginacion(total, page, totalPages) {
+  const el = document.getElementById('hist-pagination');
+  if (!el) return;
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+
+  const prevDis = page <= 1 ? 'disabled' : '';
+  const nextDis = page >= totalPages ? 'disabled' : '';
+
+  // Generar botones de página (máx 5 visibles)
+  let pageBtns = '';
+  const range = [];
+  const delta = 2;
+  for (let i = Math.max(1, page - delta); i <= Math.min(totalPages, page + delta); i++) range.push(i);
+  if (range[0] > 1) {
+    pageBtns += `<button class="pg-btn" onclick="goHistPage(1)">1</button>`;
+    if (range[0] > 2) pageBtns += `<span class="pg-info">…</span>`;
+  }
+  range.forEach(p => {
+    pageBtns += `<button class="pg-btn${p === page ? ' current' : ''}" onclick="goHistPage(${p})">${p}</button>`;
+  });
+  if (range[range.length-1] < totalPages) {
+    if (range[range.length-1] < totalPages - 1) pageBtns += `<span class="pg-info">…</span>`;
+    pageBtns += `<button class="pg-btn" onclick="goHistPage(${totalPages})">${totalPages}</button>`;
+  }
+
+  el.innerHTML = `
+    <button class="pg-btn ${prevDis}" onclick="goHistPage(${page-1})">‹ Ant.</button>
+    ${pageBtns}
+    <button class="pg-btn ${nextDis}" onclick="goHistPage(${page+1})">Sig. ›</button>`;
+}
+
+function goHistPage(page) {
+  histPage = page;
+  renderLogFiltrado(false);
+  // Scroll al inicio del historial
+  const pg = document.getElementById('pg-historial');
+  if (pg) pg.scrollTop = 0;
+}
+
+// ── Toggle filtros ──────────────────────────────────────────────────────────
+function toggleFiltros() {
+  const panel = document.getElementById('hf-panel');
+  const btn   = document.getElementById('hf-toggle-btn');
+  const arrow = document.getElementById('hf-toggle-arrow');
+  const open  = panel.classList.toggle('open');
+  arrow.classList.toggle('open', open);
+  btn.classList.toggle('active', open);
 }
 
 function buildLogItem(l, full = false) {
