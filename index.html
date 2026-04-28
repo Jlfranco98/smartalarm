@@ -247,22 +247,108 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 /* ══════════════════════════════════════════════════════════
    PAGE: MI CUENTA
 ══════════════════════════════════════════════════════════ */
-.account-hero{background:var(--white);padding:28px 20px;margin:16px 16px 0;border-radius:20px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.acc-avatar-wrap{position:relative;width:88px;height:88px;margin:0 auto 14px;cursor:pointer}
-.acc-avatar-wrap:active{opacity:.85}
-.acc-avatar{width:88px;height:88px;border-radius:50%;background:var(--red-light);border:3px solid var(--red);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:var(--red)}
-.acc-avatar-img{width:88px;height:88px;border-radius:50%;border:3px solid var(--red);object-fit:cover;position:absolute;inset:0}
-.acc-avatar-overlay{position:absolute;bottom:0;right:0;width:28px;height:28px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
-.acc-name{font-size:20px;font-weight:900}
-.acc-email{font-size:13px;color:var(--muted);font-weight:600;margin-top:2px}
-.acc-role{display:inline-block;margin-top:10px;padding:4px 14px;background:var(--red-light);border-radius:20px;font-size:11px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.05em}
-.settings-list{padding:0 16px;margin-top:16px}
-.sl-item{background:var(--white);border-radius:14px;padding:15px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.04);transition:background .1s}
+
+/* Hero */
+.account-hero{
+  position:relative;overflow:hidden;
+  margin:16px 16px 0;border-radius:24px;
+  background:linear-gradient(135deg,var(--red) 0%,#b01020 100%);
+  padding:32px 20px 28px;text-align:center;
+  box-shadow:0 8px 32px rgba(232,25,44,.28);
+}
+.account-hero::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events:none;
+}
+.acc-avatar-wrap{
+  position:relative;width:96px;height:96px;
+  margin:0 auto 16px;cursor:pointer;
+}
+.acc-avatar-wrap:active{transform:scale(0.96)}
+.acc-avatar{
+  width:96px;height:96px;border-radius:50%;
+  background:rgba(255,255,255,.2);
+  border:3px solid rgba(255,255,255,.6);
+  backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  font-size:34px;font-weight:900;color:#fff;
+  letter-spacing:-1px;
+}
+.acc-avatar-img{
+  width:96px;height:96px;border-radius:50%;
+  border:3px solid rgba(255,255,255,.7);
+  object-fit:cover;position:absolute;inset:0;
+}
+.acc-avatar-overlay{
+  position:absolute;bottom:2px;right:2px;
+  width:26px;height:26px;
+  background:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+.acc-name{font-size:22px;font-weight:900;color:#fff;letter-spacing:-.3px}
+.acc-email{font-size:13px;color:rgba(255,255,255,.75);font-weight:600;margin-top:3px}
+.acc-role{
+  display:inline-block;margin-top:10px;
+  padding:4px 14px;
+  background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.3);
+  border-radius:20px;font-size:11px;font-weight:800;
+  color:#fff;text-transform:uppercase;letter-spacing:.08em;
+  backdrop-filter:blur(4px);
+}
+
+/* Settings list */
+.settings-list{padding:0 16px;margin-top:14px}
+
+/* Section label dentro de settings */
+.sl-section-label{
+  font-size:10px;font-weight:900;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.1em;
+  padding:16px 4px 6px;
+}
+
+.sl-group{
+  background:var(--white);border-radius:18px;
+  box-shadow:0 2px 12px rgba(0,0,0,.05);
+  overflow:hidden;margin-bottom:12px;
+}
+.sl-item{
+  padding:15px 16px;
+  display:flex;align-items:center;gap:14px;
+  cursor:pointer;transition:background .12s;
+  border-bottom:1px solid var(--border);
+  position:relative;
+}
+.sl-item:last-child{border-bottom:none}
 .sl-item:active{background:var(--bg)}
-.sl-icon{font-size:20px;width:36px;height:36px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.sl-label{font-size:14px;font-weight:800;flex:1}
-.sl-arrow{color:var(--muted);font-size:14px}
+.sl-icon{
+  font-size:18px;width:38px;height:38px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.sl-icon.ic-blue{background:#e8f0fe}
+.sl-icon.ic-purple{background:#f3e8ff}
+.sl-icon.ic-green{background:#e8fdf3}
+.sl-icon.ic-orange{background:#fff4e8}
+.sl-icon.ic-red{background:var(--red-light)}
+.sl-icon.ic-gray{background:var(--bg)}
+.sl-text{flex:1}
+.sl-label{font-size:14px;font-weight:800;color:var(--text)}
+.sl-sublabel{font-size:11px;color:var(--muted);font-weight:600;margin-top:1px}
+.sl-arrow{color:#bbb;font-size:18px;font-weight:300}
 .sl-item.danger .sl-label{color:var(--red)}
+.sl-item.danger .sl-icon{background:var(--red-light)}
+
+/* Panel expandible mejorado */
+.sl-panel{
+  background:#fafafa;
+  border-top:1px solid var(--border);
+  padding:16px;
+  animation:panelIn .2s ease;
+}
+@keyframes panelIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
 /* ══════════════════════════════════════════════════════════
    PAGE: ADMIN
@@ -488,8 +574,9 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
     <!-- ── CUENTA / CONFIGURACIÓN ── -->
     <div class="page" id="pg-cuenta">
+
+      <!-- Hero -->
       <div class="account-hero">
-        <!-- Avatar con foto y botón de cambio -->
         <div class="acc-avatar-wrap" onclick="triggerAvatarUpload()">
           <div class="acc-avatar" id="acc-av">--</div>
           <img class="acc-avatar-img" id="acc-av-img" src="" alt="" style="display:none">
@@ -497,159 +584,153 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
         </div>
         <input type="file" id="acc-avatar-input" accept="image/*" style="display:none" onchange="handleAvatarChange(event)">
         <div class="acc-name" id="acc-name">Usuario</div>
-        <div class="acc-email" id="acc-email">usuario@email.com</div>
+        <div class="acc-email" id="acc-email">usuario</div>
         <div class="acc-role" id="acc-role">Usuario</div>
       </div>
 
       <div class="settings-list">
-  <div class="sl-item admin-only" onclick="toggleCfgPanel()" style="display: none;">
-    <div class="sl-icon">🔗</div>
-    <div class="sl-label">Configurar servidor alarma</div>
-    <div class="sl-arrow">›</div>
-  </div>
-  </div>
-        <div id="cfg-panel" style="display:none">
-          <div class="admin-card" style="margin-bottom:8px">
+
+        <!-- GRUPO: MI CUENTA -->
+        <div class="sl-section-label">Mi cuenta</div>
+        <div class="sl-group">
+
+          <div class="sl-item" onclick="toggleNamePanel()">
+            <div class="sl-icon ic-blue">✏️</div>
+            <div class="sl-text">
+              <div class="sl-label">Cambiar nombre</div>
+              <div class="sl-sublabel">Actualiza cómo te ven los demás</div>
+            </div>
+            <div class="sl-arrow">›</div>
+          </div>
+          <div id="name-panel" style="display:none" class="sl-panel">
+            <div class="form-field"><label>Nuevo nombre</label><input id="new-name" type="text" placeholder="Tu nombre completo" autocorrect="off"></div>
+            <button class="btn-add" onclick="changeName()" style="width:100%">Guardar nombre</button>
+            <div class="err-small" id="name-err" style="text-align:center;margin-top:6px"></div>
+          </div>
+
+          <div class="sl-item" onclick="togglePinPanel()">
+            <div class="sl-icon ic-purple">🔑</div>
+            <div class="sl-text">
+              <div class="sl-label">Cambiar contraseña</div>
+              <div class="sl-sublabel">Modifica tu contraseña de acceso</div>
+            </div>
+            <div class="sl-arrow">›</div>
+          </div>
+          <div id="pin-panel" style="display:none" class="sl-panel">
+            <div class="form-field"><label>Contraseña actual</label><input id="old-pass" type="password" placeholder="••••••••"></div>
+            <div class="form-field"><label>Nueva contraseña</label><input id="new-pass" type="password" placeholder="Mínimo 6 caracteres"></div>
+            <div class="form-field"><label>Repetir nueva contraseña</label><input id="new-pass2" type="password" placeholder="Repite la contraseña"></div>
+            <button class="btn-add" onclick="changePassword()" style="width:100%">Cambiar contraseña</button>
+            <div class="err-small" id="pass-err" style="text-align:center;margin-top:6px"></div>
+          </div>
+
+          <div class="sl-item" onclick="toggleChangePinPanel()">
+            <div class="sl-icon ic-orange">🔢</div>
+            <div class="sl-text">
+              <div class="sl-label">Cambiar PIN</div>
+              <div class="sl-sublabel">PIN de 4 dígitos para armar la alarma</div>
+            </div>
+            <div class="sl-arrow">›</div>
+          </div>
+          <div id="change-pin-panel" style="display:none" class="sl-panel">
+            <div class="form-field"><label>PIN actual</label><input id="cp-old" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
+            <div class="form-field"><label>PIN nuevo</label><input id="cp-new1" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
+            <div class="form-field"><label>Repetir PIN nuevo</label><input id="cp-new2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
+            <button class="btn-add" onclick="changePin()" style="width:100%">Cambiar PIN</button>
+            <div class="err-small" id="cp-err" style="text-align:center;margin-top:6px"></div>
+          </div>
+
+        </div>
+
+        <!-- GRUPO: NOTIFICACIONES -->
+        <div class="sl-section-label">Notificaciones</div>
+        <div class="sl-group">
+
+          <div class="sl-item" onclick="toggleNotifPanel()">
+            <div class="sl-icon ic-green">🔔</div>
+            <div class="sl-text">
+              <div class="sl-label">Preferencias de avisos</div>
+              <div class="sl-sublabel">Gestiona qué notificaciones recibes</div>
+            </div>
+            <div class="sl-arrow">›</div>
+          </div>
+          <div id="notif-panel" style="display:none" class="sl-panel">
+            <div style="font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Avisarme cuando...</div>
+            <div class="notif-toggle-row">
+              <div class="notif-toggle-info"><div class="notif-toggle-icon">🔒</div><div class="notif-toggle-label">Armado total</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="notif-arm-away" onchange="saveNotifPrefs()"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="notif-toggle-row">
+              <div class="notif-toggle-info"><div class="notif-toggle-icon">🌙</div><div class="notif-toggle-label">Modo noche</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="notif-arm-home" onchange="saveNotifPrefs()"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="notif-toggle-row">
+              <div class="notif-toggle-info"><div class="notif-toggle-icon">🔓</div><div class="notif-toggle-label">Desarmado</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="notif-disarm" onchange="saveNotifPrefs()"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="notif-toggle-row">
+              <div class="notif-toggle-info">
+                <div class="notif-toggle-icon">🆘</div>
+                <div><div class="notif-toggle-label">PÁNICO / SOS</div><div style="font-size:11px;color:var(--muted);font-weight:600">Siempre activo</div></div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked disabled style="pointer-events:none"><span class="toggle-slider" style="opacity:0.5"></span></label>
+            </div>
+            <div class="notif-toggle-row">
+              <div class="notif-toggle-info">
+                <div class="notif-toggle-icon">🚨</div>
+                <div><div class="notif-toggle-label">Salto de alarma</div><div style="font-size:11px;color:var(--muted);font-weight:600">Siempre activo</div></div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked disabled style="pointer-events:none"><span class="toggle-slider" style="opacity:0.5"></span></label>
+            </div>
+            <div class="notif-toggle-row" style="border-bottom:none">
+              <div class="notif-toggle-info">
+                <div class="notif-toggle-icon">📶</div>
+                <div><div class="notif-toggle-label">Dispositivo offline</div><div style="font-size:11px;color:var(--muted);font-weight:600">Siempre activo</div></div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked disabled style="pointer-events:none"><span class="toggle-slider" style="opacity:0.5"></span></label>
+            </div>
+            <button class="btn-add" id="notif-btn" style="margin-top:14px;width:100%" onclick="requestPushPermission()">🔔 Registrar este dispositivo</button>
+            <div class="cfg-saved" id="notif-ok" style="margin-top:6px"></div>
+          </div>
+
+        </div>
+
+        <!-- GRUPO: ADMIN (solo admin) -->
+        <div class="sl-section-label admin-only" style="display:none">Administración</div>
+        <div class="sl-group admin-only" style="display:none">
+          <div class="sl-item" onclick="toggleCfgPanel()">
+            <div class="sl-icon ic-gray">🔗</div>
+            <div class="sl-text">
+              <div class="sl-label">Configurar servidor</div>
+              <div class="sl-sublabel">Backend, dispositivo y región Tuya</div>
+            </div>
+            <div class="sl-arrow">›</div>
+          </div>
+          <div id="cfg-panel" style="display:none" class="sl-panel">
             <div class="form-field"><label>URL Backend</label><input id="cfg-backend" placeholder="https://tu-backend.railway.app"></div>
             <div class="form-field"><label>App Secret</label><input id="cfg-secret" type="password" placeholder="••••••••"></div>
             <div class="form-field"><label>Device ID</label><input id="cfg-device" placeholder="ID del dispositivo"></div>
             <div class="form-field"><label>Región</label>
               <select id="cfg-region"><option value="eu">Europa (España)</option><option value="us">América</option><option value="cn">China</option></select>
             </div>
-            <button class="btn-add" onclick="saveConfig()">Guardar configuración</button>
-            <div class="cfg-saved" id="cfg-ok"></div>
+            <button class="btn-add" onclick="saveConfig()" style="width:100%">Guardar configuración</button>
+            <div class="cfg-saved" id="cfg-ok" style="margin-top:6px"></div>
           </div>
         </div>
 
-        <div class="sl-item" onclick="toggleNamePanel()">
-          <div class="sl-icon">✏️</div>
-          <div class="sl-label">Cambiar nombre</div>
-          <div class="sl-arrow">›</div>
-        </div>
-        <div id="name-panel" style="display:none">
-          <div class="admin-card" style="margin-bottom:8px">
-            <div class="form-field"><label>Nombre actual</label><input id="new-name" type="text" placeholder="Tu nombre completo" autocorrect="off"></div>
-            <button class="btn-add" onclick="changeName()" style="margin-top:4px;width:100%">Guardar nombre</button>
-            <div class="err-small" id="name-err" style="text-align:center;margin-top:5px"></div>
+        <!-- GRUPO: SESIÓN -->
+        <div class="sl-section-label">Sesión</div>
+        <div class="sl-group" style="margin-bottom:32px">
+          <div class="sl-item danger" onclick="doLogout()">
+            <div class="sl-icon ic-red">🚪</div>
+            <div class="sl-text">
+              <div class="sl-label">Cerrar sesión</div>
+              <div class="sl-sublabel" style="color:#e8192c88">Salir de la aplicación</div>
+            </div>
+            <div class="sl-arrow" style="color:var(--red)">›</div>
           </div>
         </div>
 
-        <div class="sl-item" onclick="togglePinPanel()">
-          <div class="sl-icon">🔑</div>
-          <div class="sl-label">Cambiar contraseña</div>
-          <div class="sl-arrow">›</div>
-        </div>
-        <div id="pin-panel" style="display:none">
-          <div class="admin-card" style="margin-bottom:8px">
-            <div class="form-field"><label>Contraseña actual</label><input id="old-pass" type="password" placeholder="••••••••"></div>
-            <div class="form-field"><label>Nueva contraseña</label><input id="new-pass" type="password" placeholder="Mínimo 6 caracteres"></div>
-            <div class="form-field"><label>Repetir nueva contraseña</label><input id="new-pass2" type="password" placeholder="Repite la contraseña"></div>
-            <button class="btn-add" onclick="changePassword()" style="margin-top:10px;width:100%">Cambiar contraseña</button>
-            <div class="err-small" id="pass-err" style="text-align:center;margin-top:5px"></div>
-          </div>
-        </div>
-
-        <div class="sl-item" onclick="toggleChangePinPanel()">
-          <div class="sl-icon">🔢</div>
-          <div class="sl-label">Cambiar PIN personal</div>
-          <div class="sl-arrow">›</div>
-        </div>
-        <div id="change-pin-panel" style="display:none">
-          <div class="admin-card" style="margin-bottom:8px">
-            <div class="form-field"><label>PIN actual</label><input id="cp-old" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
-            <div class="form-field"><label>PIN nuevo</label><input id="cp-new1" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
-            <div class="form-field"><label>Repetir PIN nuevo</label><input id="cp-new2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
-            <button class="btn-add" onclick="changePin()" style="margin-top:10px;width:100%">Cambiar PIN</button>
-            <div class="err-small" id="cp-err" style="text-align:center;margin-top:5px"></div>
-          </div>
-        </div>
-
-<div class="sl-item" onclick="toggleNotifPanel()">
-          <div class="sl-icon">🔔</div>
-          <div class="sl-label">Notificaciones</div>
-          <div class="sl-arrow">›</div>
-        </div>
-        <div id="notif-panel" style="display:none">
-          <div class="admin-card" style="margin-bottom:8px">
-            <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:12px">Recibe una notificación cuando:</div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info">
-                <div class="notif-toggle-icon">🔒</div>
-                <div class="notif-toggle-label">Armado total</div>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="notif-arm-away" onchange="saveNotifPrefs()">
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info">
-                <div class="notif-toggle-icon">🌙</div>
-                <div class="notif-toggle-label">Modo noche</div>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="notif-arm-home" onchange="saveNotifPrefs()">
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info">
-                <div class="notif-toggle-icon">🔓</div>
-                <div class="notif-toggle-label">Desarmado</div>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="notif-disarm" onchange="saveNotifPrefs()">
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info">
-                <div class="notif-toggle-icon">🆘</div>
-                <div>
-                  <div class="notif-toggle-label">PÁNICO / SOS</div>
-                  <div style="font-size:11px;color:var(--muted);font-weight:600">Recibes una notificación cuando un miembro de la familia lo activa</div>
-                </div>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" checked disabled style="pointer-events:none">
-                <span class="toggle-slider" style="opacity:0.6"></span>
-              </label>
-            </div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info">
-                <div class="notif-toggle-icon">🚨</div>
-                <div>
-                  <div class="notif-toggle-label">Saltos de alarma</div>
-                  <div style="font-size:11px;color:var(--muted);font-weight:600">Recibes una notificación cuando la alarma se dispare</div>
-                </div>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" checked disabled style="pointer-events:none">
-                <span class="toggle-slider" style="opacity:0.6"></span>
-              </label>
-            </div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info">
-                <div class="notif-toggle-icon">📶</div>
-                <div>
-                  <div class="notif-toggle-label">Dispositivos fuera de línea</div>
-                  <div style="font-size:11px;color:var(--muted);font-weight:600">Te avisaremos si algún dispositivo deja de funcionar</div>
-                </div>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" checked disabled style="pointer-events:none">
-                <span class="toggle-slider" style="opacity:0.6"></span>
-              </label>
-            </div>
-            <button class="btn-add" id="notif-btn" style="margin-top:14px;width:100%" onclick="requestPushPermission()">🔔 Registrar este dispositivo</button>
-            <div class="cfg-saved" id="notif-ok"></div>
-          </div>
-        </div>
-        <div class="sl-item" onclick="doLogout()">
-          <div class="sl-icon">🚪</div>
-          <div class="sl-label danger" style="color:var(--red)">Cerrar sesión</div>
-          <div class="sl-arrow">›</div>
-        </div>
       </div>
     </div>
 
@@ -916,10 +997,10 @@ function gestionarVisibilidadAdmin() {
     // Aquí forzamos la comprobación y vemos qué falla
     if (S.currentUser && S.currentUser.role === 'admin') {
         console.log("Login correcto por un administrador");
-        itemTuya.style.display = 'flex';
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = el.classList.contains('sl-section-label') ? 'block' : 'flex');
     } else {
         console.log("Login correcto por un usuario");
-        itemTuya.style.display = 'none';
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
     }
 }
   

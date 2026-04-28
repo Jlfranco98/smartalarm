@@ -12,10 +12,8 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, '.')));
 
-// ── Sesiones en memoria ────────────────────────────────────────────────────
-// Mapa de token → username. Liviano para una app doméstica.
-const sessions = new Map();
 function generateToken() { return crypto.randomBytes(32).toString('hex'); }
+
 // Compara PIN sea cual sea su formato (texto plano legacy o bcrypt)
 async function checkPinCompat(inputPin, storedPin, username) {
   if (!storedPin) return false;
@@ -23,7 +21,6 @@ async function checkPinCompat(inputPin, storedPin, username) {
   if (isHashed) {
     return await bcrypt.compare(inputPin, storedPin);
   } else {
-    // PIN en texto plano (legacy) — comparar y hashear al vuelo
     if (inputPin !== storedPin) return false;
     const hashed = await bcrypt.hash(inputPin, 10);
     await require('mongoose').model('User').updateOne({ username }, { $set: { pin: hashed } });
@@ -32,13 +29,18 @@ async function checkPinCompat(inputPin, storedPin, username) {
   }
 }
 
-function requireAuth(req, res, next) {
+// ── Sesiones en MongoDB (sobreviven reinicios del servidor) ────────────────
+async function requireAuth(req, res, next) {
   const token = req.headers['x-app-token'];
-  if (!token || !sessions.has(token)) {
-    return res.status(401).json({ success: false, message: 'No autorizado' });
+  if (!token) return res.status(401).json({ success: false, message: 'No autorizado' });
+  try {
+    const session = await Session.findOne({ token });
+    if (!session) return res.status(401).json({ success: false, message: 'No autorizado' });
+    req.sessionUser = session.username;
+    next();
+  } catch(e) {
+    res.status(500).json({ success: false, message: 'Error de sesión' });
   }
-  req.sessionUser = sessions.get(token);
-  next();
 }
 
 // --- 1. VARIABLES DE ENTORNO ---
@@ -106,6 +108,12 @@ const pushSubSchema = new mongoose.Schema({
   device: { type: String, default: 'unknown' }
 }, { collection: 'push_subscriptions', timestamps: true });
 
+const sessionSchema = new mongoose.Schema({
+  token:     { type: String, required: true, unique: true },
+  username:  { type: String, required: true },
+  createdAt: { type: Date, default: Date.now, expires: 60 * 60 * 24 * 90 } // 90 días
+}, { collection: 'sessions' });
+
 const notifPrefSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   arm_away: { type: Boolean, default: true },
@@ -114,6 +122,7 @@ const notifPrefSchema = new mongoose.Schema({
 }, { collection: 'notif_prefs' });
 
 const User      = mongoose.model('User',      userSchema);
+const Session   = mongoose.model('Session',   sessionSchema);
 const Log       = mongoose.model('Log',       logSchema);
 const Config    = mongoose.model('Config',    configSchema);
 const PushSub   = mongoose.model('PushSub',   pushSubSchema);
@@ -340,7 +349,7 @@ app.post('/api/login', async (req, res) => {
     const user = await User.findOne({ username });
     if (user && await bcrypt.compare(password, user.password)) {
       const token = generateToken();
-      sessions.set(token, user.username);
+      await Session.create({ token, username: user.username });
       res.json({ success: true, token, user: { name: user.name, username: user.username, role: user.role, isNew: user.isNew, avatar: user.avatar || null } });
     }
     else res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
