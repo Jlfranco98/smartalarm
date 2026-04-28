@@ -1,4 +1,4 @@
-const CACHE = 'mialarm-v7.2';
+const CACHE = 'mialarm-v7.3';
 const ASSETS = [
   '/',
   '/index.html',
