@@ -282,10 +282,33 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 /* Toast */
 #toast{position:fixed;top:calc(var(--safe-top) + 70px);left:50%;transform:translateX(-50%) translateY(-10px);background:#1a1a1a;color:#fff;border-radius:12px;padding:10px 22px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:999;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  @keyframes slideDown {
+@keyframes slideDown {
   from { transform: translateY(-100%); }
   to { transform: translateY(0); }
 }
+
+/* ── Offline banner ───────────────────────────────────────────────── */
+#offline-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;font-size:13px;font-weight:800;transform:translateY(-100%);transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+#offline-banner.visible{transform:translateY(0)}
+#offline-banner .ob-dot{width:9px;height:9px;border-radius:50%;background:#ff453a;flex-shrink:0;animation:ob-blink 1.2s ease-in-out infinite}
+@keyframes ob-blink{0%,100%{opacity:1}50%{opacity:.3}}
+#offline-banner.reconnected{background:var(--green)}
+#offline-banner.reconnected .ob-dot{background:#fff;animation:none}
+
+/* ── Arm confirm overlay ──────────────────────────────────────────── */
+#arm-confirm-overlay{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+#arm-confirm-overlay.show{opacity:1;pointer-events:all}
+.aco-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.aco-card{position:relative;background:var(--white);border-radius:28px;padding:36px 28px 28px;width:calc(100% - 56px);max-width:320px;text-align:center;transform:scale(.85) translateY(20px);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+#arm-confirm-overlay.show .aco-card{transform:scale(1) translateY(0)}
+.aco-icon{font-size:58px;line-height:1;margin-bottom:14px}
+.aco-title{font-size:20px;font-weight:900;margin-bottom:6px}
+.aco-sub{font-size:13px;color:var(--muted);font-weight:600;line-height:1.5;margin-bottom:20px}
+.aco-bar{height:5px;border-radius:5px;background:var(--border);overflow:hidden}
+.aco-bar-fill{height:100%;border-radius:5px;width:0%;transition:width 2s linear}
+.aco-bar-fill.armed{background:var(--red)}
+.aco-bar-fill.disarmed{background:var(--green)}
+.aco-bar-fill.arm_home{background:var(--orange)}
 </style>
 </head>
 <body>
@@ -672,6 +695,23 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 </div>
 
 <div id="toast"></div>
+
+<!-- Offline banner -->
+<div id="offline-banner">
+  <div class="ob-dot"></div>
+  <span id="offline-banner-text">Sin conexión — comprueba tu red</span>
+</div>
+
+<!-- Arm confirm overlay -->
+<div id="arm-confirm-overlay">
+  <div class="aco-backdrop"></div>
+  <div class="aco-card">
+    <div class="aco-icon" id="aco-icon">🔒</div>
+    <div class="aco-title" id="aco-title">Alarma conectada</div>
+    <div class="aco-sub" id="aco-sub">El sistema está protegiendo tu hogar</div>
+    <div class="aco-bar"><div class="aco-bar-fill" id="aco-bar-fill"></div></div>
+  </div>
+</div>
 
 <div id="force-change-screen" class="screen" style="z-index: 1000; background: var(--bg); display: none; flex-direction: column; padding: 20px;">
     <div class="account-hero">
@@ -1206,6 +1246,7 @@ async function applyAction(action, userName) {
     // Todo OK — actualizamos pantalla
     S.alarmStatus = nextStatus;
     updateStatusUI();
+    if (action !== 'sos') showArmConfirm(nextStatus);
     const now = new Date();
     const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
     S.log.unshift({ action: ACTION_NAMES[action], user: userName, time, status: S.alarmStatus });
@@ -1509,7 +1550,9 @@ function renderLog() {
   // Inyectamos el último evento en el home
   const htmlHome = items.slice(0, 1).map(l => buildLogItem(l, false)).join('');
   if (document.getElementById('home-log')) {
-    document.getElementById('home-log').innerHTML = items.length > 0 ? htmlHome : '<div class="err-small">No hay eventos registrados</div>';
+    document.getElementById('home-log').innerHTML = items.length > 0
+      ? `<div class="hist-timeline">${htmlHome}</div>`
+      : '<div class="err-small">No hay eventos registrados</div>';
   }
 }
 
@@ -1952,6 +1995,57 @@ async function renderDispositivos() {
     el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:13px;font-weight:700">Error al consultar dispositivos</div>';
   }
 }
+
+// ── Offline / Online detection ─────────────────────────────────────────────
+(function initOfflineBanner() {
+  const banner = document.getElementById('offline-banner');
+  const bannerText = document.getElementById('offline-banner-text');
+  let reconnectTimer = null;
+
+  function showOffline() {
+    banner.classList.remove('reconnected');
+    banner.style.background = '';
+    bannerText.textContent = 'Sin conexión — comprueba tu red';
+    banner.classList.add('visible');
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  }
+
+  function showReconnected() {
+    banner.classList.add('reconnected');
+    bannerText.textContent = '✓ Conexión restaurada';
+    banner.classList.add('visible');
+    reconnectTimer = setTimeout(() => {
+      banner.classList.remove('visible', 'reconnected');
+    }, 2500);
+  }
+
+  window.addEventListener('offline', showOffline);
+  window.addEventListener('online', showReconnected);
+  if (!navigator.onLine) showOffline();
+})();
+
+// ── Arm confirm overlay ─────────────────────────────────────────────────────
+const ARM_CONFIRM = {
+  armed:    { icon: '🔒', title: 'Alarma conectada',     sub: 'Protección total activada correctamente', cls: 'armed' },
+  disarmed: { icon: '🔓', title: 'Alarma desconectada',  sub: 'Sistema desarmado correctamente',         cls: 'disarmed' },
+  arm_home: { icon: '🌙', title: 'Modo noche activado',  sub: 'Protección parcial activada',             cls: 'arm_home' },
+};
+
+function showArmConfirm(status) {
+  const cfg = ARM_CONFIRM[status] || ARM_CONFIRM.armed;
+  const overlay = document.getElementById('arm-confirm-overlay');
+  document.getElementById('aco-icon').textContent = cfg.icon;
+  document.getElementById('aco-title').textContent = cfg.title;
+  document.getElementById('aco-sub').textContent = cfg.sub;
+  const fill = document.getElementById('aco-bar-fill');
+  fill.className = 'aco-bar-fill ' + cfg.cls;
+  fill.style.width = '0%';
+  overlay.classList.add('show');
+  requestAnimationFrame(() => { fill.style.width = '100%'; });
+  if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+  setTimeout(() => { overlay.classList.remove('show'); }, 2200);
+}
+
 </script>
 </body>
 </html>
