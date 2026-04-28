@@ -1062,10 +1062,12 @@ function iniciarCuentaAtras() {
     numEl.textContent = sosSegundos;
     // Avanzar el círculo
     circle.style.strokeDashoffset = total - (total * (sosSegundos / 10));
+    if (navigator.vibrate) navigator.vibrate(100);
 
     if (sosSegundos <= 0) {
       clearInterval(sosTimer);
       sosTimer = null;
+      if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
       enviarSosAhora();
     }
   }, 1000);
