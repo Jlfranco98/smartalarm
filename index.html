@@ -785,8 +785,16 @@ let S = {
   alarmStatus: 'disarmed',
   config: {backendUrl:'',appSecret:'',deviceId:'',region:'eu'},
   currentUser: null,
+  sessionToken: null,
 };
 let pinBuffer = '', pinAction = '';
+
+// ── Fetch autenticado ───────────────────────────────────────────────────────
+function authFetch(url, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (S.sessionToken) headers['X-App-Token'] = S.sessionToken;
+  return fetch(url, { ...options, headers });
+}
 
 const STATUS_CFG = {
   disarmed: {label:'Desconectada', sub:'Sistema desconectado',       icon:'🔓', cirCls:'hs-circle-disarmed', color:'var(--green)'},
@@ -800,6 +808,7 @@ function load(){
   try {
     const d = JSON.parse(localStorage.getItem('mialarm') || '{}');
     if(d.config) S.config = {...S.config, ...d.config};
+    if(d.token) S.sessionToken = d.token;
     if(d.user) {
       S.currentUser = d.user;
       document.getElementById('main-nav').style.display = 'flex';
@@ -817,7 +826,8 @@ function save(){
     // Guardamos la configuración Y el usuario actual (con su rol de ADMIN)
     localStorage.setItem('mialarm', JSON.stringify({
       config: S.config,
-      user: S.currentUser 
+      user: S.currentUser,
+      token: S.sessionToken
     }));
   } catch(e) {}
 }
@@ -840,6 +850,7 @@ async function doLogin() {
     if (data.success) {
       err.textContent = '';
       S.currentUser = data.user;
+      S.sessionToken = data.token;
       
       // IMPORTANTE: Guardamos el password temporal para que applyForceChange pueda usarlo
       S.currentUser.password = p; 
@@ -872,6 +883,7 @@ async function doLogin() {
 function doLogout() {
   stopPolling();
   S.currentUser = null;
+  S.sessionToken = null;
   document.getElementById('main-nav').style.display = 'none';
   save();
   gestionarVisibilidadAdmin();
@@ -930,9 +942,8 @@ async function changePassword() {
   }
 
   try {
-    const response = await fetch('/api/change-password', {
+    const response = await authFetch('/api/change-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         username: S.currentUser.username, 
         currentPassword: elOld.value, 
@@ -977,9 +988,8 @@ async function changeName() {
   }
 
   try {
-    const response = await fetch('/api/change-name', {
+    const response = await authFetch('/api/change-name', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: S.currentUser.username, name: nombre })
     });
     const data = await response.json();
@@ -1037,9 +1047,8 @@ function handleAvatarChange(event) {
 async function saveAvatarToServer(dataUrl) {
   try {
     toast2('Subiendo foto...');
-    const res = await fetch('/api/change-avatar', {
+    const res = await authFetch('/api/change-avatar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: S.currentUser.username, avatar: dataUrl })
     });
     const data = await res.json();
@@ -1077,7 +1086,7 @@ function loadAvatar() {
 // ── Historial y Usuarios ────────────────────────────────────────────────────
 async function fetchHistory() {
   try {
-    const response = await fetch('/api/historial');
+    const response = await authFetch('/api/historial');
     if (!response.ok) return;
     const data = await response.json();
     if (Array.isArray(data)) {
@@ -1091,7 +1100,7 @@ async function renderUsersAdmin(){
   const el=document.getElementById('users-admin-list');
   if(!el)return;
   try {
-    const res = await fetch('/api/usuarios');
+    const res = await authFetch('/api/usuarios');
     const users = await res.json();
     el.innerHTML=users.map(u=>`
       <div class="user-row">
@@ -1117,9 +1126,8 @@ async function addUser() {
     err.textContent = 'Datos inválidos (PIN debe ser de 4 dígitos)'; return;
   }
   try {
-    const response = await fetch('/api/usuarios', {
+    const response = await authFetch('/api/usuarios', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, username, password, pin, role, isNew: true })
     });
     if (response.ok) {
@@ -1132,7 +1140,7 @@ async function addUser() {
 async function removeUser(username) {
   if (!confirm(`¿Eliminar @${username}?`)) return;
   try {
-    const res = await fetch(`/api/usuarios/${username}`, { method: 'DELETE' });
+    const res = await authFetch(`/api/usuarios/${username}`, { method: 'DELETE' });
     if (res.ok) { renderUsersAdmin(); toast2('Usuario eliminado'); }
   } catch (e) {}
 }
@@ -1143,7 +1151,7 @@ async function renderApp(){
 
   // 1. CARGA CONFIG GLOBAL: Pedimos al servidor la configuración guardada
   try {
-    const res = await fetch('/api/config');
+    const res = await authFetch('/api/config');
     if (res.ok) {
       const data = await res.json();
       S.config.backendUrl = data.backendUrl || '';
@@ -1215,7 +1223,7 @@ function navTo(page){
 // ── Estado alarma desde MongoDB ────────────────────────────────────────────
 async function fetchStatus() {
   try {
-    const res = await fetch('/api/status');
+    const res = await authFetch('/api/status');
     if (!res.ok) throw new Error('Error en red');
     const data = await res.json();
     
@@ -1251,7 +1259,7 @@ function stopPolling(){
 
 async function fetchHistorialGlobal() {
     try {
-        const res = await fetch('/api/logs');
+        const res = await authFetch('/api/logs');
         if (res.ok) {
             const data = await res.json();
             S.log = data; // Guardamos lo que viene de Railway
@@ -1366,13 +1374,23 @@ function openPin(action){
   document.getElementById('pin-modal-bg').classList.add('open');
 }
 
-function checkPin(){
-  if(pinBuffer!==S.currentUser.pin){
-    document.getElementById('pm-err').textContent='PIN incorrecto';
-    pinBuffer=''; document.querySelectorAll('.pm-dot').forEach(d=>d.className='pm-dot'); return;
+async function checkPin(){
+  try {
+    const res = await authFetch('/api/verify-pin', {
+      method: 'POST',
+      body: JSON.stringify({ username: S.currentUser.username, pin: pinBuffer })
+    });
+    const data = await res.json();
+    if (!data.valid) {
+      document.getElementById('pm-err').textContent='PIN incorrecto';
+      pinBuffer=''; document.querySelectorAll('.pm-dot').forEach(d=>d.className='pm-dot'); return;
+    }
+    document.getElementById('pin-modal-bg').classList.remove('open');
+    applyAction(pinAction,S.currentUser.name);
+  } catch(e) {
+    document.getElementById('pm-err').textContent='Error de conexión';
+    pinBuffer=''; document.querySelectorAll('.pm-dot').forEach(d=>d.className='pm-dot');
   }
-  document.getElementById('pin-modal-bg').classList.remove('open');
-  applyAction(pinAction,S.currentUser.name);
 }
 
 async function applyAction(action, userName) {
@@ -1398,9 +1416,8 @@ async function applyAction(action, userName) {
   
   toast2('Comunicando con la alarma...');
   try {
-    const response = await fetch('/api/control', {
+    const response = await authFetch('/api/control', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action,
         user: userName,
@@ -1819,9 +1836,8 @@ async function saveConfig() {
 
   try {
     // 3. Enviamos TODO el objeto al servidor para MongoDB
-    const response = await fetch('/api/config', {
+    const response = await authFetch('/api/config', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         backendUrl, 
         deviceId, 
@@ -1862,9 +1878,8 @@ async function changePin() {
   if (oldPin === newPin1) { elErr.textContent = 'El PIN nuevo debe ser diferente al actual'; return; }
 
   try {
-    const response = await fetch('/api/change-pin', {
+    const response = await authFetch('/api/change-pin', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: S.currentUser.username,
         currentPin: oldPin,
@@ -1879,7 +1894,7 @@ async function changePin() {
       document.getElementById('cp-new1').value = '';
       document.getElementById('cp-new2').value = '';
       // Actualizamos el PIN en memoria para que funcione sin relogin
-      if (S.currentUser) S.currentUser.pin = newPin1;
+      // Pin actualizado en servidor — no se guarda en cliente por seguridad
       save();
       toast2('PIN personal actualizado');
     } else {
@@ -2026,9 +2041,8 @@ async function applyForceChange() {
 
   try {
     // 3. Cambiamos contraseña
-    const resPass = await fetch('/api/change-password', {
+    const resPass = await authFetch('/api/change-password', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ 
         username: S.currentUser.username, 
         currentPassword: S.currentUser.password || S.currentUser.tempPass, 
@@ -2038,13 +2052,11 @@ async function applyForceChange() {
     const dataPass = await resPass.json();
     if (!dataPass.success) { err.textContent = dataPass.message; return; }
 
-    // 4. Cambiamos PIN
-    const resPin = await fetch('/api/change-pin', {
+    // 4. Cambiamos PIN (usuario nuevo, usa endpoint especial sin PIN actual)
+    const resPin = await authFetch('/api/force-set-pin', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ 
         username: S.currentUser.username, 
-        currentPin: S.currentUser.pin, 
         newPin: nPin 
       })
     });
@@ -2053,7 +2065,6 @@ async function applyForceChange() {
 
     // 5. Ocultar modal y entrar
     document.getElementById('force-change-screen').style.display = 'none';
-    S.currentUser.pin = nPin; 
     S.currentUser.isNew = false; // Marcamos como "ya no es nuevo" localmente
     save();
     renderApp();
@@ -2090,7 +2101,7 @@ function toggleNotifPanel(){
 async function loadNotifPrefs() {
   if (!S.currentUser) return;
   try {
-    const res = await fetch('/api/push/prefs/' + S.currentUser.username);
+    const res = await authFetch('/api/push/prefs/' + S.currentUser.username);
     const prefs = await res.json();
     document.getElementById('notif-arm-away').checked = prefs.arm_away !== false;
     document.getElementById('notif-arm-home').checked = prefs.arm_home !== false;
@@ -2101,9 +2112,8 @@ async function loadNotifPrefs() {
 async function saveNotifPrefs() {
   if (!S.currentUser) return;
   try {
-    await fetch('/api/push/prefs', {
+    await authFetch('/api/push/prefs', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: S.currentUser.username,
         arm_away: document.getElementById('notif-arm-away').checked,
@@ -2164,9 +2174,8 @@ async function requestPushPermission() {
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey)
     });
-    await fetch('/api/push/subscribe', {
+    await authFetch('/api/push/subscribe', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: S.currentUser.username, subscription: sub, device: navigator.userAgent.slice(0,80) })
     });
     ok.style.color = 'var(--green)';
@@ -2192,8 +2201,8 @@ async function renderDispositivos() {
   el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;font-weight:700">Consultando dispositivos...</div>';
   try {
     const [resDisp, resHb] = await Promise.all([
-      fetch('/api/dispositivos'),
-      fetch('/api/heartbeat-status')
+      authFetch('/api/dispositivos'),
+      authFetch('/api/heartbeat-status')
     ]);
     const data = await resDisp.json();
     const hb   = await resHb.json();
@@ -2210,7 +2219,7 @@ async function renderDispositivos() {
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;background:${d.online ? '#EAF3DE' : '#FCEBEB'};color:${d.online ? '#3B6D11' : '#A32D2D'}">
-            <div style="width:7px;height:7px;border-radius:50%;background:${d.online ? '' : '#ff4444'}"></div>
+            <div style="width:7px;height:7px;border-radius:50%;background:${d.online ? '#00b562' : '#ff4444'}"></div>
             ${d.online ? 'Online' : 'Offline'}
           </div>
           ${d.bateria !== null && d.bateria !== undefined ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">🔋 ${d.bateria}%</div>` : ''}

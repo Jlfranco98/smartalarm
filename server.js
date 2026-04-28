@@ -6,10 +6,40 @@ const bcrypt   = require('bcryptjs');
 const webpush  = require('web-push');
 const { TuyaContext } = require('@tuya/tuya-connector-nodejs');
 
+const crypto = require('crypto');
 const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, '.')));
+
+// ── Sesiones en memoria ────────────────────────────────────────────────────
+// Mapa de token → username. Liviano para una app doméstica.
+const sessions = new Map();
+function generateToken() { return crypto.randomBytes(32).toString('hex'); }
+// Compara PIN sea cual sea su formato (texto plano legacy o bcrypt)
+async function checkPinCompat(inputPin, storedPin, username) {
+  if (!storedPin) return false;
+  const isHashed = storedPin.startsWith('$2b$') || storedPin.startsWith('$2a$');
+  if (isHashed) {
+    return await bcrypt.compare(inputPin, storedPin);
+  } else {
+    // PIN en texto plano (legacy) — comparar y hashear al vuelo
+    if (inputPin !== storedPin) return false;
+    const hashed = await bcrypt.hash(inputPin, 10);
+    await require('mongoose').model('User').updateOne({ username }, { $set: { pin: hashed } });
+    console.log(`🔒 PIN de ${username} migrado a bcrypt automáticamente`);
+    return true;
+  }
+}
+
+function requireAuth(req, res, next) {
+  const token = req.headers['x-app-token'];
+  if (!token || !sessions.has(token)) {
+    return res.status(401).json({ success: false, message: 'No autorizado' });
+  }
+  req.sessionUser = sessions.get(token);
+  next();
+}
 
 // --- 1. VARIABLES DE ENTORNO ---
 const MONGO_URI          = process.env.MONGO_URL || process.env.MONGODB_URI;
@@ -286,15 +316,16 @@ async function sendPushNotification(action, triggeredBy, ubicacion = null) {
 }
 
 // --- 9. USUARIOS ---
-app.get('/api/usuarios', async (req, res) => { try { res.json(await User.find({}, '-password')); } catch (e) { res.status(500).json([]); } });
-app.post('/api/usuarios', async (req, res) => {
+app.get('/api/usuarios', requireAuth, async (req, res) => { try { res.json(await User.find({}, '-password')); } catch (e) { res.status(500).json([]); } });
+app.post('/api/usuarios', requireAuth, async (req, res) => {
   try {
     const { name, username, password, pin, role } = req.body;
-    await new User({ name, username, password: await bcrypt.hash(password, 10), pin, role: role || 'user' }).save();
+    const hashedPin = pin ? await bcrypt.hash(pin, 10) : null;
+    await new User({ name, username, password: await bcrypt.hash(password, 10), pin: hashedPin, role: role || 'user' }).save();
     res.json({ success: true });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
-app.delete('/api/usuarios/:username', async (req, res) => {
+app.delete('/api/usuarios/:username', requireAuth, async (req, res) => {
   try {
     if (req.params.username === 'admin') return res.status(403).json({ success: false, message: 'No se puede eliminar al admin principal' });
     await User.findOneAndDelete({ username: req.params.username });
@@ -307,13 +338,40 @@ app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
-    if (user && await bcrypt.compare(password, user.password))
-      res.json({ success: true, user: { name: user.name, username: user.username, role: user.role, pin: user.pin, isNew: user.isNew, avatar: user.avatar || null } });
+    if (user && await bcrypt.compare(password, user.password)) {
+      const token = generateToken();
+      sessions.set(token, user.username);
+      res.json({ success: true, token, user: { name: user.name, username: user.username, role: user.role, isNew: user.isNew, avatar: user.avatar || null } });
+    }
     else res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
   } catch (e) { res.status(500).json({ success: false }); }
 });
 
-app.post('/api/change-password', async (req, res) => {
+app.post('/api/force-set-pin', requireAuth, async (req, res) => {
+  try {
+    const { username, newPin } = req.body;
+    if (!username || !/^\d{4}$/.test(newPin)) return res.status(400).json({ success: false, message: 'Datos inválidos' });
+    if (['0000','1234','1111','2222','123456'].includes(newPin)) return res.json({ success: false, message: 'PIN demasiado predecible.' });
+    const user = await User.findOne({ username });
+    if (!user || !user.isNew) return res.status(403).json({ success: false, message: 'No permitido' });
+    const newPinHashed = await bcrypt.hash(newPin, 10);
+    await User.updateOne({ username }, { $set: { pin: newPinHashed, isNew: false } });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/verify-pin', requireAuth, async (req, res) => {
+  try {
+    const { username, pin } = req.body;
+    if (!username || !pin) return res.status(400).json({ valid: false });
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ valid: false });
+    const valid = await checkPinCompat(pin, user.pin, username);
+    res.json({ valid });
+  } catch (e) { res.status(500).json({ valid: false }); }
+});
+
+app.post('/api/change-password', requireAuth, async (req, res) => {
   try {
     const { username, currentPassword, newPassword } = req.body;
     if (!username || !currentPassword || !newPassword)
@@ -334,7 +392,7 @@ app.post('/api/change-password', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false }); }
 });
 
-app.post('/api/change-name', async (req, res) => {
+app.post('/api/change-name', requireAuth, async (req, res) => {
   try {
     const { username, name } = req.body;
     if (!username || !name || name.trim().length < 2)
@@ -346,7 +404,7 @@ app.post('/api/change-name', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false }); }
 });
 
-app.post('/api/change-avatar', async (req, res) => {
+app.post('/api/change-avatar', requireAuth, async (req, res) => {
   try {
     const { username, avatar } = req.body;
     if (!username) return res.status(400).json({ success: false, message: 'Falta el usuario.' });
@@ -358,22 +416,24 @@ app.post('/api/change-avatar', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-app.post('/api/change-pin', async (req, res) => {
+app.post('/api/change-pin', requireAuth, async (req, res) => {
   try {
     const { username, currentPin, newPin } = req.body;
     if (['0000','1234','1111','2222','123456'].includes(newPin)) return res.json({ success: false, message: 'PIN demasiado predecible.' });
     const user = await User.findOne({ username });
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    if (user.pin !== currentPin) return res.json({ success: false, message: 'PIN actual incorrecto' });
+    const pinMatch = await checkPinCompat(currentPin, user.pin, username);
+    if (!pinMatch) return res.json({ success: false, message: 'PIN actual incorrecto' });
     if (newPin === currentPin) return res.json({ success: false, message: 'El nuevo PIN debe ser diferente.' });
-    await User.updateOne({ username }, { $set: { pin: newPin, isNew: false } });
+    const newPinHashed = await bcrypt.hash(newPin, 10);
+    await User.updateOne({ username }, { $set: { pin: newPinHashed, isNew: false } });
     res.json({ success: true, message: 'PIN actualizado' });
   } catch (e) { res.status(500).json({ success: false }); }
 });
 
 // --- 11. PUSH ---
 app.get('/api/push/vapid-public', (req, res) => res.json({ publicKey: VAPID_PUBLIC }));
-app.post('/api/push/subscribe', async (req, res) => {
+app.post('/api/push/subscribe', requireAuth, async (req, res) => {
   try {
     const { username, subscription, device } = req.body;
     if (!username || !subscription) return res.status(400).json({ success: false });
@@ -381,11 +441,11 @@ app.post('/api/push/subscribe', async (req, res) => {
     res.json({ success: true });
   } catch (e) { res.status(500).json({ success: false }); }
 });
-app.get('/api/push/prefs/:username', async (req, res) => {
+app.get('/api/push/prefs/:username', requireAuth, async (req, res) => {
   try { res.json(await NotifPref.findOne({ username: req.params.username }) || { arm_away: true, arm_home: true, disarm: true }); }
   catch (e) { res.status(500).json({ arm_away: true, arm_home: true, disarm: true }); }
 });
-app.post('/api/push/prefs', async (req, res) => {
+app.post('/api/push/prefs', requireAuth, async (req, res) => {
   try {
     const { username, arm_away, arm_home, disarm } = req.body;
     await NotifPref.findOneAndUpdate({ username }, { arm_away, arm_home, disarm }, { upsert: true, new: true });
@@ -393,7 +453,7 @@ app.post('/api/push/prefs', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false }); }
 });
 // --- HEARTBEAT STATUS ---
-app.get('/api/heartbeat-status', (req, res) => {
+app.get('/api/heartbeat-status', requireAuth, (req, res) => {
   const ahora = Date.now();
   const segundos = Math.floor((ahora - ultimoHeartbeat) / 1000);
   const vivo = (ahora - ultimoHeartbeat) < HEARTBEAT_TIMEOUT_MS;
@@ -401,7 +461,7 @@ app.get('/api/heartbeat-status', (req, res) => {
 });
 
 // --- 12. CONTROL ALARMA (usa cuenta B, el panel está ahí) ---
-app.post('/api/control', async (req, res) => {
+app.post('/api/control', requireAuth, async (req, res) => {
   const { action, user, alarmStatus, ubicacion } = req.body;
   const mapping = { disarm: 'switch_1', arm_home: 'switch_2', arm_away: 'switch_3', sos: 'switch_4' };
   const nombres = { disarm: 'Alarma Desarmada', arm_home: 'Modo noche activado', arm_away: 'Modo total activado', sos: 'PÁNICO / SOS' };
@@ -501,8 +561,6 @@ app.get('/heartbeat', async (req, res) => {
     console.log('✅ Servidor de seguridad reactivado');
     await new Log({ usuario: 'Sistema', accion: '✅ Servidor de seguridad reactivado' }).save();
     await sendPushNotification('macrodroid_online', 'MacroDroid');
-  } else {
-    heartbeatAlertaEnviada = false;
   }
 
   ultimoHeartbeat = Date.now();
@@ -528,11 +586,11 @@ setInterval(async () => {
 }, 5 * 60 * 1000);
 
 // --- 13. HISTORIAL Y CONFIG ---
-app.get('/api/logs',      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
-app.get('/api/historial', async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
-app.get('/api/config',    async (req, res) => { try { res.json(await Config.findOne({ id: 'global_config' }) || {}); } catch (e) { res.status(500).json({}); } });
-app.post('/api/config',   async (req, res) => { try { await Config.findOneAndUpdate({ id: 'global_config' }, req.body, { upsert: true }); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); } });
-app.get('/api/status',    async (req, res) => { try { const c = await Config.findOne({ id: 'global_config' }); res.json({ alarmStatus: c?.alarmStatus || 'disarmed' }); } catch (e) { res.status(500).send(e.message); } });
+app.get('/api/logs', requireAuth,      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
+app.get('/api/historial', requireAuth, async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
+app.get('/api/config', requireAuth,    async (req, res) => { try { res.json(await Config.findOne({ id: 'global_config' }) || {}); } catch (e) { res.status(500).json({}); } });
+app.post('/api/config', requireAuth,   async (req, res) => { try { await Config.findOneAndUpdate({ id: 'global_config' }, req.body, { upsert: true }); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); } });
+app.get('/api/status', requireAuth,    async (req, res) => { try { const c = await Config.findOne({ id: 'global_config' }); res.json({ alarmStatus: c?.alarmStatus || 'disarmed' }); } catch (e) { res.status(500).send(e.message); } });
 
 // --- 14. DISPOSITIVOS ---
 const LISTA_DISPOSITIVOS = [
@@ -543,7 +601,7 @@ const LISTA_DISPOSITIVOS = [
   { id: 'bff7dcc64693fab3acucza', nombre: 'Sensor Fugas de Agua', icono: '💧', ubicacion: 'Pasillo'                              },
 ];
 
-app.get('/api/dispositivos', async (req, res) => {
+app.get('/api/dispositivos', requireAuth, async (req, res) => {
   try {
     const ahora = Date.now();
     const VEINTE_MIN = 20 * 60 * 1000;
