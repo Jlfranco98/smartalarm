@@ -2064,6 +2064,40 @@ function toggleSessionsPanel() {
   if (open) renderSessions();
 }
 
+// Iconos disponibles para dispositivos
+const DEVICE_ICONS = [
+  { emoji: '📱', label: 'Móvil' },
+  { emoji: '💻', label: 'Portátil' },
+  { emoji: '🖥️', label: 'Ordenador' },
+  { emoji: '📟', label: 'Tablet' },
+  { emoji: '⌚', label: 'Reloj' },
+  { emoji: '🌐', label: 'Navegador' },
+];
+
+// Extrae icono y texto de un deviceName guardado (ej: "📱 iPhone Jose" → {icon:'📱', text:'iPhone Jose'})
+function parseDeviceName(raw, ua) {
+  if (!raw) {
+    // Fallback auto-detect desde userAgent
+    if (!ua) return { icon: '🖥️', text: 'Desconocido' };
+    if (/iPhone|iPad/.test(ua)) return { icon: '📱', text: 'iPhone/iPad' };
+    if (/Android/.test(ua))     return { icon: '📱', text: 'Android' };
+    if (/Windows/.test(ua))     return { icon: '🖥️', text: 'Windows' };
+    if (/Mac/.test(ua))         return { icon: '💻', text: 'Mac' };
+    return { icon: '🌐', text: 'Navegador' };
+  }
+  const known = DEVICE_ICONS.map(d => d.emoji);
+  // Si empieza por un icono conocido seguido de espacio
+  for (const icon of known) {
+    if (raw.startsWith(icon + ' ')) return { icon, text: raw.slice(icon.length + 1) };
+    if (raw === icon)               return { icon, text: '' };
+  }
+  // Sin icono reconocido — asignamos 📱 por defecto
+  return { icon: '📱', text: raw };
+}
+
+// Estado del icono seleccionado por sesión en edición
+const _sessionIconSel = {};
+
 async function renderSessions() {
   const el = document.getElementById('sessions-list');
   el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:8px">Cargando...</div>';
@@ -2080,15 +2114,6 @@ async function renderSessions() {
       return `hace ${Math.floor(diff/86400)}d`;
     }
 
-    function detectDevice(ua) {
-      if (!ua) return '🖥️ Desconocido';
-      if (/iPhone|iPad/.test(ua)) return '📱 iPhone/iPad';
-      if (/Android/.test(ua)) return '📱 Android';
-      if (/Windows/.test(ua)) return '🖥️ Windows';
-      if (/Mac/.test(ua)) return '💻 Mac';
-      return '🌐 Navegador';
-    }
-
     // Agrupar por usuario
     const byUser = {};
     sessions.forEach(s => {
@@ -2103,14 +2128,15 @@ async function renderSessions() {
           <button onclick="revokeUserSessions('${username}')" style="font-size:10px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:8px;padding:3px 8px;cursor:pointer">Revocar todas</button>
         </div>
         ${sess.map(s => {
-          const displayName = s.deviceName || detectDevice(s.userAgent);
+          const parsed = parseDeviceName(s.deviceName, s.userAgent);
           return `
           <div style="background:var(--bg);border-radius:10px;padding:9px 12px;margin-bottom:5px">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
               <div style="flex:1;min-width:0">
-                <div id="sname-${s._id}" style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px">
-                  <span>${displayName}</span>
-                  <button onclick="editSessionName('${s._id}', this)" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:0;line-height:1;flex-shrink:0" title="Renombrar">✏️</button>
+                <div style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px">
+                  <span style="font-size:16px">${parsed.icon}</span>
+                  <span>${parsed.text || '—'}</span>
+                  <button onclick="editSessionName('${s._id}')" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:0;line-height:1;flex-shrink:0" title="Renombrar">✏️</button>
                 </div>
                 <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px">
                   Última actividad ${tiempoDesde(s.lastSeenAt)} · Creada ${tiempoDesde(s.createdAt)}
@@ -2118,15 +2144,28 @@ async function renderSessions() {
               </div>
               <button onclick="revokeSession('${s._id}')" style="font-size:18px;background:none;border:none;cursor:pointer;color:#bbb;flex-shrink:0" title="Revocar">🗑️</button>
             </div>
-            <div id="sedit-${s._id}" style="display:none;margin-top:8px">
+            <!-- Panel de edición -->
+            <div id="sedit-${s._id}" style="display:none;margin-top:10px">
+              <!-- Selector de icono -->
+              <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Tipo de dispositivo</div>
+              <div id="sicons-${s._id}" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                ${DEVICE_ICONS.map(d => `
+                  <button onclick="selectSessionIcon('${s._id}','${d.emoji}')" id="sicon-${s._id}-${d.emoji.codePointAt(0)}"
+                    style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 10px;border-radius:10px;border:1.5px solid ${parsed.icon === d.emoji ? 'var(--red)' : 'var(--border)'};background:${parsed.icon === d.emoji ? 'var(--red-light)' : 'var(--white)'};cursor:pointer;font-family:'Nunito',sans-serif;transition:all .15s">
+                    <span style="font-size:20px">${d.emoji}</span>
+                    <span style="font-size:9px;font-weight:800;color:${parsed.icon === d.emoji ? 'var(--red)' : 'var(--muted)'}">${d.label}</span>
+                  </button>`).join('')}
+              </div>
+              <!-- Input nombre -->
+              <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Nombre</div>
               <div style="display:flex;gap:6px;align-items:center">
-                <input id="sinput-${s._id}" type="text" maxlength="60" placeholder="Nombre del dispositivo…"
-                  value="${(s.deviceName || '').replace(/"/g, '&quot;')}"
-                  style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none"
+                <input id="sinput-${s._id}" type="text" maxlength="55" placeholder="Ej: iPhone Jose, iPad cocina…"
+                  value="${parsed.text.replace(/"/g, '&quot;')}"
+                  style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none"
                   onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border)'"
                   onkeydown="if(event.key==='Enter')saveSessionName('${s._id}');if(event.key==='Escape')cancelEditSession('${s._id}')">
-                <button onclick="saveSessionName('${s._id}')" style="padding:7px 12px;background:var(--red);color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">Guardar</button>
-                <button onclick="cancelEditSession('${s._id}')" style="padding:7px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">✕</button>
+                <button onclick="saveSessionName('${s._id}')" style="padding:8px 12px;background:var(--red);color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">Guardar</button>
+                <button onclick="cancelEditSession('${s._id}')" style="padding:8px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">✕</button>
               </div>
             </div>
           </div>`;
@@ -2134,12 +2173,17 @@ async function renderSessions() {
       </div>`).join('') +
       `<button onclick="revokeAllSessions()" style="width:100%;margin-top:4px;font-size:12px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:10px;padding:8px;cursor:pointer">🚫 Revocar TODAS las sesiones</button>`;
 
+    // Inicializar icono seleccionado para cada sesión
+    sessions.forEach(s => {
+      _sessionIconSel[s._id] = parseDeviceName(s.deviceName, s.userAgent).icon;
+    });
+
   } catch(e) {
     el.innerHTML = '<div style="text-align:center;color:var(--red);font-size:13px">Error al cargar sesiones</div>';
   }
 }
 
-function editSessionName(id, btn) {
+function editSessionName(id) {
   document.getElementById('sedit-' + id).style.display = 'block';
   document.getElementById('sinput-' + id).focus();
 }
@@ -2148,14 +2192,29 @@ function cancelEditSession(id) {
   document.getElementById('sedit-' + id).style.display = 'none';
 }
 
+function selectSessionIcon(id, emoji) {
+  _sessionIconSel[id] = emoji;
+  // Actualizar estilos de todos los botones de icono de esta sesión
+  DEVICE_ICONS.forEach(d => {
+    const btn = document.getElementById(`sicon-${id}-${d.emoji.codePointAt(0)}`);
+    if (!btn) return;
+    const active = d.emoji === emoji;
+    btn.style.borderColor = active ? 'var(--red)' : 'var(--border)';
+    btn.style.background  = active ? 'var(--red-light)' : 'var(--white)';
+    btn.querySelector('span:last-child').style.color = active ? 'var(--red)' : 'var(--muted)';
+  });
+}
+
 async function saveSessionName(id) {
   const input = document.getElementById('sinput-' + id);
-  const name = input.value.trim();
-  if (!name) { input.style.borderColor = 'var(--red)'; return; }
+  const text  = input.value.trim();
+  if (!text) { input.style.borderColor = 'var(--red)'; input.focus(); return; }
+  const icon  = _sessionIconSel[id] || '📱';
+  const deviceName = icon + ' ' + text;
   try {
     const res = await authFetch(`/api/sessions/${id}/device-name`, {
       method: 'PATCH',
-      body: JSON.stringify({ deviceName: name })
+      body: JSON.stringify({ deviceName })
     });
     const data = await res.json();
     if (data.success) {
