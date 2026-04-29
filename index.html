@@ -551,6 +551,12 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           <!-- Fila 2: Subcategorías (dinámicas) -->
           <div class="hf-row" id="hf-subcats" style="display:none;margin-top:4px"></div>
 
+          <!-- Fila 3: Usuario -->
+          <div class="hf-section-label" style="padding:10px 0 4px">Usuario</div>
+          <div class="hf-row" id="hf-usuarios" style="flex-wrap:wrap;gap:6px">
+            <button class="hf-chip active" id="fu-todo" onclick="setFiltroUsuario('todo')">👥 Todos</button>
+          </div>
+
           <!-- Fila 3: Fecha y hora -->
           <div class="hf-section-label" style="padding:10px 0 4px">Fecha</div>
           <div class="hf-date-row" style="padding:0 0 4px">
@@ -698,6 +704,18 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
         <!-- GRUPO: ADMIN (solo admin) -->
         <div class="sl-section-label admin-only" style="display:none">Administración</div>
         <div class="sl-group admin-only" style="display:none">
+          <div class="sl-item" onclick="toggleSessionsPanel()">
+            <div class="sl-icon ic-blue">📱</div>
+            <div class="sl-text">
+              <div class="sl-label">Sesiones activas</div>
+              <div class="sl-sublabel">Ver y revocar accesos por dispositivo</div>
+            </div>
+            <div class="sl-arrow">›</div>
+          </div>
+          <div id="sessions-panel" style="display:none" class="sl-panel">
+            <div id="sessions-list" style="font-size:13px;color:var(--muted);text-align:center;padding:8px">Cargando...</div>
+          </div>
+
           <div class="sl-item" onclick="toggleCfgPanel()">
             <div class="sl-icon ic-gray">🔗</div>
             <div class="sl-text">
@@ -843,44 +861,20 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
   </div>
 </div>
 
-<div id="force-change-screen" class="screen" style="z-index:1000;background:var(--bg);display:none;flex-direction:column;overflow-y:auto;">
-
-  <!-- Header rojo -->
-  <div style="background:linear-gradient(135deg,var(--red) 0%,#b01020 100%);padding:48px 24px 36px;text-align:center;position:relative;overflow:hidden;flex-shrink:0;">
-    <div style="position:absolute;inset:0;background:radial-gradient(circle at 30% 40%,rgba(255,255,255,.12) 0%,transparent 60%),radial-gradient(circle at 75% 70%,rgba(255,255,255,.08) 0%,transparent 50%);pointer-events:none"></div>
-    <div style="position:relative">
-      <div style="width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.5);margin:0 auto 18px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-        <img src="/icon-512.png" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
-        <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:36px">👤</div>
-      </div>
-      <div style="font-size:22px;font-weight:900;color:#fff;margin-bottom:8px">¡Bienvenido/a! 👋</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.8);font-weight:600;line-height:1.5">Antes de continuar, configura<br>tu contraseña y PIN personales</div>
+<div id="force-change-screen" class="screen" style="z-index: 1000; background: var(--bg); display: none; flex-direction: column; padding: 20px;">
+    <div class="account-hero">
+      <div class="acc-avatar">👤 </div>
+      <div class="acc-name">Configura tu nuevo perfil de usuario</div>
+      <div class="acc-email">Por favor, configure una nueva contraseña y un nuevo PIN de seguridad</div>
+    </div>
+    
+    <div class="admin-card" style="margin-top: 20px;">
+      <div class="form-field"><label>Nueva Contraseña</label><input id="force-pass" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div class="form-field"><label>Nuevo PIN (4 dígitos)</label><input id="force-pin" type="password" maxlength="4" inputmode="numeric" placeholder="••••"></div>
+      <button class="btn-red" onclick="applyForceChange()">Configurar mi cuenta</button>
+      <div id="force-err" class="err-small" style="text-align:center; margin-top:10px"></div>
     </div>
   </div>
-
-  <!-- Formulario -->
-  <div style="padding:24px 20px 40px;display:flex;flex-direction:column;gap:20px">
-
-    <!-- Contraseña -->
-    <div style="background:var(--white);border-radius:20px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
-      <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">🔑 Contraseña de acceso</div>
-      <div class="form-field" style="margin-bottom:12px"><label>Nueva contraseña</label><input id="force-pass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
-      <div class="form-field" style="margin-bottom:0"><label>Repetir contraseña</label><input id="force-pass2" type="password" placeholder="Repite la contraseña" autocomplete="new-password"></div>
-    </div>
-
-    <!-- PIN -->
-    <div style="background:var(--white);border-radius:20px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
-      <div style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">🔢 PIN de seguridad</div>
-      <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:14px;line-height:1.5">Este PIN de 4 dígitos lo usarás cada vez que armes o desarmes la alarma.</div>
-      <div class="form-field" style="margin-bottom:12px"><label>Nuevo PIN</label><input id="force-pin" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="new-password"></div>
-      <div class="form-field" style="margin-bottom:0"><label>Repetir PIN</label><input id="force-pin2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="new-password"></div>
-    </div>
-
-    <button class="btn-red" onclick="applyForceChange()" style="padding:16px;font-size:16px;border-radius:16px">Configurar mi cuenta</button>
-    <div id="force-err" class="err-small" style="text-align:center;margin-top:-8px"></div>
-
-  </div>
-</div>
   
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
@@ -895,25 +889,10 @@ let S = {
 let pinBuffer = '', pinAction = '';
 
 // ── Fetch autenticado ───────────────────────────────────────────────────────
-async function authFetch(url, options = {}) {
+function authFetch(url, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (S.sessionToken) headers['X-App-Token'] = S.sessionToken;
-  const res = await fetch(url, { ...options, headers });
-  if (res.status === 401 && S.sessionToken) {
-    // Sesión expirada o revocada — cerrar automáticamente y avisar
-    stopPolling();
-    S.currentUser = null;
-    S.sessionToken = null;
-    save();
-    document.getElementById('main-nav').style.display = 'none';
-    document.getElementById('s-app').classList.remove('active');
-    document.getElementById('s-login').classList.add('active');
-    document.getElementById('li-user').value = '';
-    document.getElementById('li-pass').value = '';
-    document.getElementById('li-err').textContent = '🔐 Tu sesión ha expirado. Identifícate de nuevo para continuar.';
-    navTo('inicio');
-  }
-  return res;
+  return fetch(url, { ...options, headers });
 }
 
 const STATUS_CFG = {
@@ -1192,10 +1171,8 @@ function applyAvatar(dataUrl) {
     imgEl.style.display = 'block';
     initEl.style.display = 'none';
   } else {
-    // Sin avatar personalizado → icon-512.png como defecto
-    imgEl.src = '/icon-512.png';
-    imgEl.style.display = 'block';
-    initEl.style.display = 'none';
+    imgEl.style.display = 'none';
+    initEl.style.display = 'flex';
   }
 }
 
@@ -1213,7 +1190,8 @@ async function fetchHistory() {
     const data = await response.json();
     if (Array.isArray(data)) {
       S.log = data.map(l => ({ action: l.accion, user: l.usuario, time: l.fecha, status: l.estado }));
-      renderLog(); 
+      renderLog();
+      populateUsuarioFilter();
     }
   } catch (e) {}
 }
@@ -1674,11 +1652,29 @@ function setFiltroSub(sub) {
 }
 
 function limpiarFiltros() {
-  F = { categoria: 'todo', subcategoria: 'todo' };
+  F = { categoria: 'todo', subcategoria: 'todo', usuario: 'todo' };
   histPage = 1;
   document.getElementById('hf-desde').value = '';
   document.getElementById('hf-hasta').value = '';
   setFiltroCategoria('todo');
+  setFiltroUsuario('todo');
+}
+
+function setFiltroUsuario(u) {
+  F.usuario = u;
+  histPage = 1;
+  document.querySelectorAll('#hf-usuarios .hf-chip').forEach(el => el.classList.remove('active'));
+  const btn = document.getElementById('fu-' + (u === 'todo' ? 'todo' : u));
+  if (btn) btn.classList.add('active');
+  renderLogFiltrado();
+}
+
+function populateUsuarioFilter() {
+  const usuarios = [...new Set((S.log || []).map(l => l.usuario).filter(Boolean))].sort();
+  const row = document.getElementById('hf-usuarios');
+  if (!row) return;
+  row.innerHTML = `<button class="hf-chip ${F.usuario === 'todo' ? 'active' : ''}" id="fu-todo" onclick="setFiltroUsuario('todo')">👥 Todos</button>` +
+    usuarios.map(u => `<button class="hf-chip ${F.usuario === u ? 'active' : ''}" id="fu-${CSS.escape(u)}" onclick="setFiltroUsuario('${u.replace(/'/g,"\'")}')">${u}</button>`).join('');
 }
 
 const HIST_PER_PAGE = 30;
@@ -1704,6 +1700,7 @@ function renderLogFiltrado(resetPage = true) {
       if (cl.cat !== F.categoria) return false;
       if (F.subcategoria !== 'todo' && cl.sub !== F.subcategoria) return false;
     }
+    if (F.usuario && F.usuario !== 'todo' && l.usuario !== F.usuario) return false;
     return true;
   });
 
@@ -1984,6 +1981,90 @@ async function saveConfig() {
 }
   
 function toggleCfgPanel(){const p=document.getElementById('cfg-panel');p.style.display=p.style.display==='none'?'block':'none';}
+
+function toggleSessionsPanel() {
+  const p = document.getElementById('sessions-panel');
+  const open = p.style.display === 'none';
+  p.style.display = open ? 'block' : 'none';
+  if (open) renderSessions();
+}
+
+async function renderSessions() {
+  const el = document.getElementById('sessions-list');
+  el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:8px">Cargando...</div>';
+  try {
+    const res = await authFetch('/api/sessions');
+    const sessions = await res.json();
+    if (!sessions.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:8px">Sin sesiones activas</div>'; return; }
+
+    function tiempoDesde(iso) {
+      const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+      if (diff < 60) return 'hace un momento';
+      if (diff < 3600) return `hace ${Math.floor(diff/60)} min`;
+      if (diff < 86400) return `hace ${Math.floor(diff/3600)}h`;
+      return `hace ${Math.floor(diff/86400)}d`;
+    }
+
+    function detectDevice(ua) {
+      if (!ua) return '🖥️ Desconocido';
+      if (/iPhone|iPad/.test(ua)) return '📱 iPhone/iPad';
+      if (/Android/.test(ua)) return '📱 Android';
+      if (/Windows/.test(ua)) return '🖥️ Windows';
+      if (/Mac/.test(ua)) return '💻 Mac';
+      return '🌐 Navegador';
+    }
+
+    // Agrupar por usuario
+    const byUser = {};
+    sessions.forEach(s => {
+      if (!byUser[s.username]) byUser[s.username] = [];
+      byUser[s.username].push(s);
+    });
+
+    el.innerHTML = Object.entries(byUser).map(([username, sess]) => `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:12px;font-weight:900;color:var(--text)">👤 ${username}</div>
+          <button onclick="revokeUserSessions('${username}')" style="font-size:10px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:8px;padding:3px 8px;cursor:pointer">Revocar todas</button>
+        </div>
+        ${sess.map(s => `
+          <div style="background:var(--bg);border-radius:10px;padding:9px 12px;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div>
+              <div style="font-size:12px;font-weight:700">${detectDevice(s.userAgent)}</div>
+              <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px">
+                Última actividad ${tiempoDesde(s.lastSeenAt)} · Creada ${tiempoDesde(s.createdAt)}
+              </div>
+            </div>
+            <button onclick="revokeSession('${s._id}')" style="font-size:18px;background:none;border:none;cursor:pointer;color:#bbb;flex-shrink:0" title="Revocar">🗑️</button>
+          </div>`).join('')}
+      </div>`).join('') +
+      `<button onclick="revokeAllSessions()" style="width:100%;margin-top:4px;font-size:12px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:10px;padding:8px;cursor:pointer">🚫 Revocar TODAS las sesiones</button>`;
+
+  } catch(e) {
+    el.innerHTML = '<div style="text-align:center;color:var(--red);font-size:13px">Error al cargar sesiones</div>';
+  }
+}
+
+async function revokeSession(id) {
+  if (!confirm('¿Revocar esta sesión?')) return;
+  await authFetch(`/api/sessions/${id}`, { method: 'DELETE' });
+  renderSessions();
+}
+
+async function revokeUserSessions(username) {
+  if (!confirm(`¿Revocar todas las sesiones de ${username}?`)) return;
+  await authFetch(`/api/sessions/user/${username}`, { method: 'DELETE' });
+  renderSessions();
+}
+
+async function revokeAllSessions() {
+  if (!confirm('¿Revocar TODAS las sesiones? Todos los usuarios tendrán que volver a iniciar sesión.')) return;
+  const res = await authFetch('/api/sessions');
+  const sessions = await res.json();
+  const users = [...new Set(sessions.map(s => s.username))];
+  await Promise.all(users.map(u => authFetch(`/api/sessions/user/${u}`, { method: 'DELETE' })));
+  renderSessions();
+}
 function togglePinPanel(){const p=document.getElementById('pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function toggleChangePinPanel(){const p=document.getElementById('change-pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
@@ -2137,39 +2218,32 @@ function showUpdateBar() {
 }
 
 async function applyForceChange() {
-  const nPass  = document.getElementById('force-pass').value;
-  const nPass2 = document.getElementById('force-pass2').value;
-  const nPin   = document.getElementById('force-pin').value;
-  const nPin2  = document.getElementById('force-pin2').value;
-  const err    = document.getElementById('force-err');
-  err.textContent = '';
+  const nPass = document.getElementById('force-pass').value;
+  const nPin = document.getElementById('force-pin').value;
+  const err = document.getElementById('force-err');
 
-  // 1. Validaciones de formato y coincidencia
-  if (nPass.length < 6) {
-    err.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return;
-  }
-  if (nPass !== nPass2) {
-    err.textContent = 'Las contraseñas no coinciden.'; return;
-  }
-  if (!/^\d{4}$/.test(nPin)) {
-    err.textContent = 'El PIN debe ser de exactamente 4 dígitos.'; return;
-  }
-  if (nPin !== nPin2) {
-    err.textContent = 'Los PINs no coinciden.'; return;
+  // 1. VALIDACIÓN DE FORMATO (Lo que ya tenías)
+  if (nPass.length < 4 || !/^\d{4}$/.test(nPin)) {
+    err.textContent = "Datos no válidos. PIN debe ser de 4 números.";
+    return;
   }
 
-  // 2. Listas negras
-  const forbiddenPins = ['0000','1234','1111','2222','123456'];
-  const forbiddenPass = ['password','123456','admin','qwerty'];
+  // 2. NUEVA: VALIDACIÓN DE SEGURIDAD (Listas negras)
+  const forbiddenPins = ['0000', '1234', '1111', '2222'];
+  const forbiddenPass = ['password', '123456', 'admin', 'qwerty'];
+
   if (forbiddenPins.includes(nPin)) {
-    err.textContent = 'El PIN ' + nPin + ' no está permitido por seguridad.'; return;
+    err.textContent = "El PIN " + nPin + " no está permitido por seguridad.";
+    return;
   }
+
   if (forbiddenPass.includes(nPass.toLowerCase())) {
-    err.textContent = 'La contraseña es demasiado común.'; return;
+    err.textContent = "La contraseña es demasiado común.";
+    return;
   }
 
   try {
-    // 3. Cambiar contraseña
+    // 3. Cambiamos contraseña
     const resPass = await authFetch('/api/change-password', {
       method: 'POST',
       body: JSON.stringify({ 
@@ -2181,25 +2255,29 @@ async function applyForceChange() {
     const dataPass = await resPass.json();
     if (!dataPass.success) { err.textContent = dataPass.message; return; }
 
-    // 4. Cambiar PIN (endpoint especial para usuarios nuevos, no requiere PIN actual)
+    // 4. Cambiamos PIN (usuario nuevo, usa endpoint especial sin PIN actual)
     const resPin = await authFetch('/api/force-set-pin', {
       method: 'POST',
-      body: JSON.stringify({ username: S.currentUser.username, newPin: nPin })
+      body: JSON.stringify({ 
+        username: S.currentUser.username, 
+        newPin: nPin 
+      })
     });
     const dataPin = await resPin.json();
     if (!dataPin.success) { err.textContent = dataPin.message; return; }
 
-    // 5. Entrar en la app
+    // 5. Ocultar modal y entrar
     document.getElementById('force-change-screen').style.display = 'none';
-    S.currentUser.isNew = false;
+    S.currentUser.isNew = false; // Marcamos como "ya no es nuevo" localmente
     save();
     renderApp();
+    
     document.getElementById('s-app').classList.add('active');
     document.getElementById('main-nav').style.display = 'flex';
-    toast2('✅ Cuenta configurada correctamente');
-
+    toast2('SEGURIDAD CONFIGURADA CORRECTAMENTE');
+    
   } catch(e) {
-    err.textContent = 'Error al conectar con el servidor.';
+    err.textContent = "Error al conectar con el servidor.";
   }
 }
 
@@ -2335,12 +2413,22 @@ async function renderDispositivos() {
     const minutos = Math.floor(hb.segundosDesdeUltimoPulso / 60);
     const ultimoPulso = minutos < 1 ? 'Hace menos de 1 min' : `Hace ${minutos} min`;
 
+    function tiempoOffline(isoStr) {
+      if (!isoStr) return '';
+      const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
+      if (diff < 60) return 'Offline hace menos de 1 min';
+      if (diff < 3600) return `Offline hace ${Math.floor(diff/60)} min`;
+      if (diff < 86400) return `Offline hace ${Math.floor(diff/3600)}h ${Math.floor((diff%3600)/60)}min`;
+      return `Offline hace ${Math.floor(diff/86400)} día${Math.floor(diff/86400)>1?'s':''}`;
+    }
+
     const htmlDispositivos = data.map(d => `
       <div class="hist-item" style="background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.04);display:flex;align-items:center;gap:12px">
         <div style="font-size:28px;flex-shrink:0">${d.icono}</div>
         <div style="flex:1">
           <div class="hi-action">${d.nombre}</div>
           <div class="hi-user" style="font-size:11px;font-weight:600">${d.ubicacion || d.id}</div>
+          ${!d.online && d.offlineSince ? `<div style="font-size:10px;color:#e8192c;font-weight:700;margin-top:3px">${tiempoOffline(d.offlineSince)}</div>` : ''}
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;background:${d.online ? '#EAF3DE' : '#FCEBEB'};color:${d.online ? '#3B6D11' : '#A32D2D'}">

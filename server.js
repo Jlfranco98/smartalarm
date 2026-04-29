@@ -37,6 +37,8 @@ async function requireAuth(req, res, next) {
     const session = await Session.findOne({ token });
     if (!session) return res.status(401).json({ success: false, message: 'No autorizado' });
     req.sessionUser = session.username;
+    // Actualizar lastSeenAt sin bloquear la petición
+    Session.updateOne({ token }, { $set: { lastSeenAt: new Date() } }).catch(() => {});
     next();
   } catch(e) {
     res.status(500).json({ success: false, message: 'Error de sesión' });
@@ -109,9 +111,11 @@ const pushSubSchema = new mongoose.Schema({
 }, { collection: 'push_subscriptions', timestamps: true });
 
 const sessionSchema = new mongoose.Schema({
-  token:     { type: String, required: true, unique: true },
-  username:  { type: String, required: true },
-  createdAt: { type: Date, default: Date.now, expires: 60 * 60 * 24 * 90 } // 90 días
+  token:      { type: String, required: true, unique: true },
+  username:   { type: String, required: true },
+  createdAt:  { type: Date, default: Date.now, expires: 60 * 60 * 24 * 90 }, // 90 días
+  lastSeenAt: { type: Date, default: Date.now },
+  userAgent:  { type: String, default: '' }
 }, { collection: 'sessions' });
 
 const notifPrefSchema = new mongoose.Schema({
@@ -349,11 +353,40 @@ app.post('/api/login', async (req, res) => {
     const user = await User.findOne({ username });
     if (user && await bcrypt.compare(password, user.password)) {
       const token = generateToken();
-      await Session.create({ token, username: user.username });
+      const ua = req.headers['user-agent'] || '';
+      await Session.create({ token, username: user.username, userAgent: ua });
       res.json({ success: true, token, user: { name: user.name, username: user.username, role: user.role, isNew: user.isNew, avatar: user.avatar || null } });
     }
     else res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
   } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// Panel de sesiones activas (solo admin)
+app.get('/api/sessions', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
+    const sessions = await Session.find({}, '-token').sort({ lastSeenAt: -1 });
+    res.json(sessions);
+  } catch(e) { res.status(500).json([]); }
+});
+
+app.delete('/api/sessions/:id', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
+    await Session.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
+});
+
+app.delete('/api/sessions/user/:username', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
+    await Session.deleteMany({ username: req.params.username });
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/force-set-pin', requireAuth, async (req, res) => {
@@ -396,7 +429,7 @@ app.post('/api/change-password', requireAuth, async (req, res) => {
     // Que no sea igual a la anterior
     if (await bcrypt.compare(newPassword, user.password))
       return res.json({ success: false, message: 'La nueva contraseña debe ser diferente a la anterior.' });
-    await User.updateOne({ username }, { $set: { password: await bcrypt.hash(newPassword, 10) } });
+    await User.updateOne({ username }, { $set: { password: await bcrypt.hash(newPassword, 10), isNew: false } });
     res.json({ success: true, message: 'Contraseña actualizada correctamente' });
   } catch (e) { res.status(500).json({ success: false }); }
 });
@@ -610,6 +643,9 @@ const LISTA_DISPOSITIVOS = [
   { id: 'bff7dcc64693fab3acucza', nombre: 'Sensor Fugas de Agua', icono: '💧', ubicacion: 'Pasillo'                              },
 ];
 
+// Rastrear cuándo se detectó por primera vez que un dispositivo está offline
+const offlineTracker = {};
+
 app.get('/api/dispositivos', requireAuth, async (req, res) => {
   try {
     const ahora = Date.now();
@@ -617,15 +653,17 @@ app.get('/api/dispositivos', requireAuth, async (req, res) => {
     const todosEnCache = LISTA_DISPOSITIVOS.every(d =>
       deviceStateCache[d.id] && (ahora - deviceStateCache[d.id].updatedAt) < VEINTE_MIN
     );
+    const buildDispositivo = d => {
+      const online = deviceStateCache[d.id]?.online ?? false;
+      if (!online && !offlineTracker[d.id]) offlineTracker[d.id] = new Date().toISOString();
+      if (online && offlineTracker[d.id]) delete offlineTracker[d.id];
+      return { ...d, online, bateria: deviceStateCache[d.id]?.bateria ?? null, offlineSince: offlineTracker[d.id] || null };
+    };
     if (todosEnCache) {
-      return res.json(LISTA_DISPOSITIVOS.map(d => ({
-        ...d, online: deviceStateCache[d.id]?.online ?? false, bateria: deviceStateCache[d.id]?.bateria ?? null,
-      })));
+      return res.json(LISTA_DISPOSITIVOS.map(buildDispositivo));
     }
     await Promise.all([checkSensorLuz(), checkSensoresLentos()]);
-    res.json(LISTA_DISPOSITIVOS.map(d => ({
-      ...d, online: deviceStateCache[d.id]?.online ?? false, bateria: deviceStateCache[d.id]?.bateria ?? null,
-    })));
+    res.json(LISTA_DISPOSITIVOS.map(buildDispositivo));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
