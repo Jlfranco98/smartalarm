@@ -115,7 +115,8 @@ const sessionSchema = new mongoose.Schema({
   username:   { type: String, required: true },
   createdAt:  { type: Date, default: Date.now, expires: 60 * 60 * 24 * 90 }, // 90 días
   lastSeenAt: { type: Date, default: Date.now },
-  userAgent:  { type: String, default: '' }
+  userAgent:  { type: String, default: '' },
+  deviceName: { type: String, default: '' }  // Nombre personalizado del dispositivo
 }, { collection: 'sessions' });
 
 const notifPrefSchema = new mongoose.Schema({
@@ -349,12 +350,12 @@ app.delete('/api/usuarios/:username', requireAuth, async (req, res) => {
 // --- 10. AUTH ---
 app.post('/api/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, deviceName } = req.body;
     const user = await User.findOne({ username });
     if (user && await bcrypt.compare(password, user.password)) {
       const token = generateToken();
       const ua = req.headers['user-agent'] || '';
-      await Session.create({ token, username: user.username, userAgent: ua });
+      await Session.create({ token, username: user.username, userAgent: ua, deviceName: (deviceName || '').trim().slice(0, 60) });
       res.json({ success: true, token, user: { name: user.name, username: user.username, role: user.role, isNew: user.isNew, avatar: user.avatar || null } });
     }
     else res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
@@ -380,8 +381,18 @@ app.delete('/api/sessions/:id', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ success: false }); }
 });
 
-app.delete('/api/sessions/user/:username', requireAuth, async (req, res) => {
+app.patch('/api/sessions/:id/device-name', requireAuth, async (req, res) => {
   try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
+    const { deviceName } = req.body;
+    if (!deviceName || !deviceName.trim()) return res.status(400).json({ success: false, message: 'Nombre no válido' });
+    await Session.findByIdAndUpdate(req.params.id, { $set: { deviceName: deviceName.trim().slice(0, 60) } });
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
+});
+
+app.delete('/api/sessions/user/:username', requireAuth, async (req, res) => {  try {
     const user = await User.findOne({ username: req.sessionUser });
     if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
     await Session.deleteMany({ username: req.params.username });

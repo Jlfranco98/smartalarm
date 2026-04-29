@@ -916,6 +916,21 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
       </div>
     </div>
 
+    <!-- Nombre de dispositivo -->
+    <div style="background:var(--white);border-radius:18px;padding:20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <div style="width:36px;height:36px;background:#e8f4fd;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>
+        <div>
+          <div style="font-size:14px;font-weight:900;color:var(--text)">Nombre de este dispositivo</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600">Para identificar la sesión desde el panel de admin</div>
+        </div>
+      </div>
+      <div class="form-field" style="margin-bottom:0">
+        <label>Nombre del dispositivo</label>
+        <input id="force-device-name" type="text" placeholder="Ej: iPhone Jose, iPad cocina…" maxlength="60" autocorrect="off" autocapitalize="words">
+      </div>
+    </div>
+
     <button class="btn-red" onclick="applyForceChange()" id="force-btn">Configurar mi cuenta →</button>
     <div id="force-err" class="err-small" style="text-align:center;margin-top:10px;font-size:13px"></div>
 
@@ -2087,21 +2102,70 @@ async function renderSessions() {
           <div style="font-size:12px;font-weight:900;color:var(--text)">👤 ${username}</div>
           <button onclick="revokeUserSessions('${username}')" style="font-size:10px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:8px;padding:3px 8px;cursor:pointer">Revocar todas</button>
         </div>
-        ${sess.map(s => `
-          <div style="background:var(--bg);border-radius:10px;padding:9px 12px;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-            <div>
-              <div style="font-size:12px;font-weight:700">${detectDevice(s.userAgent)}</div>
-              <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px">
-                Última actividad ${tiempoDesde(s.lastSeenAt)} · Creada ${tiempoDesde(s.createdAt)}
+        ${sess.map(s => {
+          const displayName = s.deviceName || detectDevice(s.userAgent);
+          return `
+          <div style="background:var(--bg);border-radius:10px;padding:9px 12px;margin-bottom:5px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div style="flex:1;min-width:0">
+                <div id="sname-${s._id}" style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px">
+                  <span>${displayName}</span>
+                  <button onclick="editSessionName('${s._id}', this)" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:0;line-height:1;flex-shrink:0" title="Renombrar">✏️</button>
+                </div>
+                <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px">
+                  Última actividad ${tiempoDesde(s.lastSeenAt)} · Creada ${tiempoDesde(s.createdAt)}
+                </div>
+              </div>
+              <button onclick="revokeSession('${s._id}')" style="font-size:18px;background:none;border:none;cursor:pointer;color:#bbb;flex-shrink:0" title="Revocar">🗑️</button>
+            </div>
+            <div id="sedit-${s._id}" style="display:none;margin-top:8px">
+              <div style="display:flex;gap:6px;align-items:center">
+                <input id="sinput-${s._id}" type="text" maxlength="60" placeholder="Nombre del dispositivo…"
+                  value="${(s.deviceName || '').replace(/"/g, '&quot;')}"
+                  style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none"
+                  onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border)'"
+                  onkeydown="if(event.key==='Enter')saveSessionName('${s._id}');if(event.key==='Escape')cancelEditSession('${s._id}')">
+                <button onclick="saveSessionName('${s._id}')" style="padding:7px 12px;background:var(--red);color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">Guardar</button>
+                <button onclick="cancelEditSession('${s._id}')" style="padding:7px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">✕</button>
               </div>
             </div>
-            <button onclick="revokeSession('${s._id}')" style="font-size:18px;background:none;border:none;cursor:pointer;color:#bbb;flex-shrink:0" title="Revocar">🗑️</button>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>`).join('') +
       `<button onclick="revokeAllSessions()" style="width:100%;margin-top:4px;font-size:12px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:10px;padding:8px;cursor:pointer">🚫 Revocar TODAS las sesiones</button>`;
 
   } catch(e) {
     el.innerHTML = '<div style="text-align:center;color:var(--red);font-size:13px">Error al cargar sesiones</div>';
+  }
+}
+
+function editSessionName(id, btn) {
+  document.getElementById('sedit-' + id).style.display = 'block';
+  document.getElementById('sinput-' + id).focus();
+}
+
+function cancelEditSession(id) {
+  document.getElementById('sedit-' + id).style.display = 'none';
+}
+
+async function saveSessionName(id) {
+  const input = document.getElementById('sinput-' + id);
+  const name = input.value.trim();
+  if (!name) { input.style.borderColor = 'var(--red)'; return; }
+  try {
+    const res = await authFetch(`/api/sessions/${id}/device-name`, {
+      method: 'PATCH',
+      body: JSON.stringify({ deviceName: name })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast2('✅ Nombre actualizado');
+      renderSessions();
+    } else {
+      toast2('⚠️ Error al guardar nombre');
+    }
+  } catch(e) {
+    toast2('⚠️ Error de conexión');
   }
 }
 
@@ -2348,10 +2412,11 @@ async function applyForceChange() {
     err.style.color = 'var(--green)';
     err.textContent = '✅ Cuenta configurada. Entrando...';
 
+    const deviceNameVal = (document.getElementById('force-device-name').value || '').trim();
     const resLogin = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: S.currentUser.username, password: nPass })
+      body: JSON.stringify({ username: S.currentUser.username, password: nPass, deviceName: deviceNameVal })
     });
     const dataLogin = await resLogin.json();
 
