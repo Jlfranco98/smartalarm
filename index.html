@@ -313,19 +313,17 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
   background:var(--white);border-radius:18px;
   box-shadow:0 2px 12px rgba(0,0,0,.05);
   margin-bottom:12px;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
 }
+/* First and last child get rounded corners to replace overflow:hidden */
+.sl-group > *:first-child{ border-radius:18px 18px 0 0; }
+.sl-group > *:last-child{ border-radius:0 0 18px 18px; }
+.sl-group > *:only-child{ border-radius:18px; }
 .sl-item{
   padding:15px 16px;
   display:flex;align-items:center;gap:14px;
   cursor:pointer;transition:background .12s;
   border-bottom:1px solid var(--border);
   position:relative;
-  width:100%;
-  box-sizing:border-box;
-  flex-shrink:0;
 }
 .sl-item:last-child{border-bottom:none}
 .sl-item:active{background:var(--bg)}
@@ -347,13 +345,11 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .sl-item.danger .sl-label{color:var(--red)}
 .sl-item.danger .sl-icon{background:var(--red-light)}
 
+/* Panel expandible mejorado */
 .sl-panel{
-  background:#f7f7f9;
+  background:#fafafa;
   border-top:1px solid var(--border);
   padding:16px;
-  width:100%;
-  box-sizing:border-box;
-  flex-shrink:0;
   animation:panelIn .2s ease;
 }
 @keyframes panelIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
