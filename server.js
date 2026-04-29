@@ -107,7 +107,8 @@ const configSchema = new mongoose.Schema({
 const pushSubSchema = new mongoose.Schema({
   username: { type: String, required: true },
   subscription: { type: Object, required: true },
-  device: { type: String, default: 'unknown' }
+  device: { type: String, default: 'unknown' },
+  deviceName: { type: String, default: '' }
 }, { collection: 'push_subscriptions', timestamps: true });
 
 const sessionSchema = new mongoose.Schema({
@@ -371,6 +372,16 @@ app.get('/api/sessions', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json([]); }
 });
 
+// Dispositivos push registrados de un usuario (para panel de sesiones)
+app.get('/api/push/devices/:username', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
+    const subs = await PushSub.find({ username: req.params.username }, 'device deviceName createdAt updatedAt');
+    res.json(subs);
+  } catch(e) { res.status(500).json([]); }
+});
+
 app.delete('/api/sessions/:id', requireAuth, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.sessionUser });
@@ -477,9 +488,13 @@ app.post('/api/change-pin', requireAuth, async (req, res) => {
 app.get('/api/push/vapid-public', (req, res) => res.json({ publicKey: VAPID_PUBLIC }));
 app.post('/api/push/subscribe', requireAuth, async (req, res) => {
   try {
-    const { username, subscription, device } = req.body;
+    const { username, subscription, device, deviceName } = req.body;
     if (!username || !subscription) return res.status(400).json({ success: false });
-    await PushSub.findOneAndUpdate({ 'subscription.endpoint': subscription.endpoint }, { username, subscription, device: device || 'unknown' }, { upsert: true, new: true });
+    await PushSub.findOneAndUpdate(
+      { 'subscription.endpoint': subscription.endpoint },
+      { username, subscription, device: device || 'unknown', deviceName: deviceName || '' },
+      { upsert: true, new: true }
+    );
     res.json({ success: true });
   } catch (e) { res.status(500).json({ success: false }); }
 });
