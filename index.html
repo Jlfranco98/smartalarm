@@ -347,6 +347,8 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
   border-top:1px solid var(--border);
   padding:16px;
   animation:panelIn .2s ease;
+  width:100%;
+  box-sizing:border-box;
 }
 @keyframes panelIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -1028,7 +1030,7 @@ function gestionarVisibilidadAdmin() {
     // Aquí forzamos la comprobación y vemos qué falla
     if (S.currentUser && S.currentUser.role === 'admin') {
         console.log("Login correcto por un administrador");
-        document.querySelectorAll('.admin-only').forEach(el => el.style.display = el.classList.contains('sl-section-label') ? 'block' : 'flex');
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
     } else {
         console.log("Login correcto por un usuario");
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
