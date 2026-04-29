@@ -310,14 +310,19 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 }
 
 .sl-group{
-  background:var(--white);border-radius:18px;
+  border-radius:18px;
   box-shadow:0 2px 12px rgba(0,0,0,.05);
   margin-bottom:12px;
+  overflow:hidden;
 }
-/* First and last child get rounded corners to replace overflow:hidden */
-.sl-group > *:first-child{ border-radius:18px 18px 0 0; }
-.sl-group > *:last-child{ border-radius:0 0 18px 18px; }
-.sl-group > *:only-child{ border-radius:18px; }
+.sl-panel{
+  background:#f7f7f9;
+  border-top:1px solid var(--border);
+  padding:16px;
+  animation:panelIn .2s ease;
+  width:100%;
+  box-sizing:border-box;
+}
 .sl-item{
   padding:15px 16px;
   display:flex;align-items:center;gap:14px;
@@ -345,13 +350,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .sl-item.danger .sl-label{color:var(--red)}
 .sl-item.danger .sl-icon{background:var(--red-light)}
 
-/* Panel expandible mejorado */
-.sl-panel{
-  background:#fafafa;
-  border-top:1px solid var(--border);
-  padding:16px;
-  animation:panelIn .2s ease;
-}
+
 @keyframes panelIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
 /* ══════════════════════════════════════════════════════════
@@ -555,7 +554,13 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           <!-- Fila 2: Subcategorías (dinámicas) -->
           <div class="hf-row" id="hf-subcats" style="display:none;margin-top:4px"></div>
 
-          <!-- Fila 3: Fecha y hora -->
+          <!-- Fila 3: Usuario -->
+          <div class="hf-section-label" style="padding:10px 0 4px">Usuario</div>
+          <div class="hf-row" id="hf-usuarios">
+            <button class="hf-chip active" id="fu-todo" onclick="setFiltroUsuario('todo')">👥 Todos</button>
+          </div>
+
+          <!-- Fila 4: Fecha y hora -->
           <div class="hf-section-label" style="padding:10px 0 4px">Fecha</div>
           <div class="hf-date-row" style="padding:0 0 4px">
             <div style="flex:1">
@@ -702,6 +707,18 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
         <!-- GRUPO: ADMIN (solo admin) -->
         <div class="sl-section-label admin-only" style="display:none">Administración</div>
         <div class="sl-group admin-only" style="display:none">
+          <div class="sl-item" onclick="toggleSessionsPanel()">
+            <div class="sl-icon ic-blue">📱</div>
+            <div class="sl-text">
+              <div class="sl-label">Sesiones activas</div>
+              <div class="sl-sublabel">Ver y revocar accesos por dispositivo</div>
+            </div>
+            <div class="sl-arrow">›</div>
+          </div>
+          <div id="sessions-panel" style="display:none" class="sl-panel">
+            <div id="sessions-list" style="font-size:13px;color:var(--muted);text-align:center;padding:8px">Cargando...</div>
+          </div>
+
           <div class="sl-item" onclick="toggleCfgPanel()">
             <div class="sl-icon ic-gray">🔗</div>
             <div class="sl-text">
@@ -1537,7 +1554,7 @@ async function applyAction(action, userName) {
 }
 
 // ── Filtros de Historial ────────────────────────────────────────────────────
-let F = { categoria: 'todo', subcategoria: 'todo' };
+let F = { categoria: 'todo', subcategoria: 'todo', usuario: 'todo' };
 
 const CATEGORIAS = {
   acciones: {
@@ -1637,11 +1654,34 @@ function setFiltroSub(sub) {
 }
 
 function limpiarFiltros() {
-  F = { categoria: 'todo', subcategoria: 'todo' };
+  F = { categoria: 'todo', subcategoria: 'todo', usuario: 'todo' };
   histPage = 1;
   document.getElementById('hf-desde').value = '';
   document.getElementById('hf-hasta').value = '';
   setFiltroCategoria('todo');
+  setFiltroUsuario('todo');
+}
+
+function setFiltroUsuario(u) {
+  F.usuario = u;
+  histPage = 1;
+  document.querySelectorAll('#hf-usuarios .hf-chip').forEach(el => el.classList.remove('active'));
+  const btn = document.getElementById('fu-todo');
+  if (u === 'todo' && btn) btn.classList.add('active');
+  else {
+    const target = document.querySelector(`#hf-usuarios [data-u="${u}"]`);
+    if (target) target.classList.add('active');
+  }
+  renderLogFiltrado();
+}
+
+function populateUsuarioFilter() {
+  const usuarios = [...new Set((S.log || []).map(l => l.usuario).filter(Boolean))].sort();
+  const row = document.getElementById('hf-usuarios');
+  if (!row) return;
+  const currentU = F.usuario || 'todo';
+  row.innerHTML = `<button class="hf-chip ${currentU==='todo'?'active':''}" id="fu-todo" onclick="setFiltroUsuario('todo')">👥 Todos</button>` +
+    usuarios.map(u => `<button class="hf-chip ${currentU===u?'active':''}" data-u="${u}" onclick="setFiltroUsuario('${u.replace(/'/g,"\'")}')">${u}</button>`).join('');
 }
 
 const HIST_PER_PAGE = 30;
@@ -1667,6 +1707,7 @@ function renderLogFiltrado(resetPage = true) {
       if (cl.cat !== F.categoria) return false;
       if (F.subcategoria !== 'todo' && cl.sub !== F.subcategoria) return false;
     }
+    if (F.usuario && F.usuario !== 'todo' && l.usuario !== F.usuario) return false;
     return true;
   });
 
@@ -1948,6 +1989,83 @@ async function saveConfig() {
 }
   
 function toggleCfgPanel(){const p=document.getElementById('cfg-panel');p.style.display=p.style.display==='none'?'block':'none';}
+
+function toggleSessionsPanel() {
+  const p = document.getElementById('sessions-panel');
+  const open = p.style.display === 'none';
+  p.style.display = open ? 'block' : 'none';
+  if (open) renderSessions();
+}
+
+async function renderSessions() {
+  const el = document.getElementById('sessions-list');
+  el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:8px">Cargando...</div>';
+  try {
+    const res = await authFetch('/api/sessions');
+    const sessions = await res.json();
+    if (!sessions.length) {
+      el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:8px">Sin sesiones activas</div>';
+      return;
+    }
+    function tiempoDesde(iso) {
+      const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+      if (diff < 60) return 'hace un momento';
+      if (diff < 3600) return `hace ${Math.floor(diff/60)} min`;
+      if (diff < 86400) return `hace ${Math.floor(diff/3600)}h`;
+      return `hace ${Math.floor(diff/86400)}d`;
+    }
+    function detectDevice(ua) {
+      if (!ua) return '🖥️ Desconocido';
+      if (/iPhone|iPad/.test(ua)) return '📱 iPhone/iPad';
+      if (/Android/.test(ua)) return '📱 Android';
+      if (/Windows/.test(ua)) return '🖥️ Windows';
+      if (/Mac/.test(ua)) return '💻 Mac';
+      return '🌐 Navegador';
+    }
+    const byUser = {};
+    sessions.forEach(s => { if (!byUser[s.username]) byUser[s.username] = []; byUser[s.username].push(s); });
+
+    el.innerHTML = Object.entries(byUser).map(([username, sess]) => `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:12px;font-weight:900;color:var(--text)">👤 ${username}</div>
+          <button onclick="revokeUserSessions('${username}')" style="font-size:10px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:8px;padding:3px 8px;cursor:pointer">Revocar todas</button>
+        </div>
+        ${sess.map(s => `
+          <div style="background:var(--white);border-radius:10px;padding:9px 12px;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--border)">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:700">${detectDevice(s.userAgent)}</div>
+              <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px">Activo ${tiempoDesde(s.lastSeenAt)} · Creada ${tiempoDesde(s.createdAt)}</div>
+            </div>
+            <button onclick="revokeSession('${s._id}')" style="font-size:18px;background:none;border:none;cursor:pointer;color:#bbb;flex-shrink:0">🗑️</button>
+          </div>`).join('')}
+      </div>`).join('') +
+      `<button onclick="revokeAllSessions()" style="width:100%;margin-top:4px;font-size:12px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:10px;padding:8px;cursor:pointer">🚫 Revocar TODAS las sesiones</button>`;
+  } catch(e) {
+    el.innerHTML = '<div style="text-align:center;color:var(--red);font-size:13px">Error al cargar sesiones</div>';
+  }
+}
+
+async function revokeSession(id) {
+  if (!confirm('¿Revocar esta sesión?')) return;
+  await authFetch(`/api/sessions/${id}`, { method: 'DELETE' });
+  renderSessions();
+}
+
+async function revokeUserSessions(username) {
+  if (!confirm(`¿Revocar todas las sesiones de ${username}?`)) return;
+  await authFetch(`/api/sessions/user/${username}`, { method: 'DELETE' });
+  renderSessions();
+}
+
+async function revokeAllSessions() {
+  if (!confirm('¿Revocar TODAS las sesiones? Todos los usuarios tendrán que volver a iniciar sesión.')) return;
+  const res = await authFetch('/api/sessions');
+  const sessions = await res.json();
+  const users = [...new Set(sessions.map(s => s.username))];
+  await Promise.all(users.map(u => authFetch(`/api/sessions/user/${u}`, { method: 'DELETE' })));
+  renderSessions();
+}
 function togglePinPanel(){const p=document.getElementById('pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function toggleChangePinPanel(){const p=document.getElementById('change-pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
