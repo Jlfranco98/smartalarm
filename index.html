@@ -312,7 +312,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .sl-group{
   background:var(--white);border-radius:18px;
   box-shadow:0 2px 12px rgba(0,0,0,.05);
-  margin-bottom:12px;
+  overflow:hidden;margin-bottom:12px;
 }
 .sl-item{
   padding:15px 16px;
@@ -345,13 +345,8 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .sl-panel{
   background:#fafafa;
   border-top:1px solid var(--border);
-  border:1px solid var(--border);
-  border-top:none;
   padding:16px;
-  border-radius:0 0 18px 18px;
   animation:panelIn .2s ease;
-  box-shadow:0 2px 12px rgba(0,0,0,.05);
-  margin-top:-1px;
 }
 @keyframes panelIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -894,10 +889,23 @@ let S = {
 let pinBuffer = '', pinAction = '';
 
 // ── Fetch autenticado ───────────────────────────────────────────────────────
-function authFetch(url, options = {}) {
+async function authFetch(url, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (S.sessionToken) headers['X-App-Token'] = S.sessionToken;
-  return fetch(url, { ...options, headers });
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401 && S.currentUser) {
+    stopPolling();
+    S.currentUser = null;
+    S.sessionToken = null;
+    localStorage.removeItem('mialarm');
+    document.getElementById('main-nav').style.display = 'none';
+    document.getElementById('s-app').classList.remove('active');
+    document.getElementById('s-login').classList.add('active');
+    document.getElementById('li-user').value = '';
+    document.getElementById('li-pass').value = '';
+    document.getElementById('li-err').textContent = '\u26a0\ufe0f Sesi\u00f3n expirada, vuelve a iniciar sesi\u00f3n';
+  }
+  return response;
 }
 
 const STATUS_CFG = {
@@ -1301,11 +1309,6 @@ setInterval(() => {
   const nonAdminNote = document.getElementById('add-user-form-admin');
   if(nonAdminNote) nonAdminNote.style.display = isAdmin ? 'none' : 'block';
   
-  // Mostrar sección de administración en Mi Cuenta si es admin
-  document.querySelectorAll('.admin-only').forEach(el => {
-    el.style.display = isAdmin ? '' : 'none';
-  });
-  
   // 3. ACTUALIZACIÓN DE VISTAS
   updateStatusUI(); // Ahora pintará el estado real traído en el paso anterior
   renderLog();      // Ahora pintará el historial real del servidor
@@ -1324,7 +1327,7 @@ function navTo(page){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('pg-'+page).classList.add('active');
   const nb=document.getElementById('nav-'+page); if(nb)nb.classList.add('active');
-  if(page==='historial'){ populateUsuarioFilter(); renderLog(); renderLogFiltrado(); }
+  if(page==='historial'){ renderLog(); renderLogFiltrado(); }
   if(page==='admin')renderUsersAdmin();
   if(page==='cuenta')loadConfigForm();
   if(page==='dispositivos')renderDispositivos();
@@ -1373,7 +1376,6 @@ async function fetchHistorialGlobal() {
         if (res.ok) {
             const data = await res.json();
             S.log = data; // Guardamos lo que viene de Railway
-            populateUsuarioFilter(); // Actualizar chips de usuarios con los datos reales
             renderLog();  // Llamamos a tu función de dibujo (la que arreglamos antes)
         }
     } catch (e) {
@@ -1563,7 +1565,7 @@ async function applyAction(action, userName) {
 }
 
 // ── Filtros de Historial ────────────────────────────────────────────────────
-let F = { categoria: 'todo', subcategoria: 'todo', usuario: 'todo' };
+let F = { categoria: 'todo', subcategoria: 'todo' };
 
 const CATEGORIAS = {
   acciones: {
