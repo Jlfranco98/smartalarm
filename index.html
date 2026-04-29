@@ -895,10 +895,25 @@ let S = {
 let pinBuffer = '', pinAction = '';
 
 // ── Fetch autenticado ───────────────────────────────────────────────────────
-function authFetch(url, options = {}) {
+async function authFetch(url, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (S.sessionToken) headers['X-App-Token'] = S.sessionToken;
-  return fetch(url, { ...options, headers });
+  const res = await fetch(url, { ...options, headers });
+  if (res.status === 401 && S.sessionToken) {
+    // Sesión expirada o revocada — cerrar automáticamente y avisar
+    stopPolling();
+    S.currentUser = null;
+    S.sessionToken = null;
+    save();
+    document.getElementById('main-nav').style.display = 'none';
+    document.getElementById('s-app').classList.remove('active');
+    document.getElementById('s-login').classList.add('active');
+    document.getElementById('li-user').value = '';
+    document.getElementById('li-pass').value = '';
+    document.getElementById('li-err').textContent = '🔐 Tu sesión ha expirado. Identifícate de nuevo para continuar.';
+    navTo('inicio');
+  }
+  return res;
 }
 
 const STATUS_CFG = {
