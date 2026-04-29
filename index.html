@@ -846,21 +846,6 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
 <div id="toast"></div>
 
-<!-- Modal nombre de dispositivo -->
-<div id="device-name-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s">
-  <div id="device-name-modal" style="background:var(--white);border-radius:24px 24px 0 0;padding:24px 24px calc(24px + var(--safe-bot));width:100%;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)">
-    <div style="font-size:18px;font-weight:900;text-align:center;margin-bottom:4px">📱 Nombre del dispositivo</div>
-    <div style="font-size:13px;color:var(--muted);text-align:center;font-weight:600;margin-bottom:20px">Ponle un nombre para identificarlo en el panel de sesiones</div>
-    <div class="form-field" style="margin-bottom:16px">
-      <label>Nombre</label>
-      <input id="device-name-input" type="text" placeholder="Ej: iPhone de José, iPad cocina..." autocorrect="off" maxlength="40"
-        style="width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;outline:none">
-    </div>
-    <button class="btn-red" onclick="confirmDeviceName()" style="margin-bottom:10px">Registrar dispositivo</button>
-    <button onclick="closeDeviceNameModal()" style="width:100%;padding:14px;background:transparent;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer">Cancelar</button>
-  </div>
-</div>
-
 <!-- Offline banner -->
 <div id="offline-banner">
   <div class="ob-dot"></div>
@@ -2072,16 +2057,6 @@ async function renderSessions() {
     const sessions = await res.json();
     if (!sessions.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:8px">Sin sesiones activas</div>'; return; }
 
-    // Obtener dispositivos push de cada usuario para cruzar nombres
-    const usernames = [...new Set(sessions.map(s => s.username))];
-    const pushByUser = {};
-    await Promise.all(usernames.map(async u => {
-      try {
-        const r = await authFetch(`/api/push/devices/${u}`);
-        pushByUser[u] = await r.json();
-      } catch(e) { pushByUser[u] = []; }
-    }));
-
     function tiempoDesde(iso) {
       const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
       if (diff < 60) return 'hace un momento';
@@ -2090,24 +2065,13 @@ async function renderSessions() {
       return `hace ${Math.floor(diff/86400)}d`;
     }
 
-    function deviceIcon(ua) {
-      if (!ua) return '🖥️';
-      if (/iPhone/.test(ua)) return '📱';
-      if (/iPad/.test(ua)) return '📱';
-      if (/Android/.test(ua)) return '📱';
-      if (/Windows/.test(ua)) return '🖥️';
-      if (/Mac/.test(ua)) return '💻';
-      return '🌐';
-    }
-
-    function deviceLabel(ua) {
-      if (!ua) return 'Desconocido';
-      if (/iPhone/.test(ua)) return 'iPhone';
-      if (/iPad/.test(ua)) return 'iPad';
-      if (/Android/.test(ua)) return 'Android';
-      if (/Windows/.test(ua)) return 'Windows';
-      if (/Mac/.test(ua)) return 'Mac';
-      return 'Navegador';
+    function detectDevice(ua) {
+      if (!ua) return '🖥️ Desconocido';
+      if (/iPhone|iPad/.test(ua)) return '📱 iPhone/iPad';
+      if (/Android/.test(ua)) return '📱 Android';
+      if (/Windows/.test(ua)) return '🖥️ Windows';
+      if (/Mac/.test(ua)) return '💻 Mac';
+      return '🌐 Navegador';
     }
 
     // Agrupar por usuario
@@ -2117,46 +2081,24 @@ async function renderSessions() {
       byUser[s.username].push(s);
     });
 
-    el.innerHTML = Object.entries(byUser).map(([username, sess]) => {
-      // Buscar nombre de dispositivo push registrado para este usuario
-      // Tomamos el más reciente como referencia (puede haber varios)
-      const pushDevices = pushByUser[username] || [];
-
-      return `
+    el.innerHTML = Object.entries(byUser).map(([username, sess]) => `
       <div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <div style="font-size:12px;font-weight:900;color:var(--text)">👤 ${username}</div>
           <button onclick="revokeUserSessions('${username}')" style="font-size:10px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:8px;padding:3px 8px;cursor:pointer">Revocar todas</button>
         </div>
-        ${sess.map((s, i) => {
-          // Intentar asociar un nombre de dispositivo push por índice o usar fallback
-          const pushDev = pushDevices[i] || pushDevices[0] || null;
-          const nombre = pushDev?.deviceName || '';
-          const icon = deviceIcon(s.userAgent);
-          const label = nombre || deviceLabel(s.userAgent);
-          return `
+        ${sess.map(s => `
           <div style="background:var(--bg);border-radius:10px;padding:9px 12px;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-            <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-              <div style="font-size:22px;flex-shrink:0">${icon}</div>
-              <div style="min-width:0">
-                <div style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>
-                <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px">
-                  Activo ${tiempoDesde(s.lastSeenAt)} · Sesión creada ${tiempoDesde(s.createdAt)}
-                </div>
+            <div>
+              <div style="font-size:12px;font-weight:700">${detectDevice(s.userAgent)}</div>
+              <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px">
+                Última actividad ${tiempoDesde(s.lastSeenAt)} · Creada ${tiempoDesde(s.createdAt)}
               </div>
             </div>
             <button onclick="revokeSession('${s._id}')" style="font-size:18px;background:none;border:none;cursor:pointer;color:#bbb;flex-shrink:0" title="Revocar">🗑️</button>
-          </div>`;
-        }).join('')}
-        ${pushDevices.length > 0 ? `<div style="font-size:10px;color:var(--muted);font-weight:600;padding:2px 4px">🔔 ${pushDevices.length} dispositivo${pushDevices.length>1?'s':''} con notificaciones push</div>` : ''}
-      </div>`;
-    }).join('') +
+          </div>`).join('')}
+      </div>`).join('') +
       `<button onclick="revokeAllSessions()" style="width:100%;margin-top:4px;font-size:12px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:10px;padding:8px;cursor:pointer">🚫 Revocar TODAS las sesiones</button>`;
-
-  } catch(e) {
-    el.innerHTML = '<div style="text-align:center;color:var(--red);font-size:13px">Error al cargar sesiones</div>';
-  }
-}
 
   } catch(e) {
     el.innerHTML = '<div style="text-align:center;color:var(--red);font-size:13px">Error al cargar sesiones</div>';
@@ -2515,48 +2457,6 @@ async function checkNotifStatus() {
   ok.textContent = '';
 }
 
-// ── Modal nombre dispositivo ───────────────────────────────────────────────
-let _pushResolve = null;
-
-function openDeviceNameModal() {
-  return new Promise(resolve => {
-    _pushResolve = resolve;
-    const bg  = document.getElementById('device-name-modal-bg');
-    const mod = document.getElementById('device-name-modal');
-    // Sugerir nombre automático según dispositivo
-    const ua = navigator.userAgent;
-    let suggested = '';
-    if (/iPhone/.test(ua)) suggested = 'iPhone de ' + (S.currentUser?.name?.split(' ')[0] || '');
-    else if (/iPad/.test(ua)) suggested = 'iPad de ' + (S.currentUser?.name?.split(' ')[0] || '');
-    else if (/Android/.test(ua)) suggested = 'Móvil de ' + (S.currentUser?.name?.split(' ')[0] || '');
-    else if (/Mac/.test(ua)) suggested = 'Mac de ' + (S.currentUser?.name?.split(' ')[0] || '');
-    else if (/Windows/.test(ua)) suggested = 'PC de ' + (S.currentUser?.name?.split(' ')[0] || '');
-    else suggested = 'Dispositivo de ' + (S.currentUser?.name?.split(' ')[0] || '');
-    document.getElementById('device-name-input').value = suggested;
-    bg.style.opacity = '1'; bg.style.pointerEvents = 'all';
-    mod.style.transform = 'translateY(0)';
-    setTimeout(() => document.getElementById('device-name-input').focus(), 350);
-  });
-}
-
-function closeDeviceNameModal() {
-  const bg  = document.getElementById('device-name-modal-bg');
-  const mod = document.getElementById('device-name-modal');
-  bg.style.opacity = '0'; bg.style.pointerEvents = 'none';
-  mod.style.transform = 'translateY(100%)';
-  if (_pushResolve) { _pushResolve(null); _pushResolve = null; }
-}
-
-function confirmDeviceName() {
-  const name = document.getElementById('device-name-input').value.trim();
-  if (!name) { document.getElementById('device-name-input').style.borderColor = 'var(--red)'; return; }
-  const bg  = document.getElementById('device-name-modal-bg');
-  const mod = document.getElementById('device-name-modal');
-  bg.style.opacity = '0'; bg.style.pointerEvents = 'none';
-  mod.style.transform = 'translateY(100%)';
-  if (_pushResolve) { _pushResolve(name); _pushResolve = null; }
-}
-
 async function requestPushPermission() {
   const ok  = document.getElementById('notif-ok');
   const btn = document.getElementById('notif-btn');
@@ -2570,10 +2470,6 @@ async function requestPushPermission() {
     ok.textContent = 'Permiso denegado. Actívalo en ajustes del navegador.'; return;
   }
   try {
-    // Pedir nombre del dispositivo antes de registrar
-    const deviceName = await openDeviceNameModal();
-    if (!deviceName) { ok.textContent = 'Registro cancelado.'; return; }
-
     const vapidRes = await fetch('/api/push/vapid-public');
     const { publicKey } = await vapidRes.json();
     if (!publicKey) { ok.textContent = 'Error: VAPID no configurado en servidor'; return; }
@@ -2584,15 +2480,10 @@ async function requestPushPermission() {
     });
     await authFetch('/api/push/subscribe', {
       method: 'POST',
-      body: JSON.stringify({
-        username: S.currentUser.username,
-        subscription: sub,
-        device: navigator.userAgent.slice(0, 80),
-        deviceName
-      })
+      body: JSON.stringify({ username: S.currentUser.username, subscription: sub, device: navigator.userAgent.slice(0,80) })
     });
     ok.style.color = 'var(--green)';
-    ok.textContent = `✅ "${deviceName}" recibirá notificaciones`;
+    ok.textContent = 'Este dispositivo recibirá notificaciones';
     btn.textContent = '✅ Dispositivo configurado';
     btn.style.background = 'var(--green)';
   } catch(e) {
