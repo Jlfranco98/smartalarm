@@ -863,20 +863,64 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
   </div>
 </div>
 
-<div id="force-change-screen" class="screen" style="z-index: 1000; background: var(--bg); display: none; flex-direction: column; padding: 20px;">
-    <div class="account-hero">
-      <div class="acc-avatar">👤 </div>
-      <div class="acc-name">Configura tu nuevo perfil de usuario</div>
-      <div class="acc-email">Por favor, configure una nueva contraseña y un nuevo PIN de seguridad</div>
-    </div>
-    
-    <div class="admin-card" style="margin-top: 20px;">
-      <div class="form-field"><label>Nueva Contraseña</label><input id="force-pass" type="password" placeholder="Mínimo 6 caracteres"></div>
-      <div class="form-field"><label>Nuevo PIN (4 dígitos)</label><input id="force-pin" type="password" maxlength="4" inputmode="numeric" placeholder="••••"></div>
-      <button class="btn-red" onclick="applyForceChange()">Configurar mi cuenta</button>
-      <div id="force-err" class="err-small" style="text-align:center; margin-top:10px"></div>
-    </div>
+<div id="force-change-screen" class="screen" style="z-index:1000;background:var(--bg);display:none;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch">
+
+  <!-- Hero rojo -->
+  <div style="background:linear-gradient(135deg,var(--red) 0%,#b01020 100%);padding:calc(var(--safe-top) + 36px) 24px 32px;text-align:center;position:relative;overflow:hidden;flex-shrink:0">
+    <div style="position:absolute;inset:0;background:url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\");pointer-events:none"></div>
+    <img src="icon-512.png" alt="Smart Alarm" onerror="this.style.display='none';document.getElementById('fc-logo-fallback').style.display='flex'"
+      style="width:80px;height:80px;border-radius:20px;margin:0 auto 16px;display:block;box-shadow:0 8px 24px rgba(0,0,0,.25)">
+    <div id="fc-logo-fallback" style="display:none;width:80px;height:80px;border-radius:20px;background:rgba(255,255,255,.2);align-items:center;justify-content:center;font-size:36px;margin:0 auto 16px;box-shadow:0 8px 24px rgba(0,0,0,.25)">🛡️</div>
+    <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.3px;margin-bottom:6px">Bienvenido/a 👋</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.8);font-weight:600;line-height:1.5;max-width:280px;margin:0 auto">Antes de continuar, configura tu contraseña personal y tu PIN de seguridad</div>
   </div>
+
+  <!-- Formulario -->
+  <div style="padding:24px 20px calc(32px + var(--safe-bot));flex:1">
+
+    <!-- Contraseña -->
+    <div style="background:var(--white);border-radius:18px;padding:20px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <div style="width:36px;height:36px;background:#f3e8ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔑</div>
+        <div>
+          <div style="font-size:14px;font-weight:900;color:var(--text)">Nueva contraseña</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600">Mínimo 6 caracteres</div>
+        </div>
+      </div>
+      <div class="form-field" style="margin-bottom:10px">
+        <label>Contraseña</label>
+        <input id="force-pass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+      </div>
+      <div class="form-field" style="margin-bottom:0">
+        <label>Repetir contraseña</label>
+        <input id="force-pass2" type="password" placeholder="Repite la contraseña" autocomplete="new-password">
+      </div>
+    </div>
+
+    <!-- PIN -->
+    <div style="background:var(--white);border-radius:18px;padding:20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <div style="width:36px;height:36px;background:#fff4e8;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔢</div>
+        <div>
+          <div style="font-size:14px;font-weight:900;color:var(--text)">PIN de seguridad</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600">4 dígitos para armar/desarmar la alarma</div>
+        </div>
+      </div>
+      <div class="form-field" style="margin-bottom:10px">
+        <label>PIN (4 dígitos)</label>
+        <input id="force-pin" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+      </div>
+      <div class="form-field" style="margin-bottom:0">
+        <label>Repetir PIN</label>
+        <input id="force-pin2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+      </div>
+    </div>
+
+    <button class="btn-red" onclick="applyForceChange()" id="force-btn">Configurar mi cuenta →</button>
+    <div id="force-err" class="err-small" style="text-align:center;margin-top:10px;font-size:13px"></div>
+
+  </div>
+</div>
   
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
@@ -2234,66 +2278,107 @@ function showUpdateBar() {
 }
 
 async function applyForceChange() {
-  const nPass = document.getElementById('force-pass').value;
-  const nPin = document.getElementById('force-pin').value;
-  const err = document.getElementById('force-err');
+  const nPass  = document.getElementById('force-pass').value;
+  const nPass2 = document.getElementById('force-pass2').value;
+  const nPin   = document.getElementById('force-pin').value;
+  const nPin2  = document.getElementById('force-pin2').value;
+  const err    = document.getElementById('force-err');
+  const btn    = document.getElementById('force-btn');
 
-  // 1. VALIDACIÓN DE FORMATO (Lo que ya tenías)
-  if (nPass.length < 4 || !/^\d{4}$/.test(nPin)) {
-    err.textContent = "Datos no válidos. PIN debe ser de 4 números.";
-    return;
+  err.style.color = 'var(--red)';
+  err.textContent = '';
+
+  // Validaciones
+  if (!nPass || !nPass2 || !nPin || !nPin2) {
+    err.textContent = 'Rellena todos los campos.'; return;
+  }
+  if (nPass.length < 6) {
+    err.textContent = 'La contraseña debe tener mínimo 6 caracteres.'; return;
+  }
+  if (nPass !== nPass2) {
+    err.textContent = 'Las contraseñas no coinciden.'; return;
+  }
+  if (!/^\d{4}$/.test(nPin)) {
+    err.textContent = 'El PIN debe ser exactamente 4 dígitos.'; return;
+  }
+  if (nPin !== nPin2) {
+    err.textContent = 'Los PINs no coinciden.'; return;
   }
 
-  // 2. NUEVA: VALIDACIÓN DE SEGURIDAD (Listas negras)
-  const forbiddenPins = ['0000', '1234', '1111', '2222'];
-  const forbiddenPass = ['password', '123456', 'admin', 'qwerty'];
-
+  const forbiddenPins = ['0000','1234','1111','2222','5555'];
+  const forbiddenPass = ['password','123456','admin','qwerty','123123'];
   if (forbiddenPins.includes(nPin)) {
-    err.textContent = "El PIN " + nPin + " no está permitido por seguridad.";
-    return;
+    err.textContent = 'El PIN ' + nPin + ' no está permitido por seguridad.'; return;
+  }
+  if (forbiddenPass.includes(nPass.toLowerCase())) {
+    err.textContent = 'La contraseña es demasiado común.'; return;
   }
 
-  if (forbiddenPass.includes(nPass.toLowerCase())) {
-    err.textContent = "La contraseña es demasiado común.";
-    return;
-  }
+  btn.textContent = 'Configurando...';
+  btn.disabled = true;
 
   try {
-    // 3. Cambiamos contraseña
+    // 1. Primero el PIN (requiere isNew=true en servidor — hacerlo ANTES de cambiar pass)
+    const resPin = await authFetch('/api/force-set-pin', {
+      method: 'POST',
+      body: JSON.stringify({ username: S.currentUser.username, newPin: nPin })
+    });
+    const dataPin = await resPin.json();
+    if (!dataPin.success) {
+      err.textContent = dataPin.message || 'Error al guardar el PIN.';
+      btn.textContent = 'Configurar mi cuenta →'; btn.disabled = false; return;
+    }
+
+    // 2. Luego la contraseña
     const resPass = await authFetch('/api/change-password', {
       method: 'POST',
-      body: JSON.stringify({ 
-        username: S.currentUser.username, 
-        currentPassword: S.currentUser.password || S.currentUser.tempPass, 
-        newPassword: nPass 
+      body: JSON.stringify({
+        username: S.currentUser.username,
+        currentPassword: S.currentUser.password || S.currentUser.tempPass,
+        newPassword: nPass
       })
     });
     const dataPass = await resPass.json();
-    if (!dataPass.success) { err.textContent = dataPass.message; return; }
+    if (!dataPass.success) {
+      err.textContent = dataPass.message || 'Error al guardar la contraseña.';
+      btn.textContent = 'Configurar mi cuenta →'; btn.disabled = false; return;
+    }
 
-    // 4. Cambiamos PIN (usuario nuevo, usa endpoint especial sin PIN actual)
-    const resPin = await authFetch('/api/force-set-pin', {
+    // 3. Login automático con las nuevas credenciales
+    err.style.color = 'var(--green)';
+    err.textContent = '✅ Cuenta configurada. Entrando...';
+
+    const resLogin = await fetch('/api/login', {
       method: 'POST',
-      body: JSON.stringify({ 
-        username: S.currentUser.username, 
-        newPin: nPin 
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: S.currentUser.username, password: nPass })
     });
-    const dataPin = await resPin.json();
-    if (!dataPin.success) { err.textContent = dataPin.message; return; }
+    const dataLogin = await resLogin.json();
 
-    // 5. Ocultar modal y entrar
-    document.getElementById('force-change-screen').style.display = 'none';
-    S.currentUser.isNew = false; // Marcamos como "ya no es nuevo" localmente
-    save();
-    renderApp();
-    
-    document.getElementById('s-app').classList.add('active');
-    document.getElementById('main-nav').style.display = 'flex';
-    toast2('SEGURIDAD CONFIGURADA CORRECTAMENTE');
-    
+    if (dataLogin.success) {
+      S.currentUser = dataLogin.user;
+      S.sessionToken = dataLogin.token;
+      S.currentUser.password = nPass;
+      save();
+
+      document.getElementById('force-change-screen').style.display = 'none';
+      document.getElementById('force-change-screen').classList.remove('active');
+      document.getElementById('s-app').classList.add('active');
+      document.getElementById('main-nav').style.display = 'flex';
+      gestionarVisibilidadAdmin();
+      renderApp();
+      startPolling();
+      toast2('✅ Cuenta configurada correctamente');
+    } else {
+      // Si el auto-login falla, mandamos al login manual
+      doLogout();
+      document.getElementById('li-err').textContent = '✅ Cuenta configurada. Inicia sesión con tu nueva contraseña.';
+      document.getElementById('li-err').style.color = 'var(--green)';
+    }
+
   } catch(e) {
-    err.textContent = "Error al conectar con el servidor.";
+    err.textContent = 'Error al conectar con el servidor.';
+    btn.textContent = 'Configurar mi cuenta →'; btn.disabled = false;
   }
 }
 
