@@ -402,7 +402,85 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 #offline-banner.reconnected{background:var(--green)}
 #offline-banner.reconnected .ob-dot{background:#fff;animation:none}
 
-/* ── Arm confirm overlay ──────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   PAGE: AUTOMATIZACIONES
+══════════════════════════════════════════════════════════ */
+.auto-list{padding:0 16px 16px}
+.auto-empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.auto-empty-icon{font-size:48px;margin-bottom:12px}
+.auto-empty-title{font-size:16px;font-weight:900;margin-bottom:6px;color:var(--text)}
+.auto-empty-sub{font-size:13px;font-weight:600;line-height:1.5}
+
+/* Tarjeta de automatización */
+.auto-card{background:var(--white);border-radius:18px;padding:16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.06);display:flex;align-items:center;gap:14px;transition:transform .15s}
+.auto-card:active{transform:scale(0.98)}
+.auto-icon-wrap{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.auto-icon-alarm{background:#fff0f1}
+.auto-icon-reminder{background:#f0f8ff}
+.auto-icon-silent{background:#f5f0ff}
+.auto-icon-summary{background:#f0fdf6}
+.auto-info{flex:1;min-width:0}
+.auto-name{font-size:14px;font-weight:900;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auto-meta{font-size:11px;color:var(--muted);font-weight:600;margin-top:3px}
+.auto-badge{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:8px;margin-top:5px;letter-spacing:.3px}
+.auto-badge-alarm{background:#fff0f1;color:var(--red)}
+.auto-badge-reminder{background:#e8f4ff;color:#1a73e8}
+.auto-badge-silent{background:#f3e8ff;color:#7d3fc8}
+.auto-badge-summary{background:#f0fdf6;color:var(--green)}
+.auto-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.auto-del-btn{width:30px;height:30px;border-radius:50%;background:var(--bg);border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.auto-del-btn:active{background:#ffeef0;color:var(--red)}
+
+/* Botón añadir flotante */
+.auto-fab{position:fixed;bottom:calc(var(--nav-h) + var(--safe-bot) + 16px);right:20px;width:56px;height:56px;border-radius:50%;background:var(--red);border:none;box-shadow:0 4px 18px rgba(232,25,44,.4);display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;cursor:pointer;z-index:20;transition:transform .15s,box-shadow .15s}
+.auto-fab:active{transform:scale(0.92);box-shadow:0 2px 8px rgba(232,25,44,.3)}
+
+/* Modal de nueva automatización */
+.auto-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+.auto-modal-bg.open{opacity:1;pointer-events:all}
+.auto-modal{background:var(--white);border-radius:24px 24px 0 0;padding:0;width:100%;max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1)}
+.auto-modal-bg.open .auto-modal{transform:translateY(0)}
+.auto-modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 0;position:sticky;top:0;background:var(--white);z-index:1;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.auto-modal-title{font-size:18px;font-weight:900}
+.auto-modal-close{width:32px;height:32px;border-radius:50%;background:var(--bg);border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.auto-modal-body{padding:16px 20px 32px}
+
+/* Selector de tipo */
+.auto-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.auto-type-card{padding:16px 12px;border-radius:16px;border:2px solid var(--border);background:var(--white);cursor:pointer;text-align:center;transition:all .15s;font-family:'Nunito',sans-serif}
+.auto-type-card:active{transform:scale(0.96)}
+.auto-type-card.selected{border-color:var(--red);background:var(--red-light)}
+.auto-type-icon{font-size:26px;margin-bottom:6px}
+.auto-type-label{font-size:12px;font-weight:900;color:var(--text)}
+.auto-type-sub{font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;line-height:1.3}
+
+/* Días selector */
+.dias-row{display:flex;gap:6px;margin-bottom:16px}
+.dia-btn{flex:1;aspect-ratio:1;border-radius:50%;border:2px solid var(--border);background:var(--white);font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0}
+.dia-btn.on{background:var(--red);border-color:var(--red);color:#fff}
+
+/* Selector de acción alarma */
+.accion-group{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.accion-opt{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:14px;border:2px solid var(--border);background:var(--white);cursor:pointer;transition:all .15s}
+.accion-opt.selected{border-color:var(--red);background:var(--red-light)}
+.accion-opt-icon{font-size:20px}
+.accion-opt-label{font-size:13px;font-weight:800;flex:1}
+.accion-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.accion-opt.selected .accion-radio{border-color:var(--red);background:var(--red)}
+.accion-opt.selected .accion-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff}
+
+/* Sección label dentro del modal */
+.auto-section-label{font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;margin-top:4px}
+
+/* Botón guardar */
+.auto-save-btn{width:100%;padding:16px;background:var(--red);border:none;border-radius:16px;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;margin-top:8px;transition:background .15s}
+.auto-save-btn:active{background:var(--red-dark)}
+.auto-save-btn:disabled{background:var(--border);color:var(--muted)}
+
+/* Separador de grupo */
+.auto-group-label{font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:16px 0 8px;display:flex;align-items:center;gap:8px}
+.auto-group-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
 #arm-confirm-overlay{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
 #arm-confirm-overlay.show{opacity:1;pointer-events:all}
 .aco-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}
@@ -788,7 +866,24 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
       <div id="dispositivos-list" style="padding:0 16px"></div>
     </div>
 
-   </div><!-- /page-area
+    <!-- ── AUTOMATIZACIONES ── -->
+    <div class="page" id="pg-automatizaciones">
+      <div class="sec-hdr" style="padding-bottom:4px">
+        <span class="sec-title">Automatizaciones</span>
+        <span class="sec-more" onclick="renderAutomatizaciones()">↻ Actualizar</span>
+      </div>
+      <div id="auto-list-container" class="auto-list">
+        <div class="auto-empty">
+          <div class="auto-empty-icon">⏰</div>
+          <div class="auto-empty-title">Sin automatizaciones</div>
+          <div class="auto-empty-sub">Pulsa el botón + para crear<br>tu primera automatización</div>
+        </div>
+      </div>
+      <!-- FAB botón añadir -->
+      <button class="auto-fab" onclick="openAutoModal()" id="auto-fab">＋</button>
+    </div>
+
+   </div><!-- /page-area -->
 
   <!-- Bottom nav -->
   <div class="bottomnav" id="main-nav" style="display: none;">
@@ -804,9 +899,9 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
       <div class="nav-icon">📡</div>
       <div class="nav-label">Dispositivos</div>
     </button>
-    <button class="nav-item" id="nav-cuenta" onclick="navTo('cuenta')">
-      <div class="nav-icon">👤</div>
-      <div class="nav-label">Mi cuenta</div>
+    <button class="nav-item" id="nav-automatizaciones" onclick="navTo('automatizaciones')">
+      <div class="nav-icon">⏰</div>
+      <div class="nav-label">Automatizar</div>
     </button>
   </div>
 
@@ -830,6 +925,118 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
     </div>
     <button class="sos-modal-btn-now" onclick="enviarSosAhora()">⚡ Enviar Inmediatamente</button>
     <button class="sos-modal-btn-cancel" onclick="cancelarSos()">✕ Cancelar emergencia</button>
+  </div>
+</div>
+
+<!-- Modal Automatizaciones -->
+<div class="auto-modal-bg" id="auto-modal-bg">
+  <div class="auto-modal" id="auto-modal">
+    <div class="auto-modal-header">
+      <div class="auto-modal-title" id="auto-modal-title">Nueva automatización</div>
+      <button class="auto-modal-close" onclick="closeAutoModal()">✕</button>
+    </div>
+    <div class="auto-modal-body">
+
+      <!-- PASO 1: Tipo -->
+      <div id="auto-step-tipo">
+        <div class="auto-section-label">¿Qué quieres programar?</div>
+        <div class="auto-type-grid">
+          <div class="auto-type-card" id="atype-alarma" onclick="selectAutoType('alarma')">
+            <div class="auto-type-icon">🔒</div>
+            <div class="auto-type-label">Acción de alarma</div>
+            <div class="auto-type-sub">Armar, desarmar o modo parcial</div>
+          </div>
+          <div class="auto-type-card" id="atype-recordatorio" onclick="selectAutoType('recordatorio')">
+            <div class="auto-type-icon">🔔</div>
+            <div class="auto-type-label">Recordatorio</div>
+            <div class="auto-type-sub">Notificación personal programada</div>
+          </div>
+          <div class="auto-type-card" id="atype-silencio" onclick="selectAutoType('silencio')">
+            <div class="auto-type-icon">🌙</div>
+            <div class="auto-type-label">Silencio</div>
+            <div class="auto-type-sub">No molestar (salvo alertas críticas)</div>
+          </div>
+          <div class="auto-type-card" id="atype-resumen" onclick="selectAutoType('resumen')">
+            <div class="auto-type-icon">📊</div>
+            <div class="auto-type-label">Resumen diario</div>
+            <div class="auto-type-sub">Resumen de actividad del día anterior</div>
+          </div>
+        </div>
+        <button class="auto-save-btn" style="background:var(--border);color:var(--muted)" onclick="autoNextStep()" id="auto-btn-tipo">Siguiente →</button>
+      </div>
+
+      <!-- PASO 2: Configurar -->
+      <div id="auto-step-config" style="display:none">
+        <!-- Nombre -->
+        <div class="auto-section-label">Nombre</div>
+        <div class="form-field" style="margin-bottom:16px">
+          <input id="auto-nombre" type="text" placeholder="Ej: Armado fin de semana" maxlength="50" autocorrect="off">
+        </div>
+
+        <!-- Acción (solo alarma) -->
+        <div id="auto-accion-wrap" style="display:none">
+          <div class="auto-section-label">Acción</div>
+          <div class="accion-group">
+            <div class="accion-opt" id="aopt-arm_away" onclick="selectAccion('arm_away')">
+              <span class="accion-opt-icon">🔒</span>
+              <span class="accion-opt-label">Armado total</span>
+              <span class="accion-radio"></span>
+            </div>
+            <div class="accion-opt" id="aopt-arm_home" onclick="selectAccion('arm_home')">
+              <span class="accion-opt-icon">🌙</span>
+              <span class="accion-opt-label">Armado parcial</span>
+              <span class="accion-radio"></span>
+            </div>
+            <div class="accion-opt" id="aopt-disarm" onclick="selectAccion('disarm')">
+              <span class="accion-opt-icon">🔓</span>
+              <span class="accion-opt-label">Desconectar alarma</span>
+              <span class="accion-radio"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mensaje (solo recordatorio) -->
+        <div id="auto-msg-wrap" style="display:none">
+          <div class="auto-section-label">Mensaje del recordatorio</div>
+          <div class="form-field" style="margin-bottom:16px">
+            <input id="auto-mensaje" type="text" placeholder="Ej: Conectar la alarma antes de salir" maxlength="100" autocorrect="off">
+          </div>
+        </div>
+
+        <!-- Días (oculto para silencio porque se seleccionan igual) -->
+        <div id="auto-dias-wrap">
+          <div class="auto-section-label">Días</div>
+          <div class="dias-row" id="auto-dias-row">
+            <button class="dia-btn" data-dia="L" onclick="toggleDia(this)">L</button>
+            <button class="dia-btn" data-dia="M" onclick="toggleDia(this)">M</button>
+            <button class="dia-btn" data-dia="X" onclick="toggleDia(this)">X</button>
+            <button class="dia-btn" data-dia="J" onclick="toggleDia(this)">J</button>
+            <button class="dia-btn" data-dia="V" onclick="toggleDia(this)">V</button>
+            <button class="dia-btn" data-dia="S" onclick="toggleDia(this)">S</button>
+            <button class="dia-btn" data-dia="D" onclick="toggleDia(this)">D</button>
+          </div>
+        </div>
+
+        <!-- Hora -->
+        <div class="auto-section-label" id="auto-hora-label">Hora</div>
+        <div class="form-field" style="margin-bottom:0" id="auto-hora-wrap">
+          <input id="auto-hora" type="time" style="font-size:18px;font-weight:800;text-align:center;padding:14px">
+        </div>
+
+        <!-- Hora fin (solo silencio) -->
+        <div id="auto-horafin-wrap" style="display:none;margin-top:12px">
+          <div class="auto-section-label">Hora de fin</div>
+          <div class="form-field" style="margin-bottom:0">
+            <input id="auto-horafin" type="time" style="font-size:18px;font-weight:800;text-align:center;padding:14px">
+          </div>
+        </div>
+
+        <div class="err-small" id="auto-err" style="text-align:center;margin-top:10px"></div>
+        <button class="auto-save-btn" style="margin-top:20px" onclick="saveAutomation()">Guardar automatización</button>
+        <button style="width:100%;padding:13px;background:transparent;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;margin-top:10px" onclick="autoBackStep()">← Volver</button>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -1392,6 +1599,7 @@ function navTo(page){
   if(page==='admin')renderUsersAdmin();
   if(page==='cuenta')loadConfigForm();
   if(page==='dispositivos')renderDispositivos();
+  if(page==='automatizaciones')renderAutomatizaciones();
 }
 
 // ── Estado alarma desde MongoDB ────────────────────────────────────────────
@@ -2683,6 +2891,233 @@ async function renderDispositivos() {
   } catch(e) {
     el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:13px;font-weight:700">Error al consultar dispositivos</div>';
   }
+}
+
+// ── Automatizaciones ───────────────────────────────────────────────────────
+let autoTipoSeleccionado = null;
+let autoAccionSeleccionada = null;
+
+function openAutoModal() {
+  autoTipoSeleccionado = null;
+  autoAccionSeleccionada = null;
+  // Reset UI
+  document.querySelectorAll('.auto-type-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.accion-opt').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('.dia-btn').forEach(b => b.classList.remove('on'));
+  ['auto-nombre','auto-mensaje','auto-hora','auto-horafin'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('auto-err').textContent = '';
+  document.getElementById('auto-step-tipo').style.display = 'block';
+  document.getElementById('auto-step-config').style.display = 'none';
+  document.getElementById('auto-modal-title').textContent = 'Nueva automatización';
+  document.getElementById('auto-modal-bg').classList.add('open');
+}
+
+function closeAutoModal() {
+  document.getElementById('auto-modal-bg').classList.remove('open');
+}
+
+function selectAutoType(tipo) {
+  autoTipoSeleccionado = tipo;
+  document.querySelectorAll('.auto-type-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('atype-' + tipo).classList.add('selected');
+  const btn = document.getElementById('auto-btn-tipo');
+  btn.style.background = 'var(--red)';
+  btn.style.color = '#fff';
+}
+
+function autoNextStep() {
+  if (!autoTipoSeleccionado) {
+    document.getElementById('auto-btn-tipo').style.animation = 'none';
+    return;
+  }
+  // Mostrar/ocultar campos según tipo
+  document.getElementById('auto-accion-wrap').style.display   = autoTipoSeleccionado === 'alarma'       ? 'block' : 'none';
+  document.getElementById('auto-msg-wrap').style.display      = autoTipoSeleccionado === 'recordatorio' ? 'block' : 'none';
+  document.getElementById('auto-horafin-wrap').style.display  = autoTipoSeleccionado === 'silencio'     ? 'block' : 'none';
+  document.getElementById('auto-dias-wrap').style.display     = 'block';
+  document.getElementById('auto-hora-wrap').style.display     = 'block';
+
+  const horaLabel = document.getElementById('auto-hora-label');
+  if (autoTipoSeleccionado === 'silencio') horaLabel.textContent = 'Hora de inicio';
+  else horaLabel.textContent = 'Hora';
+
+  // Placeholder nombre por tipo
+  const nombres = { alarma:'Ej: Armado fin de semana', recordatorio:'Ej: Acordarme de la alarma', silencio:'Ej: No molestar por la noche', resumen:'Ej: Resumen matutino' };
+  document.getElementById('auto-nombre').placeholder = nombres[autoTipoSeleccionado] || '';
+
+  document.getElementById('auto-step-tipo').style.display = 'none';
+  document.getElementById('auto-step-config').style.display = 'block';
+  document.getElementById('auto-modal-title').textContent = 'Configurar automatización';
+  document.getElementById('auto-modal').scrollTop = 0;
+}
+
+function autoBackStep() {
+  document.getElementById('auto-step-tipo').style.display = 'block';
+  document.getElementById('auto-step-config').style.display = 'none';
+  document.getElementById('auto-modal-title').textContent = 'Nueva automatización';
+}
+
+function toggleDia(btn) {
+  btn.classList.toggle('on');
+}
+
+function selectAccion(accion) {
+  autoAccionSeleccionada = accion;
+  document.querySelectorAll('.accion-opt').forEach(o => o.classList.remove('selected'));
+  document.getElementById('aopt-' + accion).classList.add('selected');
+}
+
+async function saveAutomation() {
+  const nombre = document.getElementById('auto-nombre').value.trim();
+  const hora   = document.getElementById('auto-hora').value;
+  const horaFin = document.getElementById('auto-horafin').value;
+  const mensaje = document.getElementById('auto-mensaje').value.trim();
+  const err = document.getElementById('auto-err');
+  err.textContent = '';
+
+  const diasSeleccionados = [...document.querySelectorAll('.dia-btn.on')].map(b => b.dataset.dia);
+
+  // Validaciones
+  if (!nombre) { err.textContent = 'Escribe un nombre'; return; }
+  if (autoTipoSeleccionado === 'alarma' && !autoAccionSeleccionada) { err.textContent = 'Selecciona una acción'; return; }
+  if (autoTipoSeleccionado !== 'silencio' && !diasSeleccionados.length) { err.textContent = 'Selecciona al menos un día'; return; }
+  if (autoTipoSeleccionado !== 'silencio' && !hora) { err.textContent = 'Indica la hora'; return; }
+  if (autoTipoSeleccionado === 'silencio' && (!hora || !horaFin)) { err.textContent = 'Indica hora de inicio y fin'; return; }
+
+  const body = {
+    tipo:    autoTipoSeleccionado,
+    nombre,
+    dias:    diasSeleccionados,
+    hora:    hora    || null,
+    horaFin: horaFin || null,
+    accion:  autoAccionSeleccionada,
+    mensaje: mensaje || null
+  };
+
+  try {
+    const res = await authFetch('/api/automations', { method: 'POST', body: JSON.stringify(body) });
+    const data = await res.json();
+    if (data.success) {
+      closeAutoModal();
+      toast2('✅ Automatización guardada');
+      renderAutomatizaciones();
+    } else {
+      err.textContent = data.message || 'Error al guardar';
+    }
+  } catch(e) {
+    err.textContent = 'Error de conexión';
+  }
+}
+
+async function toggleAutomation(id, activa) {
+  try {
+    const res = await authFetch(`/api/automations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ activa })
+    });
+    const data = await res.json();
+    if (!data.success) toast2('⚠️ No se pudo actualizar');
+  } catch(e) { toast2('⚠️ Error de conexión'); }
+}
+
+async function deleteAutomation(id, nombre) {
+  if (!confirm(`¿Eliminar "${nombre}"?`)) return;
+  try {
+    const res = await authFetch(`/api/automations/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) { toast2('Automatización eliminada'); renderAutomatizaciones(); }
+    else toast2('⚠️ No se pudo eliminar');
+  } catch(e) { toast2('⚠️ Error de conexión'); }
+}
+
+const AUTO_TIPO_CFG = {
+  alarma:       { icon: '🔒', cls: 'auto-icon-alarm',    badge: 'auto-badge-alarm',    label: 'Alarma' },
+  recordatorio: { icon: '🔔', cls: 'auto-icon-reminder', badge: 'auto-badge-reminder', label: 'Recordatorio personal' },
+  silencio:     { icon: '🌙', cls: 'auto-icon-silent',   badge: 'auto-badge-silent',   label: 'No molestar' },
+  resumen:      { icon: '📊', cls: 'auto-icon-summary',  badge: 'auto-badge-summary',  label: 'Resumen diario' },
+};
+const ACCION_LABELS = { arm_away: '🔒 Armado total', arm_home: '🌙 Armado parcial', disarm: '🔓 Desconectar' };
+const DIAS_LABELS   = ['D','L','M','X','J','V','S'];
+
+function formatDias(dias) {
+  if (!dias || !dias.length) return 'Todos los días';
+  if (dias.length === 7) return 'Todos los días';
+  const finSem = ['S','D'];
+  const labSem = ['L','M','X','J','V'];
+  if (dias.length === 5 && labSem.every(d => dias.includes(d))) return 'Lunes a viernes';
+  if (dias.length === 2 && finSem.every(d => dias.includes(d))) return 'Fines de semana';
+  return dias.join(' · ');
+}
+
+async function renderAutomatizaciones() {
+  const container = document.getElementById('auto-list-container');
+  if (!container) return;
+  container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-weight:700">Cargando...</div>';
+
+  try {
+    const res = await authFetch('/api/automations');
+    const autos = await res.json();
+
+    if (!autos.length) {
+      container.innerHTML = `
+        <div class="auto-empty">
+          <div class="auto-empty-icon">⏰</div>
+          <div class="auto-empty-title">Sin automatizaciones</div>
+          <div class="auto-empty-sub">Pulsa el botón + para crear<br>tu primera automatización</div>
+        </div>`;
+      return;
+    }
+
+    // Separar por tipo
+    const alarmas    = autos.filter(a => a.tipo === 'alarma');
+    const personales = autos.filter(a => a.tipo !== 'alarma');
+
+    let html = '';
+
+    if (alarmas.length) {
+      html += `<div class="auto-group-label">🔒 Acciones de alarma</div>`;
+      html += alarmas.map(a => renderAutoCard(a)).join('');
+    }
+    if (personales.length) {
+      html += `<div class="auto-group-label">👤 Mis automatizaciones</div>`;
+      html += personales.map(a => renderAutoCard(a)).join('');
+    }
+
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;font-weight:700">Error al cargar automatizaciones</div>';
+  }
+}
+
+function renderAutoCard(a) {
+  const cfg = AUTO_TIPO_CFG[a.tipo] || AUTO_TIPO_CFG.alarma;
+  let meta = '';
+  if (a.tipo === 'silencio') {
+    meta = `${a.hora || '--:--'} → ${a.horaFin || '--:--'} · ${formatDias(a.dias)}`;
+  } else {
+    meta = `${a.hora || '--:--'} · ${formatDias(a.dias)}`;
+    if (a.tipo === 'alarma' && a.accion) meta += ` · ${ACCION_LABELS[a.accion] || a.accion}`;
+    if (a.tipo === 'recordatorio' && a.mensaje) meta += `<br><span style="font-style:italic">"${a.mensaje}"</span>`;
+  }
+
+  return `
+    <div class="auto-card">
+      <div class="auto-icon-wrap ${cfg.cls}">${cfg.icon}</div>
+      <div class="auto-info">
+        <div class="auto-name">${a.nombre}</div>
+        <div class="auto-meta">${meta}</div>
+        <span class="auto-badge ${cfg.badge}">${cfg.label}</span>
+      </div>
+      <div class="auto-actions">
+        <label class="toggle-switch" title="${a.activa ? 'Desactivar' : 'Activar'}">
+          <input type="checkbox" ${a.activa ? 'checked' : ''} onchange="toggleAutomation('${a._id}', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+        <button class="auto-del-btn" onclick="deleteAutomation('${a._id}','${a.nombre.replace(/'/g,'\\'+'\'')}')" title="Eliminar">🗑️</button>
+      </div>
+    </div>`;
 }
 
 // ── Offline / Online detection ─────────────────────────────────────────────

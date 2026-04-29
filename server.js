@@ -126,12 +126,29 @@ const notifPrefSchema = new mongoose.Schema({
   disarm:   { type: Boolean, default: true }
 }, { collection: 'notif_prefs' });
 
-const User      = mongoose.model('User',      userSchema);
-const Session   = mongoose.model('Session',   sessionSchema);
-const Log       = mongoose.model('Log',       logSchema);
-const Config    = mongoose.model('Config',    configSchema);
-const PushSub   = mongoose.model('PushSub',   pushSubSchema);
-const NotifPref = mongoose.model('NotifPref', notifPrefSchema);
+// ── Automatizaciones ──────────────────────────────────────────────────────────
+const automationSchema = new mongoose.Schema({
+  // 'alarma' = armar/desarmar (visible para todos) | 'recordatorio' | 'silencio' | 'resumen' (personales)
+  tipo:       { type: String, required: true },
+  // Para tipo 'alarma': null (pertenece a todos). Para el resto: username del propietario
+  username:   { type: String, default: null },
+  nombre:     { type: String, required: true },
+  dias:       [{ type: String }],   // ['L','M','X','J','V','S','D']
+  hora:       { type: String },     // 'HH:MM'
+  horaFin:    { type: String },     // solo para silencio
+  accion:     { type: String },     // arm_away | arm_home | disarm  (solo tipo alarma)
+  mensaje:    { type: String },     // solo tipo recordatorio
+  activa:     { type: Boolean, default: true },
+  ultimaEjecucion: { type: Date, default: null }
+}, { collection: 'automations', timestamps: true });
+
+const User       = mongoose.model('User',       userSchema);
+const Session    = mongoose.model('Session',    sessionSchema);
+const Log        = mongoose.model('Log',        logSchema);
+const Config     = mongoose.model('Config',     configSchema);
+const PushSub    = mongoose.model('PushSub',    pushSubSchema);
+const NotifPref  = mongoose.model('NotifPref',  notifPrefSchema);
+const Automation = mongoose.model('Automation', automationSchema);
 
 // --- 4. DOS CLIENTES TUYA ---
 
@@ -677,6 +694,193 @@ app.get('/api/dispositivos', requireAuth, async (req, res) => {
     res.json(LISTA_DISPOSITIVOS.map(buildDispositivo));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// --- 14b. AUTOMATIZACIONES ---
+
+// GET: devuelve automatizaciones de alarma (todas) + personales del usuario autenticado
+app.get('/api/automations', requireAuth, async (req, res) => {
+  try {
+    const alarmAutos    = await Automation.find({ tipo: 'alarma' }).sort({ createdAt: -1 });
+    const personalAutos = await Automation.find({ tipo: { $ne: 'alarma' }, username: req.sessionUser }).sort({ createdAt: -1 });
+    res.json([...alarmAutos, ...personalAutos]);
+  } catch(e) { res.status(500).json([]); }
+});
+
+// POST: crear automatización
+app.post('/api/automations', requireAuth, async (req, res) => {
+  try {
+    const { tipo, nombre, dias, hora, horaFin, accion, mensaje } = req.body;
+    if (!tipo || !nombre) return res.status(400).json({ success: false, message: 'Faltan campos' });
+    if (tipo === 'alarma' && !accion) return res.status(400).json({ success: false, message: 'Falta la acción' });
+    if ((tipo === 'alarma' || tipo === 'recordatorio' || tipo === 'resumen') && (!dias || !dias.length || !hora))
+      return res.status(400).json({ success: false, message: 'Faltan días u hora' });
+    if (tipo === 'silencio' && (!hora || !horaFin))
+      return res.status(400).json({ success: false, message: 'Faltan hora inicio y fin' });
+
+    const auto = new Automation({
+      tipo,
+      username: tipo === 'alarma' ? null : req.sessionUser,
+      nombre,
+      dias:    dias    || [],
+      hora:    hora    || null,
+      horaFin: horaFin || null,
+      accion:  accion  || null,
+      mensaje: mensaje || null,
+      activa:  true
+    });
+    await auto.save();
+    res.json({ success: true, automation: auto });
+  } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// PATCH: activar / desactivar
+app.patch('/api/automations/:id', requireAuth, async (req, res) => {
+  try {
+    const auto = await Automation.findById(req.params.id);
+    if (!auto) return res.status(404).json({ success: false });
+    if (auto.tipo !== 'alarma' && auto.username !== req.sessionUser)
+      return res.status(403).json({ success: false });
+    auto.activa = req.body.activa !== undefined ? req.body.activa : !auto.activa;
+    await auto.save();
+    res.json({ success: true, activa: auto.activa });
+  } catch(e) { res.status(500).json({ success: false }); }
+});
+
+// DELETE: eliminar
+app.delete('/api/automations/:id', requireAuth, async (req, res) => {
+  try {
+    const auto = await Automation.findById(req.params.id);
+    if (!auto) return res.status(404).json({ success: false });
+    if (auto.tipo !== 'alarma' && auto.username !== req.sessionUser)
+      return res.status(403).json({ success: false });
+    await Automation.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
+});
+
+// GET: silencio activo ahora para un usuario (excluye saltos, agua, offline que siempre pasan)
+app.get('/api/automations/silencio/:username', requireAuth, async (req, res) => {
+  try {
+    const autos = await Automation.find({ tipo: 'silencio', username: req.params.username, activa: true });
+    const ahora = new Date();
+    const minAhora = ahora.getHours() * 60 + ahora.getMinutes();
+    const DIAS_MAP = { L:1, M:2, X:3, J:4, V:5, S:6, D:0 };
+    const diaJS = ahora.getDay();
+    let activo = false;
+    for (const auto of autos) {
+      if (auto.dias && auto.dias.length) {
+        const diasJS = auto.dias.map(d => DIAS_MAP[d]);
+        if (!diasJS.includes(diaJS)) continue;
+      }
+      if (!auto.hora || !auto.horaFin) continue;
+      const [hI,mI] = auto.hora.split(':').map(Number);
+      const [hF,mF] = auto.horaFin.split(':').map(Number);
+      const minI = hI * 60 + mI;
+      const minF = hF * 60 + mF;
+      const enRango = minI <= minF
+        ? (minAhora >= minI && minAhora < minF)
+        : (minAhora >= minI || minAhora < minF);
+      if (enRango) { activo = true; break; }
+    }
+    res.json({ activo });
+  } catch(e) { res.status(500).json({ activo: false }); }
+});
+
+// ── Cron de automatizaciones (cada minuto) ─────────────────────────────────
+const DIAS_CRON = { L:1, M:2, X:3, J:4, V:5, S:6, D:0 };
+const NOMBRES_ACCION_AUTO = { arm_away:'Armado total', arm_home:'Armado parcial', disarm:'Desarmado' };
+
+setInterval(async () => {
+  try {
+    const ahora = new Date();
+    const horaAhora = ahora.getHours().toString().padStart(2,'0') + ':' + ahora.getMinutes().toString().padStart(2,'0');
+    const diaJS = ahora.getDay();
+
+    const autos = await Automation.find({ activa: true, tipo: { $ne: 'silencio' } });
+
+    for (const auto of autos) {
+      if (auto.hora !== horaAhora) continue;
+
+      // Evitar doble ejecución en el mismo minuto del mismo día
+      if (auto.ultimaEjecucion) {
+        const ul = auto.ultimaEjecucion;
+        const mismoMinuto = ul.getFullYear() === ahora.getFullYear() &&
+          ul.getMonth() === ahora.getMonth() &&
+          ul.getDate()  === ahora.getDate() &&
+          ul.getHours() === ahora.getHours() &&
+          ul.getMinutes() === ahora.getMinutes();
+        if (mismoMinuto) continue;
+      }
+
+      // Comprobar día de la semana
+      if (auto.dias && auto.dias.length) {
+        const diasJS = auto.dias.map(d => DIAS_CRON[d]);
+        if (!diasJS.includes(diaJS)) continue;
+      }
+
+      if (auto.tipo === 'alarma') {
+        const mapping = { disarm:'switch_1', arm_home:'switch_2', arm_away:'switch_3' };
+        const code = mapping[auto.accion];
+        if (!code) continue;
+        try {
+          const deviceInfo = await tuyaNormal('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
+          if (!deviceInfo.result?.online) { console.log(`⚠️ Auto ${auto.nombre}: panel offline`); continue; }
+          const result = await tuyaNormal('POST', `/v1.0/devices/${TUYA_DEVICE_ID}/commands`, {
+            commands: [{ code, value: true }]
+          });
+          if (result.success) {
+            const nextStatus = auto.accion === 'disarm' ? 'disarmed' : auto.accion === 'arm_away' ? 'armed' : 'arm_home';
+            await new Log({ usuario: `🤖 ${auto.nombre}`, accion: `${NOMBRES_ACCION_AUTO[auto.accion]} (automatización)` }).save();
+            await Config.findOneAndUpdate({ id: 'global_config' }, { $set: { alarmStatus: nextStatus } }, { upsert: true });
+            sendPushNotification(auto.accion, `🤖 ${auto.nombre}`).catch(() => {});
+            console.log(`✅ Auto alarma ejecutada: ${auto.nombre} → ${auto.accion}`);
+          }
+        } catch(e) { console.error(`❌ Error auto alarma ${auto.nombre}:`, e.message); }
+
+      } else if (auto.tipo === 'recordatorio') {
+        try {
+          const subs = await PushSub.find({ username: auto.username });
+          if (subs.length) {
+            const payload = JSON.stringify({
+              title: `🔔 ${auto.nombre}`,
+              body:  auto.mensaje || 'Recordatorio programado',
+              icon:  '/icon-192.png', badge: '/icon-192.png', data: { url: '/' }
+            });
+            await Promise.allSettled(subs.map(async sub => {
+              try { await webpush.sendNotification(sub.subscription, payload); }
+              catch(e2) { if (e2.statusCode===404||e2.statusCode===410) await PushSub.deleteOne({ _id: sub._id }); }
+            }));
+            console.log(`🔔 Recordatorio enviado a ${auto.username}: ${auto.nombre}`);
+          }
+        } catch(e) { console.error(`❌ Error recordatorio ${auto.nombre}:`, e.message); }
+
+      } else if (auto.tipo === 'resumen') {
+        try {
+          const ayer = new Date(ahora); ayer.setDate(ayer.getDate()-1); ayer.setHours(0,0,0,0);
+          const hoyI = new Date(ahora); hoyI.setHours(0,0,0,0);
+          const logs = await Log.find({ fecha: { $gte: ayer, $lt: hoyI } }).sort({ fecha: -1 });
+          const subs = await PushSub.find({ username: auto.username });
+          if (subs.length) {
+            const body = logs.length
+              ? `${logs.length} evento${logs.length>1?'s':''} ayer. Último: ${logs[0].accion.slice(0,50)}`
+              : 'Sin actividad ayer.';
+            const payload = JSON.stringify({
+              title: '📊 Resumen diario', body,
+              icon: '/icon-192.png', badge: '/icon-192.png', data: { url: '/' }
+            });
+            await Promise.allSettled(subs.map(async sub => {
+              try { await webpush.sendNotification(sub.subscription, payload); }
+              catch(e2) { if (e2.statusCode===404||e2.statusCode===410) await PushSub.deleteOne({ _id: sub._id }); }
+            }));
+            console.log(`📊 Resumen enviado a ${auto.username}`);
+          }
+        } catch(e) { console.error(`❌ Error resumen ${auto.nombre}:`, e.message); }
+      }
+
+      await Automation.findByIdAndUpdate(auto._id, { $set: { ultimaEjecucion: ahora } });
+    }
+  } catch(e) { console.error('❌ Error cron automatizaciones:', e.message); }
+}, 60 * 1000);
 
 // --- 15. ARRANQUE ---
 const PORT = process.env.PORT || 8080;
