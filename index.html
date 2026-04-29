@@ -1329,7 +1329,7 @@ function navTo(page){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('pg-'+page).classList.add('active');
   const nb=document.getElementById('nav-'+page); if(nb)nb.classList.add('active');
-  if(page==='historial'){ renderLog(); renderLogFiltrado(); }
+  if(page==='historial'){ populateUsuarioFilter(); renderLog(); renderLogFiltrado(); }
   if(page==='admin')renderUsersAdmin();
   if(page==='cuenta')loadConfigForm();
   if(page==='dispositivos')renderDispositivos();
@@ -1377,8 +1377,9 @@ async function fetchHistorialGlobal() {
         const res = await authFetch('/api/logs');
         if (res.ok) {
             const data = await res.json();
-            S.log = data; // Guardamos lo que viene de Railway
-            renderLog();  // Llamamos a tu función de dibujo (la que arreglamos antes)
+            S.log = data;
+            populateUsuarioFilter();
+            renderLog();
         }
     } catch (e) {
         console.log("Error sincronizando historial");
