@@ -396,7 +396,7 @@ app.post('/api/change-password', requireAuth, async (req, res) => {
     // Que no sea igual a la anterior
     if (await bcrypt.compare(newPassword, user.password))
       return res.json({ success: false, message: 'La nueva contraseña debe ser diferente a la anterior.' });
-    await User.updateOne({ username }, { $set: { password: await bcrypt.hash(newPassword, 10), isNew: false } });
+    await User.updateOne({ username }, { $set: { password: await bcrypt.hash(newPassword, 10) } });
     res.json({ success: true, message: 'Contraseña actualizada correctamente' });
   } catch (e) { res.status(500).json({ success: false }); }
 });
