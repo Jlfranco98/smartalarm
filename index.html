@@ -1177,8 +1177,10 @@ function applyAvatar(dataUrl) {
     imgEl.style.display = 'block';
     initEl.style.display = 'none';
   } else {
-    imgEl.style.display = 'none';
-    initEl.style.display = 'flex';
+    // Sin avatar personalizado → icon-512.png como defecto
+    imgEl.src = '/icon-512.png';
+    imgEl.style.display = 'block';
+    initEl.style.display = 'none';
   }
 }
 
