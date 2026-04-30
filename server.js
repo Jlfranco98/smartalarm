@@ -830,7 +830,7 @@ setInterval(async () => {
           });
           if (result.success) {
             const nextStatus = auto.accion === 'disarm' ? 'disarmed' : auto.accion === 'arm_away' ? 'armed' : 'arm_home';
-            await new Log({ usuario: `🤖 ${auto.nombre}`, accion: `${NOMBRES_ACCION_AUTO[auto.accion]} (automatización)` }).save();
+            await new Log({ usuario: `🤖 ${auto.nombre}`, accion: `${NOMBRES_ACCION_AUTO[auto.accion]}` }).save();
             await Config.findOneAndUpdate({ id: 'global_config' }, { $set: { alarmStatus: nextStatus } }, { upsert: true });
             sendPushNotification(auto.accion, `🤖 ${auto.nombre}`).catch(() => {});
             console.log(`✅ Auto alarma ejecutada: ${auto.nombre} → ${auto.accion}`);
