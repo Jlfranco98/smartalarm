@@ -152,14 +152,14 @@ const Automation = mongoose.model('Automation', automationSchema);
 
 // --- 4. DOS CLIENTES TUYA ---
 
-// Cliente A: sensor de luz (cuenta exclusiva para la alarma)
+// CLIENTE A: sensor de luz (cuenta exclusiva para la alarma)
 const tuyaClientAlarma = new TuyaContext({
   baseUrl: BASE_URL,
   accessKey: TUYA_CLIENT_ID_ALARMA,
   secretKey: TUYA_CLIENT_SECRET_ALARMA,
 });
 
-// Cliente B: agua + panel (cuenta principal)
+// CLIENTE B: agua + panel (cuenta principal)
 const tuyaClientNormal = new TuyaContext({
   baseUrl: BASE_URL,
   accessKey: TUYA_CLIENT_ID,
