@@ -788,7 +788,7 @@ app.get('/api/automations/silencio/:username', requireAuth, async (req, res) => 
 
 // ── Cron de automatizaciones (cada minuto) ─────────────────────────────────
 const DIAS_CRON = { L:1, M:2, X:3, J:4, V:5, S:6, D:0 };
-const NOMBRES_ACCION_AUTO = { arm_away:'Armado total', arm_home:'Armado parcial', disarm:'Desarmado' };
+const NOMBRES_ACCION_AUTO = { arm_away:'Modo total activado', arm_home:'Modo noche activado', disarm:'Alarma Desarmada' };
 
 setInterval(async () => {
   try {
