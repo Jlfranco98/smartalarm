@@ -520,6 +520,7 @@ app.post('/api/change-name', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Nombre no válido.' });
     const user = await User.findOne({ username });
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    if (username !== req.sessionUser) return res.status(403).json({ success: false, message: 'No autorizado' });
     await User.updateOne({ username }, { $set: { name: name.trim() } });
     res.json({ success: true, message: 'Nombre actualizado correctamente' });
   } catch (e) { res.status(500).json({ success: false }); }
@@ -529,6 +530,8 @@ app.post('/api/change-avatar', requireAuth, async (req, res) => {
   try {
     const { username, avatar } = req.body;
     if (!username) return res.status(400).json({ success: false, message: 'Falta el usuario.' });
+    const requestingUser = await User.findOne({ username: req.sessionUser });
+    if (username !== req.sessionUser && requestingUser?.role !== 'admin') return res.status(403).json({ success: false, message: 'No autorizado' });
 
     if (!avatar) {
       // Eliminar avatar
