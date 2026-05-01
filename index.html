@@ -2284,8 +2284,12 @@ function buildLogItem(l, full = false) {
       icono = '💧'; icClass = 'ic-agua'; badgeColor = '#2196f3'; badgeBg = '#e3f2fd'; catLabel = '💧 AGUA';
     } else if (cl.cat === 'saltos') {
       icono = '🚨'; icClass = 'ic-salto'; badgeColor = '#e8192c'; badgeBg = '#fdecea'; catLabel = '🚨 SALTO';
+    } else if (cl.cat === 'errores' && cl.sub === 'reconectado') {
+      icono = '✅'; icClass = 'ic-sistema'; badgeColor = '#00b562'; badgeBg = '#f0fdf6'; catLabel = '✅ SISTEMA';
+    } else if (cl.cat === 'errores' && cl.sub === 'bateria') {
+      icono = '🔋'; icClass = 'ic-sistema'; badgeColor = '#ff8c00'; badgeBg = '#fff8e1'; catLabel = '🔋 SISTEMA';
     } else if (cl.cat === 'errores') {
-      icono = '⚙️'; icClass = 'ic-sistema'; badgeColor = '#ff8c00'; badgeBg = '#fff8e1'; catLabel = '⚙️ SISTEMA';
+      icono = '⚠️'; icClass = 'ic-sistema'; badgeColor = '#ff8c00'; badgeBg = '#fff8e1'; catLabel = '⚠️ SISTEMA';
     } else if (texto.includes('desarmad') || texto.includes('disarm')) {
       icono = '🔓'; icClass = 'ic-disarm'; badgeColor = '#34c759'; badgeBg = '#e8f5e9'; catLabel = '🔓 ACCIÓN';
     } else if (texto.includes('noche') || texto.includes('parcial')) {
