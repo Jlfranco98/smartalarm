@@ -1450,6 +1450,7 @@ async function changePassword() {
       elErr.textContent = data.message || 'Contraseña actualizada correctamente';
       elOld.value = ''; elNew.value = ''; elNew2.value = '';
       if (typeof toast2 === 'function') toast2('Contraseña actualizada');
+      setTimeout(() => { elErr.textContent = ''; }, 3000);
     } else {
       elErr.style.color = '#ff4d4d';
       elErr.textContent = data.message || 'Error al cambiar';
@@ -1494,6 +1495,7 @@ async function changeName() {
       elErr.style.color = '#28a745';
       elErr.textContent = 'Nombre actualizado correctamente';
       if (typeof toast2 === 'function') toast2('Nombre actualizado');
+      setTimeout(() => { elErr.textContent = ''; }, 3000);
     } else {
       elErr.textContent = data.message || 'Error al cambiar el nombre';
     }
@@ -2653,10 +2655,9 @@ async function changePin() {
       document.getElementById('cp-old').value = '';
       document.getElementById('cp-new1').value = '';
       document.getElementById('cp-new2').value = '';
-      // Actualizamos el PIN en memoria para que funcione sin relogin
-      // Pin actualizado en servidor — no se guarda en cliente por seguridad
       save();
       toast2('PIN personal actualizado');
+      setTimeout(() => { elErr.textContent = ''; }, 3000);
     } else {
       elErr.textContent = data.message || 'PIN actual incorrecto';
     }
