@@ -1464,10 +1464,8 @@ function toggleNamePanel() {
   const panel = document.getElementById('name-panel');
   const visible = panel.style.display === 'none';
   panel.style.display = visible ? 'block' : 'none';
-  if (visible) {
-    document.getElementById('new-name').value = S.currentUser.name || '';
-    document.getElementById('name-err').textContent = '';
-  }
+  document.getElementById('new-name').value = visible ? (S.currentUser.name || '') : '';
+  document.getElementById('name-err').textContent = '';
 }
 
 async function changeName() {
@@ -2608,8 +2606,24 @@ async function revokeAllSessions() {
   await Promise.all(users.map(u => authFetch(`/api/sessions/user/${u}`, { method: 'DELETE' })));
   renderSessions();
 }
-function togglePinPanel(){const p=document.getElementById('pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function toggleChangePinPanel(){const p=document.getElementById('change-pin-panel');p.style.display=p.style.display==='none'?'block':'none';}
+  
+function togglePinPanel() {
+  const p = document.getElementById('pin-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  document.getElementById('old-pass').value = '';
+  document.getElementById('new-pass').value = '';
+  document.getElementById('new-pass2').value = '';
+  document.getElementById('pass-err').textContent = '';
+}
+  
+function toggleChangePinPanel() {
+  const p = document.getElementById('change-pin-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  document.getElementById('cp-old').value = '';
+  document.getElementById('cp-new1').value = '';
+  document.getElementById('cp-new2').value = '';
+  document.getElementById('cp-err').textContent = '';
+}
 
 async function changePin() {
   const oldPin  = document.getElementById('cp-old').value.trim();
