@@ -8,7 +8,8 @@ const { TuyaContext } = require('@tuya/tuya-connector-nodejs');
 
 const crypto = require('crypto');
 const app = express();
-app.use(express.json());
+app.use('/api/change-avatar', express.json({ limit: '800kb' })); // avatares en base64
+app.use(express.json({ limit: '10kb' }));                              // resto de rutas
 app.use(cors());
 app.use(express.static(path.join(__dirname, '.')));
 
@@ -48,7 +49,7 @@ setInterval(() => {
 const PIN_BLACKLIST = [
   '0000','1111','2222','3333','4444','5555','6666','7777','8888','9999',
   '1234','4321','1122','1212','2580','0852','2468','1357',
-  '0123','9876','6969','0000','1010','1001',
+  '0123','9876','6969','1010','1001',
 ];
 
 // Compara PIN sea cual sea su formato (texto plano legacy o bcrypt)
@@ -756,7 +757,7 @@ setInterval(async () => {
 app.get('/api/logs', requireAuth,      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
 app.get('/api/historial', requireAuth, async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
 app.get('/api/config', requireAuth,    async (req, res) => { try { res.json(await Config.findOne({ id: 'global_config' }) || {}); } catch (e) { res.status(500).json({}); } });
-app.post('/api/config', requireAuth,   async (req, res) => { try { await Config.findOneAndUpdate({ id: 'global_config' }, req.body, { upsert: true }); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); } });
+app.post('/api/config', requireAuth,   async (req, res) => { try { const { alarmStatus, backendUrl, deviceId } = req.body; await Config.findOneAndUpdate({ id: 'global_config' }, { alarmStatus, backendUrl, deviceId }, { upsert: true }); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); } });
 app.get('/api/status', requireAuth,    async (req, res) => { try { const c = await Config.findOne({ id: 'global_config' }); res.json({ alarmStatus: c?.alarmStatus || 'disarmed' }); } catch (e) { res.status(500).send(e.message); } });
 
 // --- 14. DISPOSITIVOS ---
