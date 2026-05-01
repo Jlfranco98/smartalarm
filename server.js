@@ -444,6 +444,12 @@ app.delete('/api/sessions/:id', requireAuth, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.sessionUser });
     if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
+    const session = await Session.findById(req.params.id);
+    if (session) {
+      // Si es la única sesión activa de ese usuario, también borramos sus push subs
+      const otherSessions = await Session.countDocuments({ username: session.username, _id: { $ne: session._id } });
+      if (otherSessions === 0) await PushSub.deleteMany({ username: session.username });
+    }
     await Session.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch(e) { res.status(500).json({ success: false }); }
@@ -464,6 +470,7 @@ app.delete('/api/sessions/user/:username', requireAuth, async (req, res) => {  t
     const user = await User.findOne({ username: req.sessionUser });
     if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
     await Session.deleteMany({ username: req.params.username });
+    await PushSub.deleteMany({ username: req.params.username });
     res.json({ success: true });
   } catch(e) { res.status(500).json({ success: false }); }
 });
