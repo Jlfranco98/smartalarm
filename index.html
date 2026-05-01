@@ -2029,11 +2029,19 @@ function clasificarEvento(l) {
   }
 
   // 3. ERRORES
-if (texto.includes('desconectado') || texto.includes('offline') || texto.includes('batería') || texto.includes('caído') || texto.includes('sin respuesta')) {
+// Primero comprobamos RECONECTADO (porque contiene la palabra 'desconectado')
+if (texto.includes('reconectado') || texto.includes('reactivado') || texto.includes('online')) {
+  return { cat: 'errores', sub: 'reconectado' };
+}
+
+// Ahora ya podemos buscar desconexiones sin miedo a confundirnos
+if (texto.includes('desconectado') || texto.includes('offline') || texto.includes('caído') || texto.includes('sin respuesta')) {
   return { cat: 'errores', sub: texto.includes('batería') ? 'bateria' : 'desconectado' };
 }
-if (texto.includes('reconectado') || texto.includes('reactivado')) {
-  return { cat: 'errores', sub: 'reconectado' };
+
+// Batería por si acaso viene solo
+if (texto.includes('batería') || texto.includes('bateria') || texto.includes('pila')) {
+  return { cat: 'errores', sub: 'bateria' };
 }
 
   // 4. RESTO DE ACCIONES (Armados, etc.)
