@@ -3193,6 +3193,17 @@ async function renderAutomatizaciones() {
   }
 }
 
+// Previene XSS: convierte caracteres HTML especiales en entidades seguras
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderAutoCard(a) {
   const cfg = AUTO_TIPO_CFG[a.tipo] || AUTO_TIPO_CFG.alarma;
   let meta = '';
@@ -3201,14 +3212,14 @@ function renderAutoCard(a) {
   } else {
     meta = `${a.hora || '--:--'} · ${formatDias(a.dias)}`;
     if (a.tipo === 'alarma' && a.accion) meta += ` · ${ACCION_LABELS[a.accion] || a.accion}`;
-    if (a.tipo === 'recordatorio' && a.mensaje) meta += `<br><span style="font-style:italic">"${a.mensaje}"</span>`;
+    if (a.tipo === 'recordatorio' && a.mensaje) meta += `<br><span style="font-style:italic">"${escapeHtml(a.mensaje)}"</span>`;
   }
 
   return `
     <div class="auto-card">
       <div class="auto-icon-wrap ${cfg.cls}">${cfg.icon}</div>
       <div class="auto-info">
-        <div class="auto-name">${a.nombre}</div>
+        <div class="auto-name">${escapeHtml(a.nombre)}</div>
         <div class="auto-meta">${meta}</div>
         <span class="auto-badge ${cfg.badge}">${cfg.label}</span>
       </div>

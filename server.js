@@ -14,6 +14,43 @@ app.use(express.static(path.join(__dirname, '.')));
 
 function generateToken() { return crypto.randomBytes(32).toString('hex'); }
 
+// ── Rate limiting de login (sin dependencias externas) ──────────────────────
+// Bloquea IPs que fallen más de 10 veces en 15 minutos
+const loginAttempts = new Map(); // ip -> { count, firstAt }
+const LOGIN_MAX     = 10;
+const LOGIN_WINDOW  = 15 * 60 * 1000; // 15 min
+
+function checkLoginRateLimit(ip) {
+  const now  = Date.now();
+  const entry = loginAttempts.get(ip);
+  if (!entry || now - entry.firstAt > LOGIN_WINDOW) {
+    loginAttempts.set(ip, { count: 1, firstAt: now });
+    return { allowed: true };
+  }
+  if (entry.count >= LOGIN_MAX) {
+    const waitMs   = LOGIN_WINDOW - (now - entry.firstAt);
+    const waitMins = Math.ceil(waitMs / 60000);
+    return { allowed: false, waitMins };
+  }
+  entry.count++;
+  return { allowed: true };
+}
+function resetLoginRateLimit(ip) { loginAttempts.delete(ip); }
+// Limpiar entradas expiradas cada hora
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of loginAttempts) {
+    if (now - entry.firstAt > LOGIN_WINDOW) loginAttempts.delete(ip);
+  }
+}, 60 * 60 * 1000);
+
+// PINs bloqueados por ser demasiado predecibles
+const PIN_BLACKLIST = [
+  '0000','1111','2222','3333','4444','5555','6666','7777','8888','9999',
+  '1234','4321','1122','1212','2580','0852','2468','1357',
+  '0123','9876','6969','0000','1010','1001',
+];
+
 // Compara PIN sea cual sea su formato (texto plano legacy o bcrypt)
 async function checkPinCompat(inputPin, storedPin, username) {
   if (!storedPin) return false;
@@ -53,6 +90,9 @@ const TUYA_DEVICE_ID     = process.env.TUYA_DEVICE_KEY;      // Panel alarma
 const TUYA_REGION        = process.env.TUYA_REGION || 'eu';
 const VAPID_PUBLIC       = process.env.VAPID_PUBLIC_KEY  || '';
 const VAPID_PRIVATE      = process.env.VAPID_PRIVATE_KEY || '';
+
+// Cloudinary (para avatares — evita guardar base64 en MongoDB)
+const CLOUDINARY_URL     = process.env.CLOUDINARY_URL || '';  // formato: cloudinary://api_key:api_secret@cloud_name
 
 // Cuenta A: solo sensor de luz (alarma crítica)
 const TUYA_CLIENT_ID_ALARMA     = process.env.TUYA_CLIENT_ID_ALARMA;
@@ -174,11 +214,11 @@ async function tuyaNormal(method, path, body) {
 }
 
 // --- 5. ESTADO EN MEMORIA ---
-const SENSOR_LUZ_ID = 'bfc5d2d1da002201c6pcbl';
+const SENSOR_LUZ_ID = process.env.SENSOR_LUZ_ID;
 const SENSORES_AGUA = [
-  { id: 'bfcbcf5e1f2b903dedyx4i', nombre: 'Jose' },
-  { id: 'bf92df2609b5192252oyym', nombre: 'Cocina' },
-  { id: 'bff7dcc64693fab3acucza', nombre: 'Pasillo' },
+  { id: process.env.SENSOR_AGUA_JOSE,    nombre: 'Jose'    },
+  { id: process.env.SENSOR_AGUA_COCINA,  nombre: 'Cocina'  },
+  { id: process.env.SENSOR_AGUA_PASILLO, nombre: 'Pasillo' },
 ];
 const LUX_UMBRAL = 2;
 let sensorAlarmaActiva = false;
@@ -309,22 +349,23 @@ async function sendPushNotification(action, triggeredBy, ubicacion = null) {
   }
 
   if (!subs.length) return;
+
+  // Labels dinámicos para sensores de agua (usan IDs de variables de entorno)
+  const labelsAgua = {};
+  for (const s of SENSORES_AGUA) {
+    if (!s.id) continue;
+    labelsAgua[`sensor_agua_${s.id}`]         = `💧 Fuga de agua — ${s.nombre}`;
+    labelsAgua[`dispositivo_offline_${s.id}`] = `⚠️ Sensor Agua ${s.nombre} desconectado`;
+    labelsAgua[`dispositivo_online_${s.id}`]  = `✅ Sensor Agua ${s.nombre} reconectado`;
+  }
   const labels = {
     arm_away: '🔒 Modo total activado', arm_home: '🌙 Modo noche activado',
     disarm: '🔓 Alarma desarmada', sos: '🆘 PÁNICO / SOS', sensor_luz: '🚨 ¡ALARMA SALTADA!',
     sensor_offline: '⚠️ Centralita desconectada', sensor_online: '✅ Centralita reconectada',
-    sensor_agua_bfcbcf5e1f2b903dedyx4i: '💧 Fuga de agua — Jose',
-    sensor_agua_bf92df2609b5192252oyym: '💧 Fuga de agua — Cocina',
-    sensor_agua_bff7dcc64693fab3acucza: '💧 Fuga de agua — Pasillo',
-    dispositivo_offline_bfcbcf5e1f2b903dedyx4i: '⚠️ Sensor Agua Jose desconectado',
-    dispositivo_offline_bf92df2609b5192252oyym: '⚠️ Sensor Agua Cocina desconectado',
-    dispositivo_offline_bff7dcc64693fab3acucza: '⚠️ Sensor Agua Pasillo desconectado',
-    dispositivo_online_bfcbcf5e1f2b903dedyx4i: '✅ Sensor Agua Jose reconectado',
-    dispositivo_online_bf92df2609b5192252oyym: '✅ Sensor Agua Cocina reconectado',
-    dispositivo_online_bff7dcc64693fab3acucza: '✅ Sensor Agua Pasillo reconectado',
     panel_offline: '⚠️ Panel Alarma desconectado', panel_online: '✅ Panel Alarma reconectado',
     macrodroid_offline: '⚠️ Servidor de seguridad caído',
     macrodroid_online: '✅ Servidor de seguridad reactivado',
+    ...labelsAgua,
   };
 
   const mapsUrl = ubicacion ? `https://maps.google.com/?q=${ubicacion.lat},${ubicacion.lng}` : null;
@@ -366,10 +407,19 @@ app.delete('/api/usuarios/:username', requireAuth, async (req, res) => {
 
 // --- 10. AUTH ---
 app.post('/api/login', async (req, res) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
   try {
     const { username, password, deviceName } = req.body;
+
+    // Comprobar rate limit antes de tocar la base de datos
+    const rl = checkLoginRateLimit(ip);
+    if (!rl.allowed) {
+      return res.status(429).json({ success: false, message: `Demasiados intentos. Inténtalo en ${rl.waitMins} minuto${rl.waitMins > 1 ? 's' : ''}.` });
+    }
+
     const user = await User.findOne({ username });
     if (user && await bcrypt.compare(password, user.password)) {
+      resetLoginRateLimit(ip); // Login correcto: limpiar conteo
       const token = generateToken();
       const ua = req.headers['user-agent'] || '';
       await Session.create({ token, username: user.username, userAgent: ua, deviceName: (deviceName || '').trim().slice(0, 60) });
@@ -421,7 +471,7 @@ app.post('/api/force-set-pin', requireAuth, async (req, res) => {
   try {
     const { username, newPin } = req.body;
     if (!username || !/^\d{4}$/.test(newPin)) return res.status(400).json({ success: false, message: 'Datos inválidos' });
-    if (['0000','1234','1111','2222','123456'].includes(newPin)) return res.json({ success: false, message: 'PIN demasiado predecible.' });
+    if (PIN_BLACKLIST.includes(newPin)) return res.json({ success: false, message: 'PIN demasiado predecible.' });
     const user = await User.findOne({ username });
     if (!user || !user.isNew) return res.status(403).json({ success: false, message: 'No permitido' });
     const newPinHashed = await bcrypt.hash(newPin, 10);
@@ -478,10 +528,57 @@ app.post('/api/change-avatar', requireAuth, async (req, res) => {
   try {
     const { username, avatar } = req.body;
     if (!username) return res.status(400).json({ success: false, message: 'Falta el usuario.' });
-    // Validar tamaño (~2MB en base64 ≈ ~2.7MB string)
-    if (avatar && avatar.length > 3 * 1024 * 1024)
-      return res.status(400).json({ success: false, message: 'Imagen demasiado grande (máx 2MB).' });
-    await User.updateOne({ username }, { $set: { avatar: avatar || null } });
+
+    if (!avatar) {
+      // Eliminar avatar
+      await User.updateOne({ username }, { $set: { avatar: null } });
+      return res.json({ success: true, message: 'Foto eliminada' });
+    }
+
+    // Si Cloudinary está configurado, subir la imagen allí y guardar solo la URL
+    if (CLOUDINARY_URL) {
+      try {
+        // Parsear CLOUDINARY_URL: cloudinary://api_key:api_secret@cloud_name
+        const match = CLOUDINARY_URL.match(/cloudinary:\/\/([^:]+):([^@]+)@(.+)/);
+        if (!match) return res.status(500).json({ success: false, message: 'CLOUDINARY_URL mal formada' });
+        const [, apiKey, apiSecret, cloudName] = match;
+
+        // Subir imagen a Cloudinary via API REST (sin SDK para no añadir dependencia)
+        const timestamp = Math.floor(Date.now() / 1000);
+        const signStr = `public_id=avatar_${username}&timestamp=${timestamp}&transformation=c_fill,h_256,w_256`;
+        const signature = require('crypto')
+          .createHash('sha1')
+          .update(signStr + apiSecret)
+          .digest('hex');
+
+        const formData = new URLSearchParams();
+        formData.append('file', avatar);
+        formData.append('public_id', `avatar_${username}`);
+        formData.append('timestamp', timestamp);
+        formData.append('api_key', apiKey);
+        formData.append('signature', signature);
+        formData.append('transformation', 'c_fill,h_256,w_256');
+        formData.append('overwrite', 'true');
+
+        const uploadRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+          { method: 'POST', body: formData }
+        );
+        const uploadData = await uploadRes.json();
+        if (!uploadData.secure_url) throw new Error(uploadData.error?.message || 'Upload fallido');
+
+        await User.updateOne({ username }, { $set: { avatar: uploadData.secure_url } });
+        return res.json({ success: true, message: 'Foto actualizada correctamente', avatarUrl: uploadData.secure_url });
+      } catch (uploadErr) {
+        console.error('❌ Error Cloudinary:', uploadErr.message);
+        return res.status(500).json({ success: false, message: 'Error al subir la imagen' });
+      }
+    }
+
+    // Fallback: si no hay Cloudinary, guardar base64 con límite estricto de 500KB
+    if (avatar.length > 700 * 1024)
+      return res.status(400).json({ success: false, message: 'Imagen demasiado grande. Configura Cloudinary para imágenes mayores.' });
+    await User.updateOne({ username }, { $set: { avatar } });
     res.json({ success: true, message: 'Foto actualizada correctamente' });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
@@ -489,7 +586,7 @@ app.post('/api/change-avatar', requireAuth, async (req, res) => {
 app.post('/api/change-pin', requireAuth, async (req, res) => {
   try {
     const { username, currentPin, newPin } = req.body;
-    if (['0000','1234','1111','2222','123456'].includes(newPin)) return res.json({ success: false, message: 'PIN demasiado predecible.' });
+    if (PIN_BLACKLIST.includes(newPin)) return res.json({ success: false, message: 'PIN demasiado predecible.' });
     const user = await User.findOne({ username });
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     const pinMatch = await checkPinCompat(currentPin, user.pin, username);
@@ -664,11 +761,11 @@ app.get('/api/status', requireAuth,    async (req, res) => { try { const c = awa
 
 // --- 14. DISPOSITIVOS ---
 const LISTA_DISPOSITIVOS = [
-  { id: 'bfc5d2d1da002201c6pcbl', nombre: 'Centralita Alarma',    icono: '🛡️', ubicacion: 'Es el corazón de tu alarma'           },
-  { id: TUYA_DEVICE_ID,          nombre: 'Panel Alarma',          icono: '🛜', ubicacion: 'Es la unidad de control de tu alarma' },
-  { id: 'bfcbcf5e1f2b903dedyx4i', nombre: 'Sensor Fugas de Agua', icono: '💧', ubicacion: 'Habitación Jose'                      },
-  { id: 'bf92df2609b5192252oyym', nombre: 'Sensor Fugas de Agua', icono: '💧', ubicacion: 'Cocina'                               },
-  { id: 'bff7dcc64693fab3acucza', nombre: 'Sensor Fugas de Agua', icono: '💧', ubicacion: 'Pasillo'                              },
+  { id: SENSOR_LUZ_ID,                    nombre: 'Centralita Alarma',    icono: '🛡️', ubicacion: 'Es el corazón de tu alarma'           },
+  { id: TUYA_DEVICE_ID,                   nombre: 'Panel Alarma',         icono: '🛜', ubicacion: 'Es la unidad de control de tu alarma' },
+  ...SENSORES_AGUA.filter(s => s.id).map(s => ({
+    id: s.id, nombre: 'Sensor Fugas de Agua', icono: '💧', ubicacion: s.nombre
+  })),
 ];
 
 // Rastrear cuándo se detectó por primera vez que un dispositivo está offline

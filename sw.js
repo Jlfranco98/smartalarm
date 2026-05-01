@@ -2,7 +2,9 @@ const CACHE = 'mialarm-v7.3';
 const ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
 ];
 
 // Instalación: Guardar archivos en caché
