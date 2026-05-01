@@ -470,6 +470,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .auto-badge-silent{background:#f3e8ff;color:#7d3fc8}
 .auto-badge-summary{background:#f0fdf6;color:var(--green)}
 .auto-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.auto-edit-btn{width:30px;height:30px;border-radius:50%;background:var(--bg);border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
 .auto-del-btn{width:30px;height:30px;border-radius:50%;background:var(--bg);border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
 .auto-del-btn:active{background:#ffeef0;color:var(--red)}
 
@@ -3097,6 +3098,7 @@ function openAutoModal() {
 }
 
 function closeAutoModal() {
+  editingAutoId = null;
   document.getElementById('auto-modal-bg').classList.remove('open');
 }
 
@@ -3151,6 +3153,45 @@ function selectAccion(accion) {
   document.getElementById('aopt-' + accion).classList.add('selected');
 }
 
+let editingAutoId = null;
+
+function editAutomation(a) {
+  editingAutoId = a._id;
+
+  // Abrir modal y seleccionar tipo (salta al paso 2 directamente)
+  document.getElementById('auto-step-tipo').style.display  = 'none';
+  document.getElementById('auto-step-config').style.display = 'block';
+  document.getElementById('auto-modal-title').textContent   = 'Editar automatización';
+
+  // Marcar tipo seleccionado y configurar visibilidad de campos
+  autoTipoSeleccionado = a.tipo;
+  document.querySelectorAll('.auto-type-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('atype-' + a.tipo)?.classList.add('selected');
+  document.getElementById('auto-accion-wrap').style.display  = a.tipo === 'alarma'       ? 'block' : 'none';
+  document.getElementById('auto-msg-wrap').style.display     = a.tipo === 'recordatorio' ? 'block' : 'none';
+  document.getElementById('auto-horafin-wrap').style.display = a.tipo === 'silencio'     ? 'block' : 'none';
+  document.getElementById('auto-dias-wrap').style.display    = 'block';
+  document.getElementById('auto-hora-wrap').style.display    = 'block';
+  document.getElementById('auto-hora-label').textContent     = a.tipo === 'silencio' ? 'Hora de inicio' : 'Hora';
+
+  // Rellenar campos
+  document.getElementById('auto-nombre').value = a.nombre || '';
+  document.getElementById('auto-hora').value   = a.hora   || '';
+  document.getElementById('auto-horafin').value = a.horaFin || '';
+  document.getElementById('auto-mensaje').value = a.mensaje || '';
+
+  // Días
+  document.querySelectorAll('.dia-btn').forEach(b => {
+    b.classList.toggle('on', a.dias && a.dias.includes(b.dataset.dia));
+  });
+
+  // Acción (solo alarma)
+  if (a.tipo === 'alarma' && a.accion) selectAccion(a.accion);
+
+  document.getElementById('auto-modal-bg').classList.add('open');
+  document.getElementById('auto-modal').scrollTop = 0;
+}
+
 async function saveAutomation() {
   const nombre = document.getElementById('auto-nombre').value.trim();
   const hora   = document.getElementById('auto-hora').value;
@@ -3179,11 +3220,13 @@ async function saveAutomation() {
   };
 
   try {
-    const res = await authFetch('/api/automations', { method: 'POST', body: JSON.stringify(body) });
+    const url    = editingAutoId ? `/api/automations/${editingAutoId}` : '/api/automations';
+    const method = editingAutoId ? 'PUT' : 'POST';
+    const res = await authFetch(url, { method, body: JSON.stringify(body) });
     const data = await res.json();
     if (data.success) {
       closeAutoModal();
-      toast2('✅ Automatización guardada');
+      toast2(editingAutoId ? '✅ Automatización actualizada' : '✅ Automatización guardada');
       renderAutomatizaciones();
     } else {
       err.textContent = data.message || 'Error al guardar';
@@ -3344,6 +3387,7 @@ function renderAutoCard(a) {
           <input type="checkbox" ${a.activa ? 'checked' : ''} onchange="toggleAutomation('${a._id}', this.checked)">
           <span class="toggle-slider"></span>
         </label>
+        <button class="auto-edit-btn" onclick="editAutomation(${JSON.stringify(a).replace(/"/g,'&quot;')})" title="Editar">✏️</button>
         <button class="auto-del-btn" onclick="deleteAutomation('${a._id}','${a.nombre.replace(/'/g,'\\'+'\'')}')" title="Eliminar">🗑️</button>
       </div>
     </div>`;

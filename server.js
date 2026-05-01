@@ -834,6 +834,33 @@ app.post('/api/automations', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// PUT: editar automatización completa
+app.put('/api/automations/:id', requireAuth, async (req, res) => {
+  try {
+    const auto = await Automation.findById(req.params.id);
+    if (!auto) return res.status(404).json({ success: false, message: 'No encontrada' });
+    if (auto.tipo !== 'alarma' && auto.username !== req.sessionUser)
+      return res.status(403).json({ success: false, message: 'Sin permiso' });
+
+    const { nombre, dias, hora, horaFin, accion, mensaje } = req.body;
+    if (!nombre) return res.status(400).json({ success: false, message: 'Falta el nombre' });
+    if (auto.tipo === 'alarma' && !accion) return res.status(400).json({ success: false, message: 'Falta la acción' });
+    if ((auto.tipo === 'alarma' || auto.tipo === 'recordatorio' || auto.tipo === 'resumen') && (!dias || !dias.length || !hora))
+      return res.status(400).json({ success: false, message: 'Faltan días u hora' });
+    if (auto.tipo === 'silencio' && (!hora || !horaFin))
+      return res.status(400).json({ success: false, message: 'Faltan hora inicio y fin' });
+
+    auto.nombre  = nombre;
+    auto.dias    = dias    || [];
+    auto.hora    = hora    || null;
+    auto.horaFin = horaFin || null;
+    auto.accion  = accion  || null;
+    auto.mensaje = mensaje || null;
+    await auto.save();
+    res.json({ success: true, automation: auto });
+  } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // PATCH: activar / desactivar
 app.patch('/api/automations/:id', requireAuth, async (req, res) => {
   try {
