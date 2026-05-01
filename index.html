@@ -2008,8 +2008,8 @@ const CATEGORIAS = {
     label: '⚙️ Sistema',
     subcats: [
       // Priorizamos palabras que no estén en "Acciones"
-      { id: 'desconectado', label: '📵 Desconexiónes', keywords: ['desconectado', 'offline', 'Centralita desconectada', '⚠️ Sensor Agua Jose desconectado', '⚠️ Sensor Cocina Cocina desconectado', '⚠️ Sensor Agua Pasillo desconectado',] },
-      { id: 'reconectado', label: '✅ Reconexiones', keywords: ['reconectado', 'online', 'Centralita reconectada', 'Sensor Agua Jose reconectado', 'Sensor Agua Cocina reconectado', 'Sensor Agua Pasillo reconectado'] },
+      { id: 'desconectado', label: '📵 Desconexiónes', keywords: ['desconectado', 'offline', 'Centralita desconectada'] },
+      { id: 'reconectado', label: '✅ Reconexiones', keywords: ['reconectado', 'online', 'Centralita reconectada'] },
       { id: 'bateria', label: '🔋 Batería baja', keywords: ['batería', 'bateria', 'pila'] },
     ]
   }
@@ -2024,8 +2024,8 @@ function clasificarEvento(l) {
   }
 
   // 2. SALTOS (Alarma y Agua)
-  if (texto.includes('saltada') || texto.includes('fuga') || texto.includes('agua')) {
-    return { cat: 'saltos', sub: texto.includes('agua') ? 'agua' : 'alarma' };
+  if (texto.includes('saltada') || texto.includes('fuga')) {
+    return { cat: 'saltos', sub: texto.includes('fuga') ? 'agua' : 'alarma' };
   }
 
   // 3. ERRORES
