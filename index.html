@@ -536,6 +536,39 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .aco-bar-fill.armed{background:var(--red)}
 .aco-bar-fill.disarmed{background:var(--green)}
 .aco-bar-fill.arm_home{background:var(--orange)}
+
+/* ── Custom Confirm Modal ─────────────────────────────────────────────────── */
+#custom-confirm-bg{
+  position:fixed;inset:0;z-index:9000;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0);
+  opacity:0;pointer-events:none;
+  transition:opacity .22s,background .22s;
+}
+#custom-confirm-bg.open{
+  opacity:1;pointer-events:all;
+  background:rgba(0,0,0,.5);
+}
+.ccm-box{
+  background:var(--white);
+  border-radius:22px;
+  padding:28px 24px 20px;
+  width:calc(100% - 56px);
+  max-width:320px;
+  text-align:center;
+  box-shadow:0 8px 40px rgba(0,0,0,.18);
+  transform:scale(.92) translateY(10px);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+#custom-confirm-bg.open .ccm-box{transform:scale(1) translateY(0)}
+.ccm-icon{font-size:44px;margin-bottom:10px;line-height:1}
+.ccm-title{font-size:17px;font-weight:900;color:var(--text);margin-bottom:6px}
+.ccm-msg{font-size:14px;color:var(--muted);font-weight:600;line-height:1.45;margin-bottom:22px}
+.ccm-btns{display:flex;gap:10px}
+.ccm-btn{flex:1;padding:13px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s}
+.ccm-btn:active{transform:scale(0.96);opacity:.8}
+.ccm-btn-cancel{background:var(--bg);color:var(--text)}
+.ccm-btn-confirm{background:var(--red);color:#fff}
 </style>
 </head>
 <body>
@@ -1137,6 +1170,19 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
   </div>
 </div>
 
+<!-- Custom Confirm Modal -->
+<div id="custom-confirm-bg">
+  <div class="ccm-box">
+    <div class="ccm-icon" id="ccm-icon">🗑️</div>
+    <div class="ccm-title" id="ccm-title">¿Estás seguro?</div>
+    <div class="ccm-msg" id="ccm-msg"></div>
+    <div class="ccm-btns">
+      <button class="ccm-btn ccm-btn-cancel" id="ccm-cancel">Cancelar</button>
+      <button class="ccm-btn ccm-btn-confirm" id="ccm-confirm">Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <div id="force-change-screen" class="screen" style="z-index:1000;background:var(--bg);display:none;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch">
 
   <!-- Hero rojo -->
@@ -1586,7 +1632,8 @@ async function addUser() {
 }
 
 async function removeUser(username) {
-  if (!confirm(`¿Eliminar @${username}?`)) return;
+  const ok = await showConfirm({ icon: '👤', title: 'Eliminar usuario', msg: `¿Eliminar @${username}?`, confirmLabel: 'Eliminar' });
+  if (!ok) return;
   try {
     const res = await authFetch(`/api/usuarios/${username}`, { method: 'DELETE' });
     if (res.ok) { renderUsersAdmin(); toast2('Usuario eliminado'); }
@@ -2539,19 +2586,22 @@ async function saveSessionName(id) {
 }
 
 async function revokeSession(id) {
-  if (!confirm('¿Revocar esta sesión?')) return;
+  const ok = await showConfirm({ icon: '🔑', title: 'Revocar sesión', msg: '¿Seguro que quieres cerrar esta sesión?', confirmLabel: 'Revocar' });
+  if (!ok) return;
   await authFetch(`/api/sessions/${id}`, { method: 'DELETE' });
   renderSessions();
 }
 
 async function revokeUserSessions(username) {
-  if (!confirm(`¿Revocar todas las sesiones de ${username}?`)) return;
+  const ok = await showConfirm({ icon: '🔑', title: 'Revocar sesiones', msg: `¿Revocar todas las sesiones de ${username}?`, confirmLabel: 'Revocar' });
+  if (!ok) return;
   await authFetch(`/api/sessions/user/${username}`, { method: 'DELETE' });
   renderSessions();
 }
 
 async function revokeAllSessions() {
-  if (!confirm('¿Revocar TODAS las sesiones? Todos los usuarios tendrán que volver a iniciar sesión.')) return;
+  const ok = await showConfirm({ icon: '⚠️', title: 'Revocar TODAS las sesiones', msg: 'Todos los usuarios tendrán que volver a iniciar sesión.', confirmLabel: 'Revocar todo' });
+  if (!ok) return;
   const res = await authFetch('/api/sessions');
   const sessions = await res.json();
   const users = [...new Set(sessions.map(s => s.username))];
@@ -3124,8 +3174,44 @@ async function toggleAutomation(id, activa) {
   } catch(e) { toast2('⚠️ Error de conexión'); }
 }
 
+// ── Custom Confirm Modal ────────────────────────────────────────────────────
+function showConfirm({ icon = '🗑️', title = '¿Estás seguro?', msg = '', confirmLabel = 'Eliminar', confirmCls = 'ccm-btn-confirm' } = {}) {
+  return new Promise(resolve => {
+    const bg       = document.getElementById('custom-confirm-bg');
+    const iconEl   = document.getElementById('ccm-icon');
+    const titleEl  = document.getElementById('ccm-title');
+    const msgEl    = document.getElementById('ccm-msg');
+    const btnOk    = document.getElementById('ccm-confirm');
+    const btnCancel= document.getElementById('ccm-cancel');
+
+    iconEl.textContent  = icon;
+    titleEl.textContent = title;
+    msgEl.textContent   = msg;
+    btnOk.textContent   = confirmLabel;
+    btnOk.className     = `ccm-btn ${confirmCls}`;
+
+    bg.classList.add('open');
+
+    function close(result) {
+      bg.classList.remove('open');
+      btnOk.removeEventListener('click', onOk);
+      btnCancel.removeEventListener('click', onCancel);
+      bg.removeEventListener('click', onBg);
+      resolve(result);
+    }
+    const onOk     = () => close(true);
+    const onCancel = () => close(false);
+    const onBg     = (e) => { if (e.target === bg) close(false); };
+
+    btnOk.addEventListener('click', onOk);
+    btnCancel.addEventListener('click', onCancel);
+    bg.addEventListener('click', onBg);
+  });
+}
+
 async function deleteAutomation(id, nombre) {
-  if (!confirm(`¿Eliminar "${nombre}"?`)) return;
+  const ok = await showConfirm({ icon: '🗑️', title: 'Eliminar automatización', msg: `¿Eliminar "${nombre}"?`, confirmLabel: 'Eliminar' });
+  if (!ok) return;
   try {
     const res = await authFetch(`/api/automations/${id}`, { method: 'DELETE' });
     const data = await res.json();
