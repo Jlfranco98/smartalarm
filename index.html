@@ -3138,6 +3138,7 @@ function autoNextStep() {
 }
 
 function autoBackStep() {
+  if (editingAutoId) { closeAutoModal(); return; }
   document.getElementById('auto-step-tipo').style.display = 'block';
   document.getElementById('auto-step-config').style.display = 'none';
   document.getElementById('auto-modal-title').textContent = 'Nueva automatización';
