@@ -1597,12 +1597,12 @@ async function renderUsersAdmin(){
     const users = await res.json();
     el.innerHTML=users.map(u=>`
       <div class="user-row">
-        <div class="ur-av">${u.name.slice(0,2).toUpperCase()}</div>
+        <div class="ur-av">${escapeHtml(u.name.slice(0,2).toUpperCase())}</div>
         <div style="flex:1">
-          <div class="ur-name">${u.name}</div>
-          <div class="ur-role">@${u.username} · ${u.role==='admin'?'Admin':'Usuario'}</div>
+          <div class="ur-name">${escapeHtml(u.name)}</div>
+          <div class="ur-role">@${escapeHtml(u.username)} · ${u.role==='admin'?'Admin':'Usuario'}</div>
         </div>
-        ${S.currentUser && S.currentUser.username === 'jlfranco' && u.username !== 'jlfranco' ? `<button class="ur-del" onclick="removeUser('${u.username}')">Eliminar usuario</button>` : ''}
+        ${S.currentUser && S.currentUser.role === 'admin' && u.username !== S.currentUser.username ? `<button class="ur-del" onclick="removeUser('${escapeHtml(u.username)}')">Eliminar usuario</button>` : ''}
       </div>`).join('');
   } catch(e) { el.innerHTML = "Error al cargar usuarios"; }
 }

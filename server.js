@@ -807,8 +807,8 @@ setInterval(async () => {
 }, 5 * 60 * 1000);
 
 // --- 13. HISTORIAL Y CONFIG ---
-app.get('/api/logs', requireAuth,      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
-app.get('/api/historial', requireAuth, async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
+app.get('/api/logs', requireAuth,      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
+app.get('/api/historial', requireAuth, async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
 app.get('/api/config', requireAuth,    async (req, res) => { try { res.json(await Config.findOne({ id: 'global_config' }) || {}); } catch (e) { res.status(500).json({}); } });
 app.post('/api/config', requireAuth, async (req, res) => {
   try {
@@ -870,8 +870,15 @@ app.get('/api/automations', requireAuth, async (req, res) => {
 app.post('/api/automations', requireAuth, async (req, res) => {
   try {
     const { tipo, nombre, dias, hora, horaFin, accion, mensaje } = req.body;
+    const TIPOS_VALIDOS   = ['alarma', 'recordatorio', 'silencio', 'resumen'];
+    const ACCIONES_VALIDAS = ['arm_away', 'arm_home', 'disarm'];
+    const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
     if (!tipo || !nombre) return res.status(400).json({ success: false, message: 'Faltan campos' });
+    if (!TIPOS_VALIDOS.includes(tipo)) return res.status(400).json({ success: false, message: 'Tipo no válido' });
+    if (hora && !HORA_REGEX.test(hora)) return res.status(400).json({ success: false, message: 'Formato de hora inválido' });
+    if (horaFin && !HORA_REGEX.test(horaFin)) return res.status(400).json({ success: false, message: 'Formato de hora fin inválido' });
     if (tipo === 'alarma' && !accion) return res.status(400).json({ success: false, message: 'Falta la acción' });
+    if (accion && !ACCIONES_VALIDAS.includes(accion)) return res.status(400).json({ success: false, message: 'Acción no válida' });
     if ((tipo === 'alarma' || tipo === 'recordatorio' || tipo === 'resumen') && (!dias || !dias.length || !hora))
       return res.status(400).json({ success: false, message: 'Faltan días u hora' });
     if (tipo === 'silencio' && (!hora || !horaFin))
@@ -902,8 +909,13 @@ app.put('/api/automations/:id', requireAuth, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Sin permiso' });
 
     const { nombre, dias, hora, horaFin, accion, mensaje } = req.body;
+    const ACCIONES_VALIDAS_PUT = ['arm_away', 'arm_home', 'disarm'];
+    const HORA_REGEX_PUT = /^([01]\d|2[0-3]):[0-5]\d$/;
     if (!nombre) return res.status(400).json({ success: false, message: 'Falta el nombre' });
+    if (hora && !HORA_REGEX_PUT.test(hora)) return res.status(400).json({ success: false, message: 'Formato de hora inválido' });
+    if (horaFin && !HORA_REGEX_PUT.test(horaFin)) return res.status(400).json({ success: false, message: 'Formato de hora fin inválido' });
     if (auto.tipo === 'alarma' && !accion) return res.status(400).json({ success: false, message: 'Falta la acción' });
+    if (accion && !ACCIONES_VALIDAS_PUT.includes(accion)) return res.status(400).json({ success: false, message: 'Acción no válida' });
     if ((auto.tipo === 'alarma' || auto.tipo === 'recordatorio' || auto.tipo === 'resumen') && (!dias || !dias.length || !hora))
       return res.status(400).json({ success: false, message: 'Faltan días u hora' });
     if (auto.tipo === 'silencio' && (!hora || !horaFin))
