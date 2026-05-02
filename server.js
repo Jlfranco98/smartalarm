@@ -253,10 +253,7 @@ const SENSORES_AGUA = [
   { id: process.env.SENSOR_AGUA_COCINA,  nombre: 'Cocina'  },
   { id: process.env.SENSOR_AGUA_PASILLO, nombre: 'Pasillo' },
 ];
-const LUX_UMBRAL = 2;
-let sensorAlarmaActiva = false;
 let sensorOffline = false;
-const aguaActiva = {};
 const dispositivosOffline = {};
 const deviceStateCache = {};
 let ultimoHeartbeat = Date.now(); // Arranca asumiendo que está vivo
@@ -264,11 +261,12 @@ let heartbeatAlertaEnviada = false;
 const HEARTBEAT_TIMEOUT_MS = 10 * 60 * 1000; // 10 min sin pulso = alerta
 
 // --- 6. POLLING RÁPIDO: SENSOR DE LUZ (CUENTA A)
+// Solo comprueba online/offline — MacroDroid gestiona la detección del salto de alarma
 async function checkSensorLuz() {
   try {
     const data = await tuyaAlarma('GET', `/v1.0/devices/${SENSOR_LUZ_ID}`);
     const isOnline = data.result?.online === true;
-    deviceStateCache[SENSOR_LUZ_ID] = { ...deviceStateCache[SENSOR_LUZ_ID], online: isOnline, updatedAt: Date.now() };
+    deviceStateCache[SENSOR_LUZ_ID] = { online: isOnline, updatedAt: Date.now() };
 
     if (!isOnline && !sensorOffline) {
       sensorOffline = true;
@@ -280,24 +278,6 @@ async function checkSensorLuz() {
       sensorOffline = false;
       await new Log({ usuario: 'Verisure', accion: '✅ Centralita reconectada' }).save();
       await sendPushNotification('sensor_online', 'Verisure');
-    }
-    if (!isOnline) return;
-
-    const statusData = await tuyaAlarma('GET', `/v1.0/devices/${SENSOR_LUZ_ID}/status`);
-    const brightProp = statusData.result?.find(p => p.code === 'bright_value');
-    if (!brightProp) return;
-
-    const lux = brightProp.value;
-    console.log(`💡 Comprobando Centralita: ${lux} LUX`);
-
-    if (lux > LUX_UMBRAL && !sensorAlarmaActiva) {
-      sensorAlarmaActiva = true;
-      console.log('🚨 ALARMA DETECTADA');
-      await new Log({ usuario: 'Verisure', accion: '🚨 Alarma saltada' }).save();
-      await sendPushNotification('sensor_luz', 'Verisure');
-    } else if (lux <= LUX_UMBRAL && sensorAlarmaActiva) {
-      sensorAlarmaActiva = false;
-      console.log('✅ Alarma resetada');
     }
   } catch (e) {
     console.error('❌ Error sensor luz:', e.message);
@@ -331,6 +311,7 @@ async function checkPanelAlarma() {
   } catch (e) { console.error('❌ Error panel:', e.message); }
 }
 
+// Solo comprueba online/offline — MacroDroid gestiona la detección de fugas
 async function checkSensorAgua(sensor) {
   try {
     const data = await tuyaNormal('GET', `/v1.0/devices/${sensor.id}`);
@@ -347,20 +328,6 @@ async function checkSensorAgua(sensor) {
       dispositivosOffline[sensor.id] = false;
       await new Log({ usuario: 'Verisure', accion: `✅ Sensor Agua ${sensor.nombre} reconectado` }).save();
       await sendPushNotification('dispositivo_online_' + sensor.id, 'Verisure');
-    }
-    if (!isOnline) return;
-
-    const statusData = await tuyaNormal('GET', `/v1.0/devices/${sensor.id}/status`);
-    const stateProp = statusData.result?.find(p => p.code === 'watersensor_state');
-    if (!stateProp) return;
-
-    const estado = stateProp.value;
-    if (estado === 'alarm' && !aguaActiva[sensor.id]) {
-      aguaActiva[sensor.id] = true;
-      await new Log({ usuario: 'Verisure', accion: `💧 Fuga de agua detectada — ${sensor.nombre}` }).save();
-      await sendPushNotification('sensor_agua_' + sensor.id, `Sensor ${sensor.nombre}`);
-    } else if (estado === 'normal' && aguaActiva[sensor.id]) {
-      aguaActiva[sensor.id] = false;
     }
   } catch (e) { console.error(`❌ Error agua ${sensor.nombre}:`, e.message); }
 }
