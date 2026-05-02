@@ -599,7 +599,7 @@ app.post('/api/change-avatar', requireAuth, async (req, res) => {
 
         // Subir imagen a Cloudinary via API REST (sin SDK para no añadir dependencia)
         const timestamp = Math.floor(Date.now() / 1000);
-        const signStr = `public_id=avatar_${username}&timestamp=${timestamp}&transformation=c_fill,h_256,w_256`;
+        const signStr = `overwrite=true&public_id=avatar_${username}&timestamp=${timestamp}&transformation=c_fill,h_256,w_256`;
         const signature = require('crypto')
           .createHash('sha1')
           .update(signStr + apiSecret)
