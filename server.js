@@ -10,7 +10,11 @@ const crypto = require('crypto');
 const app = express();
 app.use('/api/change-avatar', express.json({ limit: '800kb' })); // avatares en base64
 app.use(express.json({ limit: '10kb' }));                              // resto de rutas
-app.use(cors());
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGIN || false, // Pon en Railway: ALLOWED_ORIGIN=https://tu-dominio.com
+  methods: ['GET','POST','PUT','PATCH','DELETE'],
+  allowedHeaders: ['Content-Type','X-App-Token']
+}));
 app.use(express.static(path.join(__dirname, '.')));
 
 function generateToken() { return crypto.randomBytes(32).toString('hex'); }
@@ -679,7 +683,7 @@ app.get('/api/heartbeat-status', requireAuth, (req, res) => {
 
 // --- 12. CONTROL ALARMA (usa cuenta B, el panel está ahí) ---
 app.post('/api/control', requireAuth, async (req, res) => {
-  const { action, user, alarmStatus, ubicacion } = req.body;
+  const { action, alarmStatus, ubicacion } = req.body; // 'user' ignorado — usamos req.sessionUser
   const mapping = { disarm: 'switch_1', arm_home: 'switch_2', arm_away: 'switch_3', sos: 'switch_4' };
   const nombres = { disarm: 'Alarma Desarmada', arm_home: 'Modo noche activado', arm_away: 'Modo total activado', sos: 'PÁNICO / SOS' };
   try {
@@ -693,9 +697,9 @@ app.post('/api/control', requireAuth, async (req, res) => {
       const accionLog = action === 'sos' && mapsUrl
         ? `PÁNICO / SOS — 📍 ${mapsUrl} (±${ubicacion.precision}m)`
         : nombres[action] || action;
-      await new Log({ usuario: user || 'Verisure', accion: accionLog }).save();
+      await new Log({ usuario: req.sessionUser, accion: accionLog }).save();
       await Config.findOneAndUpdate({ id: 'global_config' }, { $set: { alarmStatus } }, { upsert: true });
-      sendPushNotification(action, user || 'Verisure', ubicacion).catch(console.error);
+      sendPushNotification(action, req.sessionUser, ubicacion).catch(console.error);
     }
     res.json({ success: result.success, result: result.result });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
@@ -806,7 +810,16 @@ setInterval(async () => {
 app.get('/api/logs', requireAuth,      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
 app.get('/api/historial', requireAuth, async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 })); } catch (e) { res.status(500).json([]); } });
 app.get('/api/config', requireAuth,    async (req, res) => { try { res.json(await Config.findOne({ id: 'global_config' }) || {}); } catch (e) { res.status(500).json({}); } });
-app.post('/api/config', requireAuth,   async (req, res) => { try { const { alarmStatus, backendUrl, deviceId } = req.body; await Config.findOneAndUpdate({ id: 'global_config' }, { alarmStatus, backendUrl, deviceId }, { upsert: true }); res.json({ success: true }); } catch (e) { res.status(500).json({ success: false }); } });
+app.post('/api/config', requireAuth, async (req, res) => {
+  try {
+    const requestingUser = await User.findOne({ username: req.sessionUser });
+    if (!requestingUser || requestingUser.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Solo un administrador puede modificar la configuración' });
+    const { alarmStatus, backendUrl, deviceId } = req.body;
+    await Config.findOneAndUpdate({ id: 'global_config' }, { alarmStatus, backendUrl, deviceId }, { upsert: true });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false }); }
+});
 app.get('/api/status', requireAuth,    async (req, res) => { try { const c = await Config.findOne({ id: 'global_config' }); res.json({ alarmStatus: c?.alarmStatus || 'disarmed' }); } catch (e) { res.status(500).send(e.message); } });
 
 // --- 14. DISPOSITIVOS ---

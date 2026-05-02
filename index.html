@@ -2310,7 +2310,7 @@ function buildLogItem(l, full = false) {
           <span class="hi-badge" style="color:${badgeColor};background:${badgeBg};border:1px solid ${badgeColor}30">${catLabel}</span>
         </div>
         <div class="hi-card-bottom">
-          <div class="hi-user">${l.usuario || l.user || 'Sistema'}</div>
+          <div class="hi-user">${escapeHtml(l.usuario || l.user || 'Sistema')}</div>
           <div class="hi-time">${fechaTexto}</div>
         </div>
       </div>
@@ -2357,8 +2357,8 @@ function renderLog() {
       <div class="hist-item">
         <div class="hi-dot ${dotClass}"></div>
         <div class="hi-info">
-          <div class="hi-action">${l.accion || l.action || 'Acción'}</div>
-          <div class="hi-user">${l.usuario || l.user || 'Sistema'}</div>
+          <div class="hi-action">${escapeHtml(l.accion || l.action || 'Acción')}</div>
+          <div class="hi-user">${escapeHtml(l.usuario || l.user || 'Sistema')}</div>
         </div>
         <div class="hi-time" style="min-width: 150px;">${fechaTexto}</div>
       </div>`;
