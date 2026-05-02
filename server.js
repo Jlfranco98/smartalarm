@@ -267,7 +267,7 @@ async function checkSensorLuz() {
     const data = await tuyaAlarma('GET', `/v1.0/devices/${SENSOR_LUZ_ID}`);
     const isOnline = data.result?.online === true;
     deviceStateCache[SENSOR_LUZ_ID] = { online: isOnline, updatedAt: Date.now() };
-    console.log(`🛡️ Comprobando Estado Centralita: ${isOnline ? 'online' : 'offline'}`);
+    console.log(`🛡️ Comprobando Estado Centralita: ${isOnline ? '✅' : '❌'}`);
 
     if (!isOnline && !sensorOffline) {
       sensorOffline = true;
