@@ -671,7 +671,7 @@ app.post('/api/control', requireAuth, async (req, res) => {
       const userDoc = await User.findOne({ username: req.sessionUser });
       await new Log({ usuario: userDoc?.name || req.sessionUser, accion: accionLog }).save();
       await Config.findOneAndUpdate({ id: 'global_config' }, { $set: { alarmStatus } }, { upsert: true });
-      sendPushNotification(action, req.sessionUser, ubicacion).catch(console.error);
+      sendPushNotification(action, userDoc?.name || req.sessionUser, ubicacion).catch(console.error);
     }
     res.json({ success: result.success, result: result.result });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
