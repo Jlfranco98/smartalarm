@@ -668,7 +668,8 @@ app.post('/api/control', requireAuth, async (req, res) => {
       const accionLog = action === 'sos' && mapsUrl
         ? `PÁNICO / SOS — 📍 ${mapsUrl} (±${ubicacion.precision}m)`
         : nombres[action] || action;
-      await new Log({ usuario: req.sessionUser, accion: accionLog }).save();
+      const userDoc = await User.findOne({ username: req.sessionUser });
+      await new Log({ usuario: userDoc?.name || req.sessionUser, accion: accionLog }).save();
       await Config.findOneAndUpdate({ id: 'global_config' }, { $set: { alarmStatus } }, { upsert: true });
       sendPushNotification(action, req.sessionUser, ubicacion).catch(console.error);
     }
