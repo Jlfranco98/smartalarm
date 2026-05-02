@@ -260,13 +260,14 @@ let ultimoHeartbeat = Date.now(); // Arranca asumiendo que está vivo
 let heartbeatAlertaEnviada = false;
 const HEARTBEAT_TIMEOUT_MS = 10 * 60 * 1000; // 10 min sin pulso = alerta
 
-// --- 6. POLLING RÁPIDO: SENSOR DE LUZ (CUENTA A)
-// Solo comprueba online/offline — MacroDroid gestiona la detección del salto de alarma
+// --- 6. SENSOR DE LUZ (CUENTA A)
+// Solo comprueba online/offline — MacroDroid gestiona el salto de alarma
 async function checkSensorLuz() {
   try {
     const data = await tuyaAlarma('GET', `/v1.0/devices/${SENSOR_LUZ_ID}`);
     const isOnline = data.result?.online === true;
     deviceStateCache[SENSOR_LUZ_ID] = { online: isOnline, updatedAt: Date.now() };
+    console.log(`🛡️ Comprobando Estado Centralita: ${isOnline ? 'online' : 'offline'}`);
 
     if (!isOnline && !sensorOffline) {
       sensorOffline = true;
@@ -284,13 +285,16 @@ async function checkSensorLuz() {
   }
 }
 
-// --- 7. POLLING LENTO: AGUA + PANEL (CUENTA B)
+// --- 7. AGUA + PANEL (CUENTA B)
+// Solo comprueba online/offline — MacroDroid gestiona la deteccion de fugas de agua
 async function checkSensoresLentos() {
-  console.log(`🔄 Comprobando sensores agua + panel...`);
   await Promise.all([
     checkPanelAlarma(),
     ...SENSORES_AGUA.map(s => checkSensorAgua(s))
   ]);
+  const panel = deviceStateCache[TUYA_DEVICE_ID]?.online ? '✅' : '❌';
+  const agua = SENSORES_AGUA.map(s => `${s.nombre}: ${deviceStateCache[s.id]?.online ? '✅' : '❌'}`).join(' | ');
+  console.log(`🔎 Comprobando Estado Dispositivos — Panel: ${panel} | Agua — ${agua}`);
 }
 
 async function checkPanelAlarma() {
