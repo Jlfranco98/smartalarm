@@ -1346,15 +1346,12 @@ async function doLogin() {
       S.currentUser = data.user;
       S.sessionToken = data.token;
       
-      // IMPORTANTE: Guardamos el password temporal para que applyForceChange pueda usarlo
-      S.currentUser.password = p; 
-      save();
-      delete S.currentUser.password;
+      save(); // Guardamos sesión SIN contraseña en localStorage
 
-      // COMPROBACIÓN: Si es nuevo o si la contraseña es igual al usuario (como emergencia)
-      if (data.user.isNew || data.user.mustChange || p === '123456') { 
+      // COMPROBACIÓN: Si es usuario nuevo debe configurar su cuenta
+      if (data.user.isNew || data.user.mustChange) { 
         console.log("Detectado usuario nuevo, mostrando pantalla de cambio...");
-        showForceChangeModal();
+        showForceChangeModal(p); // Pasamos el password solo en memoria, nunca a localStorage
         return; // Detenemos aquí para que no entre a la app
       }
 
@@ -2771,7 +2768,8 @@ function showUpdateBar() {
   document.body.appendChild(bar);
 }
 
- function showForceChangeModal() {
+ function showForceChangeModal(tempPass) {
+  S._tempPass = tempPass || null; // Guardamos solo en memoria, nunca en localStorage
   const el = document.getElementById('force-change-screen');
   if(!el) return;
   
@@ -2842,7 +2840,7 @@ async function applyForceChange() {
       method: 'POST',
       body: JSON.stringify({
         username: S.currentUser.username,
-        currentPassword: S.currentUser.password || S.currentUser.tempPass,
+        currentPassword: S._tempPass,
         newPassword: nPass
       })
     });
@@ -2867,9 +2865,8 @@ async function applyForceChange() {
     if (dataLogin.success) {
       S.currentUser = dataLogin.user;
       S.sessionToken = dataLogin.token;
-      S.currentUser.password = nPass;
-      save();
-      delete S.currentUser.password;
+      save(); // Guardamos SIN contraseña
+      delete S._tempPass; // Limpiamos el password temporal de memoria
       localStorage.setItem('mialarm', JSON.stringify({ token: S.sessionToken, user: S.currentUser }));
 
       document.getElementById('force-change-screen').style.display = 'none';

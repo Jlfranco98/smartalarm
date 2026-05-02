@@ -45,6 +45,34 @@ setInterval(() => {
   }
 }, 60 * 60 * 1000);
 
+// ── Rate limiting de PIN (más estricto: 5 intentos en 10 minutos) ────────────
+const pinAttempts = new Map(); // ip -> { count, firstAt }
+const PIN_MAX     = 5;
+const PIN_WINDOW  = 10 * 60 * 1000; // 10 min
+
+function checkPinRateLimit(ip) {
+  const now   = Date.now();
+  const entry = pinAttempts.get(ip);
+  if (!entry || now - entry.firstAt > PIN_WINDOW) {
+    pinAttempts.set(ip, { count: 1, firstAt: now });
+    return { allowed: true };
+  }
+  if (entry.count >= PIN_MAX) {
+    const waitMs   = PIN_WINDOW - (now - entry.firstAt);
+    const waitMins = Math.ceil(waitMs / 60000);
+    return { allowed: false, waitMins };
+  }
+  entry.count++;
+  return { allowed: true };
+}
+function resetPinRateLimit(ip) { pinAttempts.delete(ip); }
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of pinAttempts) {
+    if (now - entry.firstAt > PIN_WINDOW) pinAttempts.delete(ip);
+  }
+}, 60 * 60 * 1000);
+
 // PINs bloqueados por ser demasiado predecibles
 const PIN_BLACKLIST = [
   '0000','1111','2222','3333','4444','5555','6666','7777','8888','9999',
@@ -392,6 +420,11 @@ async function sendPushNotification(action, triggeredBy, ubicacion = null) {
 app.get('/api/usuarios', requireAuth, async (req, res) => { try { res.json(await User.find({}, '-password')); } catch (e) { res.status(500).json([]); } });
 app.post('/api/usuarios', requireAuth, async (req, res) => {
   try {
+    // Solo admins pueden crear usuarios
+    const requestingUser = await User.findOne({ username: req.sessionUser });
+    if (!requestingUser || requestingUser.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Solo un administrador puede crear usuarios' });
+
     const { name, username, password, pin, role } = req.body;
     const hashedPin = pin ? await bcrypt.hash(pin, 10) : null;
     await new User({ name, username, password: await bcrypt.hash(password, 10), pin: hashedPin, role: role || 'user' }).save();
@@ -489,12 +522,18 @@ app.post('/api/force-set-pin', requireAuth, async (req, res) => {
 });
 
 app.post('/api/verify-pin', requireAuth, async (req, res) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
   try {
+    const rl = checkPinRateLimit(ip);
+    if (!rl.allowed)
+      return res.status(429).json({ valid: false, message: `Demasiados intentos. Inténtalo en ${rl.waitMins} minuto${rl.waitMins > 1 ? 's' : ''}.` });
+
     const { username, pin } = req.body;
     if (!username || !pin) return res.status(400).json({ valid: false });
     const user = await User.findOne({ username });
     if (!user) return res.status(404).json({ valid: false });
     const valid = await checkPinCompat(pin, user.pin, username);
+    if (valid) resetPinRateLimit(ip); // PIN correcto: resetear contador
     res.json({ valid });
   } catch (e) { res.status(500).json({ valid: false }); }
 });
