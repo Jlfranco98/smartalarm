@@ -1672,12 +1672,6 @@ async function iniciarApp() {
 // Ejecutamos la sincronización inicial
 iniciarApp();
 initTheme();
-
-// Y dejamos el motor encendido para que se refresque solo cada 10 segundos
-setInterval(() => {
-    fetchStatus();
-    fetchHistorialGlobal();
-}, 10000);
 // ================================================
 
   // 2. RENDER DE INTERFAZ
@@ -1782,9 +1776,11 @@ async function fetchStatus() {
 
 let _pollTimer = null;
 function startPolling(){
-  stopPolling();
-  fetchStatus();
-  _pollTimer = setInterval(fetchStatus, 15000);
+  stopPolling(); // Cancela cualquier intervalo previo antes de crear uno nuevo
+  _pollTimer = setInterval(async () => {
+    await fetchStatus();
+    await fetchHistorialGlobal();
+  }, 15000); // Un único intervalo, cancelable
 }
 function stopPolling(){
   if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
