@@ -1109,6 +1109,7 @@ app.use('/twilio/locucion', (req, res) => {
   <Say language="es-ES" voice="Polly.Lucia">
     No hemos recibido respuesta. Permanezca en lugar seguro.
   </Say>
+  <Pause length="2"/>
 </Response>`);
 });
 
@@ -1122,6 +1123,7 @@ app.use('/twilio/confirmar', (req, res) => {
   <Say language="es-ES" voice="Polly.Lucia">
     Alerta cancelada. Gracias por confirmar. Hasta pronto.
   </Say>
+  <Pause length="2"/>
 </Response>`);
   } else {
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
@@ -1129,6 +1131,7 @@ app.use('/twilio/confirmar', (req, res) => {
   <Say language="es-ES" voice="Polly.Lucia">
     Procedemos a contactar con los servicios de emergencia. Permanezca en lugar seguro.
   </Say>
+  <Pause length="2"/>
 </Response>`);
   }
 });
