@@ -1102,12 +1102,12 @@ app.use('/twilio/locucion', (req, res) => {
       Se ha producido una alarma en su vivienda.
       Le rogamos que compruebe el estado de su instalación inmediatamente.
       Si se encuentra en su domicilio y todo está correcto,
-      pulse uno para cancelar la alerta.
+      pulse la tecla uno de su teclado para cancelar la alerta.
       En caso contrario, no pulse ninguna tecla.
     </Say>
   </Gather>
   <Say language="es-ES" voice="Polly.Lucia">
-    No hemos recibido respuesta. Permanezca en lugar seguro.
+    No hemos recibido respuesta. Vamos a iniciar la verificación humana, Permanezca en lugar seguro.
   </Say>
   <Pause length="2"/>
 </Response>`);
