@@ -1081,8 +1081,8 @@ async function llamarAlarma() {
   }
 }
 
-// Twilio necesita acceso sin restricción de CORS
-app.use('/twilio', (req, res, next) => {
+// Twilio necesita acceso sin restricción de CORS y parseo de form-urlencoded
+app.use('/twilio', express.urlencoded({ extended: false }), (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   next();
 });
@@ -1114,7 +1114,7 @@ app.use('/twilio/locucion', (req, res) => {
 
 // Endpoint que recibe la tecla pulsada durante la llamada
 app.use('/twilio/confirmar', (req, res) => {
-  const tecla = req.body.Digits;
+  const tecla = req.body?.Digits || req.query?.Digits;
   res.type('text/xml');
   if (tecla === '1') {
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
