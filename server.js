@@ -1093,7 +1093,7 @@ app.use('/twilio/locucion', (req, res) => {
   res.type('text/xml');
   res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather numDigits="1" timeout="15">
+  <Gather numDigits="1" timeout="15" action="https://smartalarm-production.up.railway.app/twilio/confirmar" method="POST">
     <Say language="es-ES" voice="Polly.Lucia">
       Sistema de seguridad Verisure.
     </Say>
@@ -1113,7 +1113,7 @@ app.use('/twilio/locucion', (req, res) => {
 });
 
 // Endpoint que recibe la tecla pulsada durante la llamada
-app.post('/twilio/confirmar', (req, res) => {
+app.use('/twilio/confirmar', (req, res) => {
   const tecla = req.body.Digits;
   res.type('text/xml');
   if (tecla === '1') {
