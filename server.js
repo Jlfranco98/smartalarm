@@ -1081,6 +1081,12 @@ async function llamarAlarma() {
   }
 }
 
+// Twilio necesita acceso sin restricción de CORS
+app.use('/twilio', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  next();
+});
+
 // Endpoint público que Twilio llama para obtener la locución TwiML
 // MacroDroid dispara /alerta-alarma → llamarAlarma() → Twilio llama a este endpoint
 app.get('/twilio/locucion', (req, res) => {
