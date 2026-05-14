@@ -7,6 +7,7 @@ const webpush  = require('web-push');
 const { TuyaContext } = require('@tuya/tuya-connector-nodejs');
 
 const crypto = require('crypto');
+const twilio = require('twilio');
 const app = express();
 app.use('/api/change-avatar', express.json({ limit: '800kb' })); // avatares en base64
 app.use(express.json({ limit: '10kb' }));                              // resto de rutas
@@ -126,6 +127,12 @@ const VAPID_PRIVATE      = process.env.VAPID_PRIVATE_KEY || '';
 
 // Cloudinary (para avatares — evita guardar base64 en MongoDB)
 const CLOUDINARY_URL     = process.env.CLOUDINARY_URL || '';  // formato: cloudinary://api_key:api_secret@cloud_name
+
+// Twilio (llamadas de alarma)
+const TWILIO_SID   = process.env.TWILIO_SID   || '';
+const TWILIO_TOKEN = process.env.TWILIO_TOKEN  || '';
+const TWILIO_FROM  = process.env.TWILIO_FROM   || ''; // número Twilio: +12184234129
+const TWILIO_TO    = (process.env.TWILIO_TO    || '').split(',').map(n => n.trim()).filter(Boolean);
 
 // Cuenta A: solo sensor de luz (alarma crítica)
 const TUYA_CLIENT_ID_ALARMA     = process.env.TUYA_CLIENT_ID_ALARMA;
@@ -701,6 +708,7 @@ app.get('/alerta-alarma', async (req, res) => {
     }).save();
 
     await sendPushNotification('sensor_luz', 'Verisure');
+    await llamarAlarma();
 
     res.status(200).send("✅ Alerta procesada");
   } catch (e) {
@@ -1052,6 +1060,72 @@ setInterval(async () => {
     }
   } catch(e) { console.error('❌ Error cron automatizaciones:', e.message); }
 }, 60 * 1000);
+
+// --- 14b. TWILIO — LLAMADA DE ALARMA ---
+async function llamarAlarma() {
+  if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM || !TWILIO_TO.length) {
+    console.warn('⚠️ Twilio no configurado — llamada omitida');
+    return;
+  }
+  const client     = twilio(TWILIO_SID, TWILIO_TOKEN);
+  const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
+  const twimlUrl   = `${backendUrl}/twilio/locucion`;
+
+  for (const numero of TWILIO_TO) {
+    try {
+      await client.calls.create({ to: numero, from: TWILIO_FROM, url: twimlUrl });
+      console.log(`📞 Llamada de alarma iniciada a ${numero}`);
+    } catch (e) {
+      console.error(`❌ Error llamada Twilio a ${numero}:`, e.message);
+    }
+  }
+}
+
+// Endpoint público que Twilio llama para obtener la locución TwiML
+// MacroDroid dispara /alerta-alarma → llamarAlarma() → Twilio llama a este endpoint
+app.get('/twilio/locucion', (req, res) => {
+  res.type('text/xml');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" timeout="15">
+    <Say language="es-ES" voice="Polly.Lucia">
+      Sistema de seguridad Verisure.
+    </Say>
+    <Pause length="1"/>
+    <Say language="es-ES" voice="Polly.Lucia">
+      Se ha producido una alarma en su vivienda.
+      Le rogamos que compruebe el estado de su instalación inmediatamente.
+      Si se encuentra en su domicilio y todo está correcto,
+      pulse uno para cancelar la alerta.
+      En caso contrario, no pulse ninguna tecla.
+    </Say>
+  </Gather>
+  <Say language="es-ES" voice="Polly.Lucia">
+    No hemos recibido respuesta. Permanezca en lugar seguro.
+  </Say>
+</Response>`);
+});
+
+// Endpoint que recibe la tecla pulsada durante la llamada
+app.post('/twilio/confirmar', (req, res) => {
+  const tecla = req.body.Digits;
+  res.type('text/xml');
+  if (tecla === '1') {
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say language="es-ES" voice="Polly.Lucia">
+    Alerta cancelada. Gracias por confirmar. Hasta pronto.
+  </Say>
+</Response>`);
+  } else {
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say language="es-ES" voice="Polly.Lucia">
+    Procedemos a contactar con los servicios de emergencia. Permanezca en lugar seguro.
+  </Say>
+</Response>`);
+  }
+});
 
 // --- 15. ARRANQUE ---
 const PORT = process.env.PORT || 8080;
