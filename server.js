@@ -1089,7 +1089,7 @@ app.use('/twilio', (req, res, next) => {
 
 // Endpoint público que Twilio llama para obtener la locución TwiML
 // MacroDroid dispara /alerta-alarma → llamarAlarma() → Twilio llama a este endpoint
-app.get('/twilio/locucion', (req, res) => {
+app.use('/twilio/locucion', (req, res) => {
   res.type('text/xml');
   res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
