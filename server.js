@@ -1092,7 +1092,7 @@ async function llamarAlarma() {
   for (const numero of TWILIO_TO) {
     try {
       await client.calls.create({ to: numero, from: TWILIO_FROM, url: twimlUrl });
-      console.log(`📞 Llamada de alarma iniciada a ${numero}`);
+      console.log(`📞 Llamada de verificación de salto iniciada a: ${numero}`);
     } catch (e) {
       console.error(`❌ Error llamada Twilio a ${numero}:`, e.message);
     }
@@ -1117,15 +1117,15 @@ app.use('/twilio/locucion', (req, res) => {
     </Say>
     <Pause length="1"/>
     <Say language="es-ES" voice="Polly.Lucia">
-      Se ha producido una alarma en su vivienda.
+      Se ha producido un salto de alarma en su vivienda.
       Le rogamos que compruebe el estado de su instalación inmediatamente.
       Si se encuentra en su domicilio y todo está correcto,
       pulse la tecla uno de su teclado para cancelar la alerta.
-      En caso contrario, no pulse ninguna tecla.
+      En caso contrario, no pulse ninguna tecla y espere.
     </Say>
   </Gather>
   <Say language="es-ES" voice="Polly.Lucia">
-    No hemos recibido respuesta. Vamos a iniciar la verificación humana, Permanezca en lugar seguro.
+    No hemos recibido respuesta. Vamos a iniciar la verificación humana, Permanezca en lugar seguro. En breves un operador gestionará el salto de alarma.
   </Say>
   <Pause length="2"/>
 </Response>`);
@@ -1148,18 +1148,18 @@ app.use('/twilio/confirmar', async (req, res) => {
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    La alerta ya fue verificada por ${primerNombre}, quien confirmó que no es un salto de alarma real. No es necesaria ninguna acción adicional. Hasta pronto.
+    La alerta ya ha sido verificada por ${primerNombre}, quien confirmó que no es un salto de alarma real. No es necesaria ninguna acción adicional. Hasta pronto.
   </Say>
   <Pause length="2"/>
 </Response>`);
     } else {
       // Primera confirmación — guardar estado y crear log
       twilioConfirmacion = { nombre, numero, fecha: new Date() };
-      console.log(`✅ Salto de alarma verificado por: ${nombre} - ${numero}`);
+      console.log(`✅📞 Salto de alarma verificado por: ${nombre} - ${numero}`);
       try {
         await new Log({
           usuario: nombre,
-          accion: `📞 Salto de alarma verificado por teléfono — falsa alarma`
+          accion: `📞 Verificación salto de alarma — falsa alarma`
         }).save();
       } catch (e) {
         console.error('❌ Error guardando log de confirmación Twilio:', e.message);
@@ -1167,7 +1167,7 @@ app.use('/twilio/confirmar', async (req, res) => {
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    Alerta cancelada. Gracias por confirmar, ${nombre}. El incidente quedará registrado en el historial. Hasta pronto.
+    Verificación de alarma completa y cancelada. Gracias por confirmar, ${nombre}. El incidente quedará registrado en el historial. Hasta pronto.
   </Say>
   <Pause length="2"/>
 </Response>`);
