@@ -2022,15 +2022,16 @@ function clasificarEvento(l) {
     return { cat: 'saltos', sub: texto.includes('fuga') ? 'agua' : 'alarma' };
   }
 
-  // 3. ERRORES
-// Primero comprobamos RECONECTADO (porque contiene la palabra 'desconectado')
-if (texto.includes('reconectad') || texto.includes('reactivad') || texto.includes('online')) {
-  return { cat: 'errores', sub: 'reconectad' };
+ // 3. ERRORES
+// Usamos 'reconectad' (sin o/a) para que detecte "reconectado" y "reconectada"
+if (texto.toLowerCase().includes('reconectad') || texto.toLowerCase().includes('reactivad') || texto.toLowerCase().includes('online')) {
+  return { cat: 'errores', sub: 'reconectado' }; // El sub puede llamarse 'reconectado', es solo una etiqueta
 }
 
-// Ahora ya podemos buscar desconexiones sin miedo a confundirnos
-if (texto.includes('desconectad') || texto.includes('offline') || texto.includes('caído') || texto.includes('sin respuesta')) {
-  return { cat: 'errores', sub: texto.includes('batería') ? 'bateria' : 'desconectad' };
+// Usamos 'desconectad' (sin o/a) para que detecte "desconectado" y "desconectada"
+if (texto.toLowerCase().includes('desconectad') || texto.toLowerCase().includes('offline') || texto.toLowerCase().includes('caído') || texto.toLowerCase().includes('sin respuesta')) {
+  // Aquí devolvemos 'desconectado' como etiqueta fija de la subcategoría
+  return { cat: 'errores', sub: texto.toLowerCase().includes('batería') ? 'bateria' : 'desconectado' };
 }
 
 // Batería por si acaso viene solo
