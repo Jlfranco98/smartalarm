@@ -134,6 +134,17 @@ const TWILIO_TOKEN = process.env.TWILIO_TOKEN  || '';
 const TWILIO_FROM  = process.env.TWILIO_FROM   || ''; // número Twilio: +12184234129
 const TWILIO_TO    = (process.env.TWILIO_TO    || '').split(',').map(n => n.trim()).filter(Boolean);
 
+// Mapa número → nombre para identificar quién confirma la llamada
+// Formato en Railway: TWILIO_NOMBRES=+34666111222:José,+34677333444:María
+const TWILIO_NOMBRES = (() => {
+  const mapa = {};
+  (process.env.TWILIO_NOMBRES || '').split(',').forEach(par => {
+    const [num, ...resto] = par.trim().split(':');
+    if (num && resto.length) mapa[num.trim()] = resto.join(':').trim();
+  });
+  return mapa;
+})();
+
 // Cuenta A: solo sensor de luz (alarma crítica)
 const TUYA_CLIENT_ID_ALARMA     = process.env.TUYA_CLIENT_ID_ALARMA;
 const TUYA_CLIENT_SECRET_ALARMA = process.env.TUYA_CLIENT_SECRET_ALARMA;
@@ -789,42 +800,6 @@ setInterval(async () => {
 // --- 13. HISTORIAL Y CONFIG ---
 app.get('/api/logs', requireAuth,      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
 app.get('/api/historial', requireAuth, async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
-
-// --- BORRADO DE HISTORIAL (solo admin) ---
-app.delete('/api/logs', requireAuth, async (req, res) => {
-  try {
-    const requestingUser = await User.findOne({ username: req.sessionUser });
-    if (!requestingUser || requestingUser.role !== 'admin')
-      return res.status(403).json({ success: false, message: 'Solo un administrador puede borrar el historial' });
-
-    const { dias } = req.query; // ?dias=30 | 60 | 90 | 180 | 365 | all
-    let result;
-    let descripcion;
-
-    if (dias === 'all') {
-      result = await Log.deleteMany({});
-      descripcion = 'todo el historial';
-    } else {
-      const numDias = parseInt(dias, 10);
-      if (isNaN(numDias) || numDias < 1)
-        return res.status(400).json({ success: false, message: 'Parámetro "dias" no válido' });
-      const fechaLimite = new Date(Date.now() - numDias * 24 * 60 * 60 * 1000);
-      result = await Log.deleteMany({ fecha: { $lt: fechaLimite } });
-      descripcion = `registros de más de ${numDias} días`;
-    }
-
-    const eliminados = result.deletedCount;
-    // Registrar la acción de borrado en el propio log
-    await new Log({
-      usuario: requestingUser.name || req.sessionUser,
-      accion: `🗑️ Borrado de historial: ${eliminados} registro${eliminados !== 1 ? 's' : ''} eliminado${eliminados !== 1 ? 's' : ''} (${descripcion})`
-    }).save();
-
-    res.json({ success: true, eliminados, descripcion });
-  } catch (e) {
-    res.status(500).json({ success: false, message: e.message });
-  }
-});
 app.get('/api/config', requireAuth,    async (req, res) => { try { res.json(await Config.findOne({ id: 'global_config' }) || {}); } catch (e) { res.status(500).json({}); } });
 app.post('/api/config', requireAuth, async (req, res) => {
   try {
@@ -1098,11 +1073,18 @@ setInterval(async () => {
 }, 60 * 1000);
 
 // --- 14b. TWILIO — LLAMADA DE ALARMA ---
+
+// Estado de confirmación del salto actual (se resetea con cada nueva alarma)
+let twilioConfirmacion = null; // null | { nombre, numero, fecha }
+
 async function llamarAlarma() {
   if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM || !TWILIO_TO.length) {
     console.warn('⚠️ Twilio no configurado — llamada omitida');
     return;
   }
+  // Resetear confirmación anterior al iniciar una nueva alarma
+  twilioConfirmacion = null;
+
   const client     = twilio(TWILIO_SID, TWILIO_TOKEN);
   const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
   const twimlUrl   = `${backendUrl}/twilio/locucion`;
@@ -1150,17 +1132,46 @@ app.use('/twilio/locucion', (req, res) => {
 });
 
 // Endpoint que recibe la tecla pulsada durante la llamada
-app.use('/twilio/confirmar', (req, res) => {
-  const tecla = req.body?.Digits || req.query?.Digits;
+app.use('/twilio/confirmar', async (req, res) => {
+  const tecla  = req.body?.Digits || req.query?.Digits;
+  const numero = req.body?.To     || req.query?.To || '';   // número al que Twilio llamó
   res.type('text/xml');
+
   if (tecla === '1') {
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+    // Identificar quién confirma por su número de teléfono
+    const nombre = TWILIO_NOMBRES[numero] || numero || 'Teléfono desconocido';
+
+    if (twilioConfirmacion) {
+      // Ya confirmó otra persona antes — informar y NO crear log duplicado
+      const primerNombre = twilioConfirmacion.nombre;
+      console.log(`📞 ${nombre} intentó confirmar pero ya lo hizo ${primerNombre}`);
+      res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    Alerta cancelada. Gracias por confirmar. Hasta pronto.
+    La alerta ya fue cancelada por ${primerNombre}, quien confirmó que no es un salto de alarma real. No es necesaria ninguna acción adicional. Hasta pronto.
   </Say>
   <Pause length="2"/>
 </Response>`);
+    } else {
+      // Primera confirmación — guardar estado y crear log
+      twilioConfirmacion = { nombre, numero, fecha: new Date() };
+      console.log(`✅ Alarma confirmada por teléfono: ${nombre} (${numero})`);
+      try {
+        await new Log({
+          usuario: nombre,
+          accion: `📞 Salto de alarma confirmado por teléfono — falsa alarma`
+        }).save();
+      } catch (e) {
+        console.error('❌ Error guardando log de confirmación Twilio:', e.message);
+      }
+      res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say language="es-ES" voice="Polly.Lucia">
+    Alerta cancelada. Gracias por confirmar, ${nombre}. El incidente quedará registrado en el historial. Hasta pronto.
+  </Say>
+  <Pause length="2"/>
+</Response>`);
+    }
   } else {
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
