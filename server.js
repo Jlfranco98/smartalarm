@@ -789,6 +789,42 @@ setInterval(async () => {
 // --- 13. HISTORIAL Y CONFIG ---
 app.get('/api/logs', requireAuth,      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
 app.get('/api/historial', requireAuth, async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
+
+// --- BORRADO DE HISTORIAL (solo admin) ---
+app.delete('/api/logs', requireAuth, async (req, res) => {
+  try {
+    const requestingUser = await User.findOne({ username: req.sessionUser });
+    if (!requestingUser || requestingUser.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Solo un administrador puede borrar el historial' });
+
+    const { dias } = req.query; // ?dias=30 | 60 | 90 | 180 | 365 | all
+    let result;
+    let descripcion;
+
+    if (dias === 'all') {
+      result = await Log.deleteMany({});
+      descripcion = 'todo el historial';
+    } else {
+      const numDias = parseInt(dias, 10);
+      if (isNaN(numDias) || numDias < 1)
+        return res.status(400).json({ success: false, message: 'Parámetro "dias" no válido' });
+      const fechaLimite = new Date(Date.now() - numDias * 24 * 60 * 60 * 1000);
+      result = await Log.deleteMany({ fecha: { $lt: fechaLimite } });
+      descripcion = `registros de más de ${numDias} días`;
+    }
+
+    const eliminados = result.deletedCount;
+    // Registrar la acción de borrado en el propio log
+    await new Log({
+      usuario: requestingUser.name || req.sessionUser,
+      accion: `🗑️ Borrado de historial: ${eliminados} registro${eliminados !== 1 ? 's' : ''} eliminado${eliminados !== 1 ? 's' : ''} (${descripcion})`
+    }).save();
+
+    res.json({ success: true, eliminados, descripcion });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
 app.get('/api/config', requireAuth,    async (req, res) => { try { res.json(await Config.findOne({ id: 'global_config' }) || {}); } catch (e) { res.status(500).json({}); } });
 app.post('/api/config', requireAuth, async (req, res) => {
   try {
