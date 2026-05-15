@@ -2024,12 +2024,12 @@ function clasificarEvento(l) {
 
   // 3. ERRORES
 // Primero comprobamos RECONECTADO (porque contiene la palabra 'desconectado')
-if (texto.includes('reconectad') || texto.includes('reactivado') || texto.includes('online')) {
-  return { cat: 'errores', sub: 'reconectado' };
+if (texto.includes('reconectad') || texto.includes('reactivad') || texto.includes('online')) {
+  return { cat: 'errores', sub: 'reconectad' };
 }
 
 // Ahora ya podemos buscar desconexiones sin miedo a confundirnos
-if (texto.includes('desconectado') || texto.includes('offline') || texto.includes('caído') || texto.includes('sin respuesta')) {
+if (texto.includes('desconectad') || texto.includes('offline') || texto.includes('caído') || texto.includes('sin respuesta')) {
   return { cat: 'errores', sub: texto.includes('batería') ? 'bateria' : 'desconectad' };
 }
 
