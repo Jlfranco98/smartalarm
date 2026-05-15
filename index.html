@@ -210,8 +210,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .hi-icon-wrap{position:absolute;left:-44px;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .hi-icon-wrap.ic-accion{background:#FFC9C9;border:2px solid #FF0000}
 .hi-icon-wrap.ic-disarm{background:#e8f5e9;border:2px solid #34c759}
-.hi-icon-wrap.ic-noche{background:#e8eaff;border:2px solid #5c6bc0}
-.hi-icon-wrap.ic-auto{background:#e8f5e9;border:2px solid #34c759}
+.hi-icon-wrap.ic-noche{background:#fff3e0;border:2px solid var(--orange)}
 .hi-icon-wrap.ic-salto{background:#fdecea;border:2px solid var(--red)}
 .hi-icon-wrap.ic-agua{background:#e3f2fd;border:2px solid #2196f3}
 .hi-icon-wrap.ic-sos{background:#f3e5ff;border:2px solid #7d3fc8}
@@ -571,6 +570,93 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .ccm-btn:active{transform:scale(0.96);opacity:.8}
 .ccm-btn-cancel{background:var(--bg);color:var(--text)}
 .ccm-btn-confirm{background:var(--red);color:#fff}
+
+/* ── Modal Borrado de Historial ────────────────────────────────────────────── */
+#delete-hist-bg{
+  position:fixed;inset:0;z-index:9500;
+  display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(0,0,0,0);
+  opacity:0;pointer-events:none;
+  transition:opacity .25s,background .25s;
+}
+#delete-hist-bg.open{
+  opacity:1;pointer-events:all;
+  background:rgba(0,0,0,.55);
+}
+.dhm-sheet{
+  background:var(--white);
+  border-radius:24px 24px 0 0;
+  padding:0 0 calc(20px + var(--safe-bot));
+  width:100%;
+  max-width:500px;
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;
+}
+#delete-hist-bg.open .dhm-sheet{transform:translateY(0)}
+.dhm-handle{width:36px;height:4px;background:var(--border);border-radius:4px;margin:12px auto 0}
+.dhm-header{padding:16px 20px 4px;text-align:center}
+.dhm-icon{font-size:36px;margin-bottom:6px}
+.dhm-title{font-size:17px;font-weight:900;color:var(--text);margin-bottom:4px}
+.dhm-sub{font-size:13px;color:var(--muted);font-weight:600;line-height:1.45}
+.dhm-options{padding:12px 16px 4px;display:flex;flex-direction:column;gap:8px}
+.dhm-opt{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;
+  background:var(--bg);
+  border-radius:16px;
+  border:none;
+  width:100%;
+  font-family:'Nunito',sans-serif;
+  cursor:pointer;
+  transition:background .15s,transform .1s;
+  text-align:left;
+}
+.dhm-opt:active{transform:scale(0.97);background:var(--border)}
+.dhm-opt-icon{font-size:22px;flex-shrink:0}
+.dhm-opt-info{flex:1}
+.dhm-opt-label{font-size:14px;font-weight:800;color:var(--text)}
+.dhm-opt-sub{font-size:11px;color:var(--muted);font-weight:600;margin-top:1px}
+.dhm-opt-count{font-size:11px;font-weight:900;color:var(--muted);flex-shrink:0}
+.dhm-opt.danger .dhm-opt-label{color:var(--red)}
+.dhm-cancel{margin:8px 16px 0;width:calc(100% - 32px);padding:14px;background:transparent;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer}
+
+/* Modal de confirmación de borrado */
+#delete-confirm-bg{
+  position:fixed;inset:0;z-index:10000;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0);
+  opacity:0;pointer-events:none;
+  transition:opacity .22s,background .22s;
+}
+#delete-confirm-bg.open{
+  opacity:1;pointer-events:all;
+  background:rgba(0,0,0,.6);
+}
+.dcm-box{
+  background:var(--white);
+  border-radius:22px;
+  padding:28px 24px 20px;
+  width:calc(100% - 48px);
+  max-width:320px;
+  text-align:center;
+  box-shadow:0 8px 40px rgba(0,0,0,.22);
+  transform:scale(.92) translateY(10px);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+#delete-confirm-bg.open .dcm-box{transform:scale(1) translateY(0)}
+.dcm-warn{font-size:48px;margin-bottom:10px}
+.dcm-title{font-size:17px;font-weight:900;color:var(--red);margin-bottom:6px}
+.dcm-msg{font-size:13px;color:var(--muted);font-weight:600;line-height:1.5;margin-bottom:6px}
+.dcm-confirm-label{font-size:11px;font-weight:900;color:var(--text);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;text-align:left}
+.dcm-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);background:var(--white);outline:none;margin-bottom:16px;transition:border-color .2s}
+.dcm-input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,25,44,.1)}
+.dcm-btns{display:flex;gap:10px}
+.dcm-btn{flex:1;padding:13px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s}
+.dcm-btn:active{transform:scale(0.96);opacity:.8}
+.dcm-btn-cancel{background:var(--bg);color:var(--text)}
+.dcm-btn-delete{background:var(--red);color:#fff}
+.dcm-btn-delete:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;transform:none}
 </style>
 </head>
 <body>
@@ -681,7 +767,10 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
     <!-- ── HISTORIAL ── -->
     <div class="page" id="pg-historial">
-      <div class="sec-hdr" style="padding-bottom:4px"><span class="sec-title">Historial de actividad</span></div>
+      <div class="sec-hdr" style="padding-bottom:4px">
+        <span class="sec-title">Historial de actividad</span>
+        <button class="admin-only" id="hist-delete-btn" onclick="openDeleteHistorial()" style="display:none;background:none;border:none;font-family:'Nunito',sans-serif;cursor:pointer;color:var(--red);font-size:13px;font-weight:700;padding:0">🗑️ Borrar datos</button>
+      </div>
 
       <!-- Filtros colapsables -->
       <div class="hist-filters">
@@ -1172,6 +1261,84 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
   </div>
 </div>
 
+<!-- Modal Borrado Historial -->
+<div id="delete-hist-bg" onclick="closeDeleteHistModal(event)">
+  <div class="dhm-sheet">
+    <div class="dhm-handle"></div>
+    <div class="dhm-header">
+      <div class="dhm-icon">🗑️</div>
+      <div class="dhm-title">Borrar historial</div>
+      <div class="dhm-sub">Selecciona qué registros quieres eliminar.<br>Esta acción no se puede deshacer.</div>
+    </div>
+    <div class="dhm-options">
+      <button class="dhm-opt" onclick="confirmDeleteHistorial(30)">
+        <span class="dhm-opt-icon">📅</span>
+        <div class="dhm-opt-info">
+          <div class="dhm-opt-label">Más de 30 días</div>
+          <div class="dhm-opt-sub">Elimina registros anteriores a hace 1 mes</div>
+        </div>
+        <span class="dhm-opt-count" id="dhm-count-30">—</span>
+      </button>
+      <button class="dhm-opt" onclick="confirmDeleteHistorial(60)">
+        <span class="dhm-opt-icon">📆</span>
+        <div class="dhm-opt-info">
+          <div class="dhm-opt-label">Más de 60 días</div>
+          <div class="dhm-opt-sub">Elimina registros anteriores a hace 2 meses</div>
+        </div>
+        <span class="dhm-opt-count" id="dhm-count-60">—</span>
+      </button>
+      <button class="dhm-opt" onclick="confirmDeleteHistorial(90)">
+        <span class="dhm-opt-icon">🗓️</span>
+        <div class="dhm-opt-info">
+          <div class="dhm-opt-label">Más de 90 días</div>
+          <div class="dhm-opt-sub">Elimina registros anteriores a hace 3 meses</div>
+        </div>
+        <span class="dhm-opt-count" id="dhm-count-90">—</span>
+      </button>
+      <button class="dhm-opt" onclick="confirmDeleteHistorial(180)">
+        <span class="dhm-opt-icon">📊</span>
+        <div class="dhm-opt-info">
+          <div class="dhm-opt-label">Más de 6 meses</div>
+          <div class="dhm-opt-sub">Elimina registros anteriores a hace 6 meses</div>
+        </div>
+        <span class="dhm-opt-count" id="dhm-count-180">—</span>
+      </button>
+      <button class="dhm-opt" onclick="confirmDeleteHistorial(365)">
+        <span class="dhm-opt-icon">📋</span>
+        <div class="dhm-opt-info">
+          <div class="dhm-opt-label">Más de 1 año</div>
+          <div class="dhm-opt-sub">Elimina registros anteriores a hace 12 meses</div>
+        </div>
+        <span class="dhm-opt-count" id="dhm-count-365">—</span>
+      </button>
+      <button class="dhm-opt danger" onclick="confirmDeleteHistorial('all')">
+        <span class="dhm-opt-icon">⚠️</span>
+        <div class="dhm-opt-info">
+          <div class="dhm-opt-label">Borrar todo el historial</div>
+          <div class="dhm-opt-sub">Elimina absolutamente todos los registros</div>
+        </div>
+        <span class="dhm-opt-count" id="dhm-count-all">—</span>
+      </button>
+    </div>
+    <button class="dhm-cancel" onclick="closeDeleteHist()">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal Confirmación Doble Borrado -->
+<div id="delete-confirm-bg">
+  <div class="dcm-box">
+    <div class="dcm-warn">⚠️</div>
+    <div class="dcm-title" id="dcm-title">¿Borrar registros?</div>
+    <div class="dcm-msg" id="dcm-msg">Se eliminarán permanentemente los registros seleccionados.</div>
+    <div class="dcm-confirm-label">Escribe <strong>BORRAR</strong> para confirmar</div>
+    <input class="dcm-input" id="dcm-input" type="text" placeholder='Escribe "BORRAR"' oninput="checkDeleteConfirm()" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="dcm-btns">
+      <button class="dcm-btn dcm-btn-cancel" onclick="closeDeleteConfirm()">Cancelar</button>
+      <button class="dcm-btn dcm-btn-delete" id="dcm-confirm-btn" onclick="executeDeleteHistorial()" disabled>Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Custom Confirm Modal -->
 <div id="custom-confirm-bg">
   <div class="ccm-box">
@@ -1410,6 +1577,9 @@ function gestionarVisibilidadAdmin() {
     if (S.currentUser && S.currentUser.role === 'admin') {
         console.log("Login correcto por un administrador");
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+        // El botón de borrado historial es inline, corregir display
+        const histDelBtn = document.getElementById('hist-delete-btn');
+        if (histDelBtn) histDelBtn.style.display = 'inline-flex';
     } else {
         console.log("Login correcto por un usuario");
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
@@ -2274,7 +2444,6 @@ function buildLogItem(l, full = false) {
 
     // Icono y clase según categoría
     let icono = '🔐', icClass = 'ic-accion', badgeColor = '#FFFFFF', badgeBg = '#FF4D4D';
-    const esAuto = (l.usuario || '').startsWith('🤖');
     if (cl.sub === 'sos' || texto.includes('pánico') || texto.includes('sos')) {
       icono = '🆘'; icClass = 'ic-sos'; badgeColor = '#7d3fc8'; badgeBg = '#f3e5ff'; catLabel = '🆘 SOS';
     } else if (cl.cat === 'saltos' && cl.sub === 'agua') {
@@ -2290,14 +2459,9 @@ function buildLogItem(l, full = false) {
     } else if (texto.includes('desarmad') || texto.includes('disarm')) {
       icono = '🔓'; icClass = 'ic-disarm'; badgeColor = '#34c759'; badgeBg = '#e8f5e9'; catLabel = '🔓 ACCIÓN';
     } else if (texto.includes('noche') || texto.includes('parcial')) {
-      icono = '🌙'; icClass = 'ic-noche'; badgeColor = '#5c6bc0'; badgeBg = '#e8eaff'; catLabel = '🌙 ACCIÓN';
+      icono = '🌙'; icClass = 'ic-noche'; badgeColor = '#ff8c00'; badgeBg = '#fff3e0'; catLabel = '🌙 ACCIÓN';
     } else if (texto.includes('total') || texto.includes('arm_away')) {
       icono = '🔒'; icClass = 'ic-accion'; catLabel = '🔒 ACCIÓN';
-    }
-
-    // Si la acción fue ejecutada por una automatización, mostrar robot en el icono circular
-    if (esAuto) {
-      icono = '🤖'; icClass = 'ic-auto'; badgeColor = '#00b562'; badgeBg = '#e8f5e9';
     }
 
     // Texto de la acción — reemplazar URL de Maps
@@ -2318,7 +2482,7 @@ function buildLogItem(l, full = false) {
           <span class="hi-badge" style="color:${badgeColor};background:${badgeBg};border:1px solid ${badgeColor}30">${catLabel}</span>
         </div>
         <div class="hi-card-bottom">
-          <div class="hi-user">${escapeHtml((l.usuario || l.user || 'Sistema').replace(/^🤖\s*/, ''))}</div>
+          <div class="hi-user">${escapeHtml(l.usuario || l.user || 'Sistema')}</div>
           <div class="hi-time">${fechaTexto}</div>
         </div>
       </div>
@@ -2366,7 +2530,7 @@ function renderLog() {
         <div class="hi-dot ${dotClass}"></div>
         <div class="hi-info">
           <div class="hi-action">${escapeHtml(l.accion || l.action || 'Acción')}</div>
-          <div class="hi-user">${escapeHtml((l.usuario || l.user || 'Sistema').replace(/^🤖\s*/, ''))}</div>
+          <div class="hi-user">${escapeHtml(l.usuario || l.user || 'Sistema')}</div>
         </div>
         <div class="hi-time" style="min-width: 150px;">${fechaTexto}</div>
       </div>`;
@@ -3395,7 +3559,117 @@ function renderAutoCard(a) {
     </div>`;
 }
 
-// ── Offline / Online detection ─────────────────────────────────────────────
+// ── Borrado de historial (solo admin) ─────────────────────────────────────
+let _deleteTarget = null; // 30 | 60 | 90 | 180 | 365 | 'all'
+let _allLogs = [];        // caché de logs para contar
+
+function openDeleteHistorial() {
+  const bg = document.getElementById('delete-hist-bg');
+  bg.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Actualizar contadores usando los logs ya cargados en memoria
+  updateDeleteCounts();
+}
+
+function updateDeleteCounts() {
+  // Usar los logs del estado global de la app
+  const logs = (typeof S !== 'undefined' && S.log) ? S.log : [];
+  const ahora = Date.now();
+  const periodos = [30, 60, 90, 180, 365];
+  periodos.forEach(d => {
+    const limite = ahora - d * 24 * 60 * 60 * 1000;
+    const count = logs.filter(l => new Date(l.fecha).getTime() < limite).length;
+    const el = document.getElementById(`dhm-count-${d}`);
+    if (el) el.textContent = count > 0 ? `${count} registros` : 'Ninguno';
+  });
+  const elAll = document.getElementById('dhm-count-all');
+  if (elAll) elAll.textContent = `${logs.length} registros`;
+}
+
+function closeDeleteHist() {
+  const bg = document.getElementById('delete-hist-bg');
+  bg.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeDeleteHistModal(e) {
+  if (e.target === document.getElementById('delete-hist-bg')) closeDeleteHist();
+}
+
+function confirmDeleteHistorial(dias) {
+  _deleteTarget = dias;
+  closeDeleteHist();
+
+  const titleEl = document.getElementById('dcm-title');
+  const msgEl   = document.getElementById('dcm-msg');
+  const inputEl = document.getElementById('dcm-input');
+  const btnEl   = document.getElementById('dcm-confirm-btn');
+
+  if (dias === 'all') {
+    titleEl.textContent = '⚠️ Borrar TODO el historial';
+    msgEl.textContent   = 'Se eliminarán permanentemente TODOS los registros del historial. Esta acción es irreversible.';
+  } else {
+    titleEl.textContent = `Borrar registros de más de ${dias} días`;
+    msgEl.textContent   = `Se eliminarán permanentemente todos los registros anteriores a hace ${dias} días. Esta acción es irreversible.`;
+  }
+
+  inputEl.value = '';
+  btnEl.disabled = true;
+
+  const bg = document.getElementById('delete-confirm-bg');
+  bg.classList.add('open');
+  setTimeout(() => inputEl.focus(), 350);
+}
+
+function checkDeleteConfirm() {
+  const val = document.getElementById('dcm-input').value.trim().toUpperCase();
+  document.getElementById('dcm-confirm-btn').disabled = (val !== 'BORRAR');
+}
+
+function closeDeleteConfirm() {
+  document.getElementById('delete-confirm-bg').classList.remove('open');
+  _deleteTarget = null;
+}
+
+async function executeDeleteHistorial() {
+  if (_deleteTarget === null) return;
+  const btn = document.getElementById('dcm-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Eliminando...';
+
+  try {
+    const param = _deleteTarget === 'all' ? 'all' : _deleteTarget;
+    const res  = await authFetch(`/api/logs?dias=${param}`, { method: 'DELETE' });
+    const data = await res.json();
+
+    closeDeleteConfirm();
+
+    if (data.success) {
+      toast2(`✅ ${data.eliminados} registro${data.eliminados !== 1 ? 's' : ''} eliminado${data.eliminados !== 1 ? 's' : ''}`);
+      // Recargar el historial
+      if (typeof fetchHistorialGlobal === 'function') fetchHistorialGlobal();
+      else if (typeof renderLogFiltrado === 'function') renderLogFiltrado();
+    } else {
+      toast2('⚠️ ' + (data.message || 'No se pudo borrar'));
+    }
+  } catch (e) {
+    closeDeleteConfirm();
+    toast2('⚠️ Error de conexión');
+  } finally {
+    btn.textContent = 'Eliminar';
+  }
+}
+
+// Mostrar botón de borrado solo para admins (se llama tras login)
+function updateDeleteHistBtn() {
+  const btn = document.getElementById('hist-delete-btn');
+  if (!btn) return;
+  const isAdmin = (typeof currentUser !== 'undefined' && currentUser?.role === 'admin')
+                || (typeof appUser !== 'undefined' && appUser?.role === 'admin');
+  btn.style.display = isAdmin ? '' : 'none';
+}
+
+
 (function initOfflineBanner() {
   const banner = document.getElementById('offline-banner');
   const bannerText = document.getElementById('offline-banner-text');
