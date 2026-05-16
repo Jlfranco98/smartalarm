@@ -911,22 +911,23 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
             <div class="sl-arrow">›</div>
           </div>
 
-          <div class="sl-item" onclick="toggleMovilPanel()">
+          <div class="sl-item" style="cursor:default">
             <div class="sl-icon ic-green">📱</div>
             <div class="sl-text">
               <div class="sl-label">Número de móvil</div>
               <div class="sl-sublabel" id="movil-sublabel">Para llamadas de verificación</div>
             </div>
-            <div class="sl-arrow">›</div>
           </div>
-          <div id="movil-panel" style="display:none" class="sl-panel">
+          <div id="movil-panel" class="sl-panel">
             <div id="movil-estado" style="margin-bottom:12px;font-size:13px;color:var(--muted);font-weight:600"></div>
+            <!-- Paso 1: introducir número (sin verificar o vacío) -->
             <div id="movil-paso1">
               <div class="form-field"><label>Número de móvil</label>
                 <input id="movil-tel-input" type="tel" placeholder="+34600000000">
               </div>
               <button class="btn-add" onclick="enviarSmsVerif()" style="width:100%">📲 Enviar SMS de verificación</button>
             </div>
+            <!-- Paso 2: código SMS -->
             <div id="movil-paso2" style="display:none">
               <div class="form-field"><label>Código de verificación (6 dígitos)</label>
                 <input id="movil-codigo-input" type="number" placeholder="000000" maxlength="6" inputmode="numeric">
@@ -936,6 +937,24 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
                 style="width:100%;margin-top:8px;padding:12px;background:transparent;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer">
                 ← Cambiar número
               </button>
+            </div>
+            <!-- Paso 3: verificado — input bloqueado + botón desvincular -->
+            <div id="movil-paso3-verificado" style="display:none">
+              <div class="form-field" style="margin-bottom:10px">
+                <label>Número verificado</label>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <input id="movil-tel-verified" type="tel" readonly
+                    style="flex:1;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--muted);background:var(--bg);cursor:not-allowed">
+                  <button onclick="confirmarDesvincularMovil()"
+                    title="Desvincular número"
+                    style="width:42px;height:42px;border-radius:12px;background:var(--red-light);border:1.5px solid #fcc;color:var(--red);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:-4px;padding:0 2px">
+                ✅ Número verificado · Para desvincular pulsa el icono 🗑️
+              </div>
             </div>
             <div class="err-small" id="movil-err" style="text-align:center;margin-top:6px"></div>
           </div>
@@ -1088,14 +1107,14 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
             Orden en que se llama cuando salta la alarma. Arrastra las flechas para reordenar.
           </div>
           <div id="llamadas-list" style="margin-bottom:14px"></div>
-          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Añadir número manualmente</div>
-          <div style="display:flex;gap:8px;margin-bottom:8px">
+          <div id="llamadas-add-section" style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Añadir número manualmente</div>
+          <div id="llamadas-add-inputs" style="display:flex;gap:8px;margin-bottom:8px">
             <input type="tel" id="new-llamada-tel" placeholder="+34600000000"
               style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
             <input type="text" id="new-llamada-nombre" placeholder="Nombre"
               style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
           </div>
-          <button class="btn-add" onclick="addLlamada()" style="width:100%">+ Añadir número</button>
+          <button class="btn-add" onclick="addLlamada()" style="width:100%" id="llamadas-add-btn">+ Añadir número</button>
           <div class="cfg-saved" id="llamadas-ok" style="margin-top:6px"></div>
         </div>
       </div>
@@ -1874,6 +1893,7 @@ async function fetchHistory() {
 async function renderUsersAdmin(){
   const el=document.getElementById('users-admin-list');
   if(!el)return;
+  const isAdmin = S.currentUser && S.currentUser.role === 'admin';
   try {
     const res = await authFetch('/api/usuarios');
     const users = await res.json();
@@ -1884,23 +1904,28 @@ async function renderUsersAdmin(){
           <div class="ur-name">${escapeHtml(u.name)}</div>
           <div class="ur-role">@${escapeHtml(u.username)} · ${u.role==='admin'?'Admin':'Usuario'}</div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
-            <span style="font-size:12px">${u.telefono ? (u.telefonoVerificado ? '✅' : '⚠️') : '📵'}</span>
-            <input type="tel" id="movil-admin-${escapeHtml(u.username)}"
-              value="${escapeHtml(u.telefono||'')}"
-              placeholder="+34600000000"
-              style="font-size:12px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito',sans-serif;width:150px;color:var(--text)"
-              onkeydown="if(event.key==='Enter')guardarMovilAdmin('${escapeHtml(u.username)}')">
-            <button onclick="guardarMovilAdmin('${escapeHtml(u.username)}')"
-              style="font-size:11px;padding:5px 10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">
-              💾
-            </button>
-            ${u.telefono ? `<button onclick="borrarMovilAdmin('${escapeHtml(u.username)}')"
-              style="font-size:11px;padding:5px 8px;background:none;border:1.5px solid #fcc;color:var(--red);border-radius:8px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">
-              🗑️
-            </button>` : ''}
+            <span style="font-size:14px">${u.telefono ? (u.telefonoVerificado ? '✅' : '⚠️') : '📵'}</span>
+            ${isAdmin ? `
+              <input type="tel" id="movil-admin-${escapeHtml(u.username)}"
+                value="${escapeHtml(u.telefono||'')}"
+                placeholder="+34600000000"
+                style="font-size:12px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito',sans-serif;width:150px;color:var(--text)"
+                onkeydown="if(event.key==='Enter')guardarMovilAdmin('${escapeHtml(u.username)}')">
+              <button onclick="guardarMovilAdmin('${escapeHtml(u.username)}')"
+                style="font-size:11px;padding:5px 10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">
+                💾
+              </button>
+              ${u.telefono ? `<button onclick="borrarMovilAdmin('${escapeHtml(u.username)}')"
+                style="font-size:11px;padding:5px 8px;background:none;border:1.5px solid #fcc;color:var(--red);border-radius:8px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">
+                🗑️
+              </button>` : ''}
+            ` : `
+              <span style="font-size:12px;color:var(--muted);font-weight:600">${u.telefono ? escapeHtml(u.telefono) : 'Sin número'}</span>
+              ${u.telefonoVerificado ? '<span style="font-size:11px;color:#34c759;font-weight:700;margin-left:2px">· Verificado</span>' : (u.telefono ? '<span style="font-size:11px;color:var(--orange);font-weight:700;margin-left:2px">· Sin verificar</span>' : '')}
+            `}
           </div>
         </div>
-        ${S.currentUser && S.currentUser.role === 'admin' && u.username !== S.currentUser.username ? `<button class="ur-del" onclick="removeUser('${escapeHtml(u.username)}')">Eliminar usuario</button>` : ''}
+        ${isAdmin && u.username !== S.currentUser.username ? `<button class="ur-del" onclick="removeUser('${escapeHtml(u.username)}')">Eliminar usuario</button>` : ''}
       </div>`).join('');
   } catch(e) { el.innerHTML = "Error al cargar usuarios"; }
 }
@@ -2013,7 +2038,8 @@ initTheme();
   updateStatusUI(); // Ahora pintará el estado real traído en el paso anterior
   renderLog();      // Ahora pintará el historial real del servidor
   renderUsersAdmin();
-  loadAvatar(); 
+  loadAvatar();
+  cargarEstadoMovil(); // Cargar estado del móvil al iniciar
   
   // 4. RELLENAR FORMULARIO
   loadConfigForm();
@@ -2063,7 +2089,7 @@ function navTo(page){
   const nb=document.getElementById('nav-'+page); if(nb)nb.classList.add('active');
   if(page==='historial'){ populateUsuarioFilter(); renderLog(); renderLogFiltrado(); }
   if(page==='admin'){ renderUsersAdmin(); cargarLlamadas(); }
-  if(page==='cuenta'){ loadConfigForm(); updateThemeUI(localStorage.getItem('theme') || 'system'); }
+  if(page==='cuenta'){ loadConfigForm(); updateThemeUI(localStorage.getItem('theme') || 'system'); cargarEstadoMovil(); }
   if(page==='dispositivos')renderDispositivos();
   if(page==='automatizaciones')renderAutomatizaciones();
 }
@@ -2788,6 +2814,7 @@ async function cargarLlamadas() {
 function renderLlamadas() {
   const el = document.getElementById('llamadas-list');
   if (!el) return;
+  const isAdmin = S.currentUser && S.currentUser.role === 'admin';
 
   // Teléfonos ya en la lista configurada
   const yaEnLista = new Set(llamadasData.map(n => n.telefono));
@@ -2803,32 +2830,49 @@ function renderLlamadas() {
       // Buscar si corresponde a un usuario verificado
       const userMatch = llamadasUsuarios.find(u => u.telefono === n.telefono);
       const verificado = userMatch?.telefonoVerificado;
-      html += `
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <div style="display:flex;flex-direction:column;gap:2px">
-          <button onclick="moverLlamada(${i},-1)" ${i===0?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===0?0.3:1}">▲</button>
-          <button onclick="moverLlamada(${i},1)" ${i===llamadasData.length-1?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===llamadasData.length-1?0.3:1}">▼</button>
-        </div>
-        <div style="width:36px;height:36px;border-radius:50%;background:${verificado?'#e8f5e9':'#f5f5f5'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
-          ${verificado?'✅':'📵'}
-        </div>
-        <div style="flex:1">
-          <div style="font-size:14px;font-weight:800;color:var(--text)">${i+1}. ${escapeHtml(n.nombre)}</div>
-          <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono)}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
-        </div>
-        <label class="toggle-switch" title="${n.activo?'Activo':'Inactivo'}">
-          <input type="checkbox" ${n.activo?'checked':''} onchange="toggleActivoLlamada(${i},this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-        <button onclick="eliminarLlamada(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--red)">🗑️</button>
-      </div>`;
+      if (isAdmin) {
+        html += `
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <button onclick="moverLlamada(${i},-1)" ${i===0?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===0?0.3:1}">▲</button>
+            <button onclick="moverLlamada(${i},1)" ${i===llamadasData.length-1?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===llamadasData.length-1?0.3:1}">▼</button>
+          </div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${verificado?'#e8f5e9':'#f5f5f5'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
+            ${verificado?'✅':'📵'}
+          </div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:800;color:var(--text)">${i+1}. ${escapeHtml(n.nombre)}</div>
+            <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono)}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
+          </div>
+          <label class="toggle-switch" title="${n.activo?'Activo':'Inactivo'}">
+            <input type="checkbox" ${n.activo?'checked':''} onchange="toggleActivoLlamada(${i},this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+          <button onclick="eliminarLlamada(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--red)">🗑️</button>
+        </div>`;
+      } else {
+        // Solo lectura para usuarios normales
+        html += `
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="width:36px;height:36px;border-radius:50%;background:${verificado?'#e8f5e9':'#f5f5f5'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
+            ${verificado?'✅':'📵'}
+          </div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:800;color:var(--text)">${i+1}. ${escapeHtml(n.nombre)}</div>
+            <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono)}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
+          </div>
+          <span style="font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;background:${n.activo?'var(--green-light)':'var(--bg)'};color:${n.activo?'var(--green)':'var(--muted)'}">
+            ${n.activo?'Activo':'Inactivo'}
+          </span>
+        </div>`;
+      }
     });
   } else {
     html += '<div style="font-size:13px;color:var(--muted);text-align:center;padding:8px 0 12px">Sin números en la lista aún</div>';
   }
 
-  // Sección: usuarios verificados no añadidos
-  if (pendientes.length) {
+  // Sección: usuarios verificados no añadidos (solo admin)
+  if (isAdmin && pendientes.length) {
     html += `<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 8px">
       Usuarios con móvil verificado — pulsa para añadir
     </div>`;
@@ -2849,6 +2893,12 @@ function renderLlamadas() {
   }
 
   el.innerHTML = html;
+
+  // Mostrar/ocultar sección de añadir manualmente según rol
+  const addSection = document.getElementById('llamadas-add-section');
+  const addInputs  = document.getElementById('llamadas-add-inputs');
+  const addBtn     = document.getElementById('llamadas-add-btn');
+  [addSection, addInputs, addBtn].forEach(el2 => { if(el2) el2.style.display = isAdmin ? '' : 'none'; });
 }
 
 async function añadirUsuarioALlamadas(telefono, nombre) {
@@ -2902,33 +2952,70 @@ async function guardarLlamadas() {
 // ── VERIFICACIÓN DE MÓVIL ──────────────────────────────────────────────────
 
 async function toggleMovilPanel() {
-  const p = document.getElementById('movil-panel');
-  const open = p.style.display === 'none';
-  p.style.display = open ? 'block' : 'none';
-  if (open) await cargarEstadoMovil();
+  // Ya no se usa para toggle — el panel siempre está visible
+  // Se mantiene por compatibilidad con otros posibles llamadores
+  await cargarEstadoMovil();
 }
 
 async function cargarEstadoMovil() {
   try {
     const res  = await authFetch('/api/usuarios/mi-movil');
     const data = await res.json();
-    const estado = document.getElementById('movil-estado');
     const sublabel = document.getElementById('movil-sublabel');
-    const input = document.getElementById('movil-tel-input');
+    const paso1 = document.getElementById('movil-paso1');
+    const paso2 = document.getElementById('movil-paso2');
+    const paso3v = document.getElementById('movil-paso3-verificado');
+    const estadoEl = document.getElementById('movil-estado');
+
+    // Ocultar todos los pasos
+    paso1.style.display = 'none';
+    paso2.style.display = 'none';
+    paso3v.style.display = 'none';
 
     if (data.telefono && data.verificado) {
-      estado.innerHTML = `<span style="color:#34c759">✅ Verificado: ${escapeHtml(data.telefono)}</span>`;
+      // Verificado: mostrar input bloqueado + botón eliminar
+      paso3v.style.display = 'block';
+      document.getElementById('movil-tel-verified').value = data.telefono;
       sublabel.textContent = `✅ ${data.telefono}`;
-      input.value = data.telefono;
+      estadoEl.innerHTML = `<span style="color:#34c759;font-weight:700">✅ Número verificado</span>`;
     } else if (data.telefono && !data.verificado) {
-      estado.innerHTML = `<span style="color:var(--orange)">⚠️ Sin verificar: ${escapeHtml(data.telefono)}</span>`;
+      // Sin verificar: mostrar formulario con número
+      paso1.style.display = 'block';
+      document.getElementById('movil-tel-input').value = data.telefono;
       sublabel.textContent = '⚠️ Pendiente de verificar';
-      input.value = data.telefono;
+      estadoEl.innerHTML = `<span style="color:var(--orange);font-weight:700">⚠️ Número sin verificar</span>`;
     } else {
-      estado.innerHTML = `<span style="color:var(--muted)">Sin número configurado</span>`;
+      // Sin número: mostrar formulario vacío
+      paso1.style.display = 'block';
+      document.getElementById('movil-tel-input').value = '';
       sublabel.textContent = 'Para llamadas de verificación';
+      estadoEl.innerHTML = `<span style="color:var(--muted)">Sin número configurado</span>`;
     }
   } catch(e) {}
+}
+
+async function confirmarDesvincularMovil() {
+  const ok = await showConfirm({
+    icon: '📵',
+    title: 'Desvincular número',
+    msg: '¿Deseas desvincular tu número de móvil de tu cuenta? Dejarás de recibir llamadas de verificación.',
+    confirmLabel: 'Desvincular'
+  });
+  if (!ok) return;
+  try {
+    const res = await authFetch('/api/usuarios/mi-movil', {
+      method: 'DELETE'
+    });
+    // Si el endpoint DELETE no existe, usamos PATCH con vacío
+    if (!res.ok) {
+      await authFetch(`/api/usuarios/${S.currentUser.username}/movil`, {
+        method: 'PATCH',
+        body: JSON.stringify({ telefono: '' })
+      });
+    }
+    toast2('✅ Número desvinculado');
+    await cargarEstadoMovil();
+  } catch(e) { toast2('⚠️ Error de conexión'); }
 }
 
 async function enviarSmsVerif() {
