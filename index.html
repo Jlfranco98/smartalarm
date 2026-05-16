@@ -208,13 +208,14 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
 /* Icono circular en la línea */
 .hi-icon-wrap{position:absolute;left:-44px;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.hi-icon-wrap.ic-accion{background:#FFC9C9;border:2px solid #FF0000}
+.hi-icon-wrap.ic-accion{background:#dbeafe;border:2px solid #3b82f6}
 .hi-icon-wrap.ic-disarm{background:#e8f5e9;border:2px solid #34c759}
 .hi-icon-wrap.ic-noche{background:#fff3e0;border:2px solid var(--orange)}
 .hi-icon-wrap.ic-salto{background:#fdecea;border:2px solid var(--red)}
 .hi-icon-wrap.ic-agua{background:#e3f2fd;border:2px solid #2196f3}
 .hi-icon-wrap.ic-sos{background:#f3e5ff;border:2px solid #7d3fc8}
 .hi-icon-wrap.ic-sistema{background:#fff8e1;border:2px solid #ff8c00}
+.hi-icon-wrap.ic-llamada{background:#d1fae5;border:2px solid #059669}
 
 /* Tarjeta del evento */
 .hi-card{flex:1;background:var(--white);border-radius:14px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,.06);min-width:0}
@@ -2167,6 +2168,7 @@ const CATEGORIAS = {
     subcats: [
       { id: 'alarma', label: '🚨 Alarma saltada', keywords: ['ALARMA SALTADA', 'alarma saltada'] },
       { id: 'agua', label: '💧 Fugas de agua', keywords: ['Fuga de agua', 'agua detectada'] },
+      { id: 'llamada', label: '📞 Verificaciones', keywords: ['verificación salto', 'verificacion salto', 'falsa alarma'] },
     ]
   },
   errores: {
@@ -2183,12 +2185,17 @@ const CATEGORIAS = {
 function clasificarEvento(l) {
   const texto = ((l.accion || l.action || '') + ' ' + (l.tipo || '') + ' ' + (l.sensor || '')).toLowerCase();
 
-  // 1. PRIORIDAD MÁXIMA: SOS / PÁNICO (Categoría propia)
+  // 1. PRIORIDAD MÁXIMA: SOS / PÁNICO
   if (texto.includes('pánico') || texto.includes('sos') || texto.includes('panic')) {
-    return { cat: 'acciones', sub: 'sos' }; 
+    return { cat: 'acciones', sub: 'sos' };
   }
 
-  // 2. SALTOS (Alarma y Agua)
+  // 2. VERIFICACIÓN POR LLAMADA (antes que saltos para no confundirse)
+  if (texto.includes('verificaci') && texto.includes('salto') || texto.includes('falsa alarma')) {
+    return { cat: 'saltos', sub: 'llamada' };
+  }
+
+  // 3. SALTOS (Alarma y Agua)
   if (texto.includes('saltada') || texto.includes('fuga')) {
     return { cat: 'saltos', sub: texto.includes('fuga') ? 'agua' : 'alarma' };
   }
@@ -2443,9 +2450,11 @@ function buildLogItem(l, full = false) {
     const accion = l.accion || l.action || 'Acción';
 
     // Icono y clase según categoría
-    let icono = '🔐', icClass = 'ic-accion', badgeColor = '#FFFFFF', badgeBg = '#FF4D4D';
+    let icono = '🔐', icClass = 'ic-accion', badgeColor = '#3b82f6', badgeBg = '#dbeafe';
     if (cl.sub === 'sos' || texto.includes('pánico') || texto.includes('sos')) {
       icono = '🆘'; icClass = 'ic-sos'; badgeColor = '#7d3fc8'; badgeBg = '#f3e5ff'; catLabel = '🆘 SOS';
+    } else if (cl.cat === 'saltos' && cl.sub === 'llamada') {
+      icono = '📞'; icClass = 'ic-llamada'; badgeColor = '#059669'; badgeBg = '#d1fae5'; catLabel = '📞 VERIFICADA';
     } else if (cl.cat === 'saltos' && cl.sub === 'agua') {
       icono = '💧'; icClass = 'ic-agua'; badgeColor = '#2196f3'; badgeBg = '#e3f2fd'; catLabel = '💧 AGUA';
     } else if (cl.cat === 'saltos') {
@@ -2461,7 +2470,7 @@ function buildLogItem(l, full = false) {
     } else if (texto.includes('noche') || texto.includes('parcial')) {
       icono = '🌙'; icClass = 'ic-noche'; badgeColor = '#ff8c00'; badgeBg = '#fff3e0'; catLabel = '🌙 ACCIÓN';
     } else if (texto.includes('total') || texto.includes('arm_away')) {
-      icono = '🔒'; icClass = 'ic-accion'; catLabel = '🔒 ACCIÓN';
+      icono = '🔒'; icClass = 'ic-accion'; badgeColor = '#3b82f6'; badgeBg = '#dbeafe'; catLabel = '🔒 ACCIÓN';
     }
 
     // Texto de la acción — reemplazar URL de Maps
