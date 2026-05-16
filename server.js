@@ -1073,6 +1073,31 @@ setInterval(async () => {
 }, 60 * 1000);
 
 // --- 14b. TWILIO — LLAMADA DE ALARMA ---
+async function desarmarAlarma(activadoPor) {
+  try {
+    const deviceInfo = await tuyaNormal('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
+    if (!deviceInfo.result?.online) {
+      console.warn('⚠️ Panel desconectado — no se pudo desarmar automáticamente');
+      return false;
+    }
+    const result = await tuyaNormal('POST', `/v1.0/devices/${TUYA_DEVICE_ID}/commands`, {
+      commands: [{ code: 'switch_1', value: true }]
+    });
+    if (result.success) {
+      await Config.findOneAndUpdate({ id: 'global_config' }, { $set: { alarmStatus: 'disarmed' } }, { upsert: true });
+      await new Log({ usuario: activadoPor, accion: '🔓 Alarma desarmada automáticamente tras verificación' }).save();
+      await sendPushNotification('disarm', activadoPor);
+      console.log(`✅ Alarma desarmada automáticamente por: ${activadoPor}`);
+      return true;
+    }
+    return false;
+  } catch(e) {
+    console.error('❌ Error desarmando alarma automáticamente:', e.message);
+    return false;
+  }
+}
+
+
 
 // Estado de confirmación del salto actual (se resetea con cada nueva alarma)
 let twilioConfirmacion = null; // null | { nombre, numero, fecha }
@@ -1164,6 +1189,8 @@ app.use('/twilio/confirmar', async (req, res) => {
       } catch (e) {
         console.error('❌ Error guardando log de confirmación Twilio:', e.message);
       }
+      // Desarmar la alarma automáticamente
+      await desarmarAlarma(nombre);
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
