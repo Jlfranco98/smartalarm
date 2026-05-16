@@ -910,6 +910,35 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
             </div>
             <div class="sl-arrow">›</div>
           </div>
+
+          <div class="sl-item" onclick="toggleMovilPanel()">
+            <div class="sl-icon ic-green">📱</div>
+            <div class="sl-text">
+              <div class="sl-label">Número de móvil</div>
+              <div class="sl-sublabel" id="movil-sublabel">Para llamadas de verificación</div>
+            </div>
+            <div class="sl-arrow">›</div>
+          </div>
+          <div id="movil-panel" style="display:none" class="sl-panel">
+            <div id="movil-estado" style="margin-bottom:12px;font-size:13px;color:var(--muted);font-weight:600"></div>
+            <div id="movil-paso1">
+              <div class="form-field"><label>Número de móvil</label>
+                <input id="movil-tel-input" type="tel" placeholder="+34600000000">
+              </div>
+              <button class="btn-add" onclick="enviarSmsVerif()" style="width:100%">📲 Enviar SMS de verificación</button>
+            </div>
+            <div id="movil-paso2" style="display:none">
+              <div class="form-field"><label>Código de verificación (6 dígitos)</label>
+                <input id="movil-codigo-input" type="number" placeholder="000000" maxlength="6" inputmode="numeric">
+              </div>
+              <button class="btn-add" onclick="confirmarSmsVerif()" style="width:100%">✅ Verificar código</button>
+              <button onclick="document.getElementById('movil-paso1').style.display='';document.getElementById('movil-paso2').style.display='none'"
+                style="width:100%;margin-top:8px;padding:12px;background:transparent;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer">
+                ← Cambiar número
+              </button>
+            </div>
+            <div class="err-small" id="movil-err" style="text-align:center;margin-top:6px"></div>
+          </div>
           <div id="change-pin-panel" style="display:none" class="sl-panel">
             <div class="form-field"><label>PIN actual</label><input id="cp-old" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
             <div class="form-field"><label>PIN nuevo</label><input id="cp-new1" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••"></div>
@@ -1005,6 +1034,30 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
             </div>
             <button class="btn-add" onclick="saveConfig()" style="width:100%">Guardar configuración</button>
             <div class="cfg-saved" id="cfg-ok" style="margin-top:6px"></div>
+          </div>
+        </div>
+
+        <!-- GRUPO: LLAMADAS DE VERIFICACIÓN (solo admin) -->
+        <div class="sl-section-label admin-only" style="display:none">Llamadas de verificación</div>
+        <div class="sl-group admin-only" style="display:none">
+          <div class="sl-item" onclick="toggleLlamadasPanel()">
+            <div class="sl-icon ic-green">📞</div>
+            <div class="sl-text">
+              <div class="sl-label">Números de llamada</div>
+              <div class="sl-sublabel">Configura el orden y nombres para alertas</div>
+            </div>
+            <div class="sl-arrow">›</div>
+          </div>
+          <div id="llamadas-panel" style="display:none" class="sl-panel">
+            <div id="llamadas-list" style="margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <input type="tel" id="new-llamada-tel" placeholder="+34600000000"
+                style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
+              <input type="text" id="new-llamada-nombre" placeholder="Nombre"
+                style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
+            </div>
+            <button class="btn-add" onclick="addLlamada()" style="width:100%">+ Añadir número</button>
+            <div class="cfg-saved" id="llamadas-ok" style="margin-top:6px"></div>
           </div>
         </div>
 
@@ -1421,6 +1474,67 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
       </div>
     </div>
 
+    <!-- Número de móvil -->
+    <div style="background:var(--white);border-radius:18px;padding:20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <div style="width:36px;height:36px;background:#e8f5e9;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📞</div>
+        <div>
+          <div style="font-size:14px;font-weight:900;color:var(--text)">Número de móvil</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600">Para llamadas de verificación de alarma</div>
+        </div>
+        <div style="margin-left:auto;font-size:11px;color:var(--muted);font-weight:700">Opcional</div>
+      </div>
+
+      <!-- Paso 1: introducir número -->
+      <div id="fc-movil-paso1">
+        <div class="form-field" style="margin-bottom:10px">
+          <label>Número de móvil</label>
+          <input id="fc-movil-tel" type="tel" placeholder="+34600000000">
+        </div>
+        <button onclick="fcEnviarSms()" type="button"
+          style="width:100%;padding:12px;background:#34c759;color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+          📲 Verificar por SMS
+        </button>
+        <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--muted);font-weight:600">
+          Puedes añadirlo más tarde desde tu perfil
+        </div>
+      </div>
+
+      <!-- Paso 2: introducir código -->
+      <div id="fc-movil-paso2" style="display:none">
+        <div style="font-size:13px;color:var(--blue);font-weight:700;margin-bottom:10px" id="fc-movil-sms-info"></div>
+        <div class="form-field" style="margin-bottom:10px">
+          <label>Código de verificación (6 dígitos)</label>
+          <input id="fc-movil-codigo" type="number" placeholder="000000" maxlength="6" inputmode="numeric">
+        </div>
+        <button onclick="fcConfirmarSms()" type="button"
+          style="width:100%;padding:12px;background:#34c759;color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+          ✅ Verificar código
+        </button>
+        <button onclick="fcVolverMovil()" type="button"
+          style="width:100%;padding:12px;background:transparent;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;margin-top:8px">
+          ← Cambiar número
+        </button>
+      </div>
+
+      <!-- Paso 3: verificado -->
+      <div id="fc-movil-paso3" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#e8f5e9;border-radius:12px">
+          <span style="font-size:24px">✅</span>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#1b5e20" id="fc-movil-ok-tel"></div>
+            <div style="font-size:12px;color:#388e3c;font-weight:600">Número verificado correctamente</div>
+          </div>
+          <button onclick="fcVolverMovil()" type="button"
+            style="margin-left:auto;font-size:11px;padding:5px 10px;background:none;border:1.5px solid #c8e6c9;border-radius:8px;color:#388e3c;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer">
+            Cambiar
+          </button>
+        </div>
+      </div>
+
+      <div class="err-small" id="fc-movil-err" style="text-align:center;margin-top:6px"></div>
+    </div>
+
     <button class="btn-red" onclick="applyForceChange()" id="force-btn">Configurar mi cuenta →</button>
     <div id="force-err" class="err-small" style="text-align:center;margin-top:10px;font-size:13px"></div>
 
@@ -1768,15 +1882,57 @@ async function renderUsersAdmin(){
     const res = await authFetch('/api/usuarios');
     const users = await res.json();
     el.innerHTML=users.map(u=>`
-      <div class="user-row">
-        <div class="ur-av">${escapeHtml(u.name.slice(0,2).toUpperCase())}</div>
-        <div style="flex:1">
+      <div class="user-row" style="flex-wrap:wrap;gap:8px;align-items:flex-start">
+        <div class="ur-av" style="margin-top:4px">${escapeHtml(u.name.slice(0,2).toUpperCase())}</div>
+        <div style="flex:1;min-width:160px">
           <div class="ur-name">${escapeHtml(u.name)}</div>
           <div class="ur-role">@${escapeHtml(u.username)} · ${u.role==='admin'?'Admin':'Usuario'}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+            <span style="font-size:12px">${u.telefono ? (u.telefonoVerificado ? '✅' : '⚠️') : '📵'}</span>
+            <input type="tel" id="movil-admin-${escapeHtml(u.username)}"
+              value="${escapeHtml(u.telefono||'')}"
+              placeholder="+34600000000"
+              style="font-size:12px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito',sans-serif;width:150px;color:var(--text)"
+              onkeydown="if(event.key==='Enter')guardarMovilAdmin('${escapeHtml(u.username)}')">
+            <button onclick="guardarMovilAdmin('${escapeHtml(u.username)}')"
+              style="font-size:11px;padding:5px 10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">
+              💾
+            </button>
+            ${u.telefono ? `<button onclick="borrarMovilAdmin('${escapeHtml(u.username)}')"
+              style="font-size:11px;padding:5px 8px;background:none;border:1.5px solid #fcc;color:var(--red);border-radius:8px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">
+              🗑️
+            </button>` : ''}
+          </div>
         </div>
         ${S.currentUser && S.currentUser.role === 'admin' && u.username !== S.currentUser.username ? `<button class="ur-del" onclick="removeUser('${escapeHtml(u.username)}')">Eliminar usuario</button>` : ''}
       </div>`).join('');
   } catch(e) { el.innerHTML = "Error al cargar usuarios"; }
+}
+
+async function guardarMovilAdmin(username) {
+  const input = document.getElementById(`movil-admin-${username}`);
+  const telefono = input?.value.trim();
+  if (telefono && !/^\+\d{9,15}$/.test(telefono)) {
+    return toast2('Formato incorrecto. Usa +34600000000');
+  }
+  try {
+    const res = await authFetch(`/api/usuarios/${username}/movil`, {
+      method: 'PATCH',
+      body: JSON.stringify({ telefono })
+    });
+    if (res.ok) { toast2('✅ Móvil guardado'); renderUsersAdmin(); }
+    else toast2('Error al guardar');
+  } catch(e) { toast2('Error de conexión'); }
+}
+
+async function borrarMovilAdmin(username) {
+  try {
+    const res = await authFetch(`/api/usuarios/${username}/movil`, {
+      method: 'PATCH',
+      body: JSON.stringify({ telefono: '' })
+    });
+    if (res.ok) { toast2('Móvil eliminado'); renderUsersAdmin(); }
+  } catch(e) { toast2('Error de conexión'); }
 }
 
 async function addUser() {
@@ -2614,6 +2770,169 @@ function toggleSessionsPanel() {
   if (open) renderSessions();
 }
 
+// ── LLAMADAS DE VERIFICACIÓN ───────────────────────────────────────────────
+let llamadasData = [];
+
+function toggleLlamadasPanel() {
+  const p = document.getElementById('llamadas-panel');
+  const open = p.style.display === 'none';
+  p.style.display = open ? 'block' : 'none';
+  if (open) cargarLlamadas();
+}
+
+async function cargarLlamadas() {
+  try {
+    const res = await authFetch('/api/llamadas-config');
+    llamadasData = await res.json();
+    renderLlamadas();
+  } catch(e) { console.error('Error cargando llamadas:', e); }
+}
+
+function renderLlamadas() {
+  const el = document.getElementById('llamadas-list');
+  if (!llamadasData.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:8px">Sin números configurados</div>';
+    return;
+  }
+  el.innerHTML = llamadasData.map((n, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <button onclick="moverLlamada(${i},-1)" ${i===0?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===0?0.3:1}">▲</button>
+        <button onclick="moverLlamada(${i},1)" ${i===llamadasData.length-1?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===llamadasData.length-1?0.3:1}">▼</button>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:800;color:var(--text)">${i+1}. ${escapeHtml(n.nombre)}</div>
+        <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono)}</div>
+      </div>
+      <label class="toggle-switch" title="Activo">
+        <input type="checkbox" ${n.activo?'checked':''} onchange="toggleActivoLlamada(${i},this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+      <button onclick="eliminarLlamada(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--red)">🗑️</button>
+    </div>
+  `).join('');
+}
+
+function moverLlamada(idx, dir) {
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= llamadasData.length) return;
+  [llamadasData[idx], llamadasData[newIdx]] = [llamadasData[newIdx], llamadasData[idx]];
+  guardarLlamadas();
+}
+
+function toggleActivoLlamada(idx, activo) {
+  llamadasData[idx].activo = activo;
+  guardarLlamadas();
+}
+
+function eliminarLlamada(idx) {
+  llamadasData.splice(idx, 1);
+  guardarLlamadas();
+}
+
+async function addLlamada() {
+  const tel    = document.getElementById('new-llamada-tel').value.trim();
+  const nombre = document.getElementById('new-llamada-nombre').value.trim();
+  if (!tel || !nombre) return toast2('Rellena teléfono y nombre');
+  if (!/^\+\d{9,15}$/.test(tel)) return toast2('Formato: +34600000000');
+  llamadasData.push({ telefono: tel, nombre, activo: true });
+  document.getElementById('new-llamada-tel').value = '';
+  document.getElementById('new-llamada-nombre').value = '';
+  await guardarLlamadas();
+}
+
+async function guardarLlamadas() {
+  try {
+    const res = await authFetch('/api/llamadas-config', {
+      method: 'POST',
+      body: JSON.stringify({ numeros: llamadasData })
+    });
+    if (res.ok) {
+      renderLlamadas();
+      const ok = document.getElementById('llamadas-ok');
+      ok.textContent = '✅ Guardado';
+      setTimeout(() => ok.textContent = '', 2000);
+    }
+  } catch(e) { toast2('Error al guardar'); }
+}
+
+// ── VERIFICACIÓN DE MÓVIL ──────────────────────────────────────────────────
+
+async function toggleMovilPanel() {
+  const p = document.getElementById('movil-panel');
+  const open = p.style.display === 'none';
+  p.style.display = open ? 'block' : 'none';
+  if (open) await cargarEstadoMovil();
+}
+
+async function cargarEstadoMovil() {
+  try {
+    const res  = await authFetch('/api/usuarios/mi-movil');
+    const data = await res.json();
+    const estado = document.getElementById('movil-estado');
+    const sublabel = document.getElementById('movil-sublabel');
+    const input = document.getElementById('movil-tel-input');
+
+    if (data.telefono && data.verificado) {
+      estado.innerHTML = `<span style="color:#34c759">✅ Verificado: ${escapeHtml(data.telefono)}</span>`;
+      sublabel.textContent = `✅ ${data.telefono}`;
+      input.value = data.telefono;
+    } else if (data.telefono && !data.verificado) {
+      estado.innerHTML = `<span style="color:var(--orange)">⚠️ Sin verificar: ${escapeHtml(data.telefono)}</span>`;
+      sublabel.textContent = '⚠️ Pendiente de verificar';
+      input.value = data.telefono;
+    } else {
+      estado.innerHTML = `<span style="color:var(--muted)">Sin número configurado</span>`;
+      sublabel.textContent = 'Para llamadas de verificación';
+    }
+  } catch(e) {}
+}
+
+async function enviarSmsVerif() {
+  const tel = document.getElementById('movil-tel-input').value.trim();
+  const err = document.getElementById('movil-err');
+  err.textContent = '';
+  if (!tel) return (err.textContent = 'Introduce un número');
+  if (!/^\+\d{9,15}$/.test(tel)) return (err.textContent = 'Formato: +34600000000');
+
+  try {
+    const res  = await authFetch('/api/usuarios/verificar-movil/enviar', {
+      method: 'POST', body: JSON.stringify({ telefono: tel })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('movil-paso1').style.display = 'none';
+      document.getElementById('movil-paso2').style.display = 'block';
+      document.getElementById('movil-estado').innerHTML = `<span style="color:var(--blue)">📲 SMS enviado a ${escapeHtml(tel)}</span>`;
+    } else {
+      err.textContent = data.message || 'Error al enviar SMS';
+    }
+  } catch(e) { err.textContent = 'Error de conexión'; }
+}
+
+async function confirmarSmsVerif() {
+  const codigo = document.getElementById('movil-codigo-input').value.trim();
+  const err    = document.getElementById('movil-err');
+  err.textContent = '';
+  if (!codigo || codigo.length !== 6) return (err.textContent = 'Introduce los 6 dígitos');
+
+  try {
+    const res  = await authFetch('/api/usuarios/verificar-movil/confirmar', {
+      method: 'POST', body: JSON.stringify({ codigo })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('movil-paso1').style.display = 'block';
+      document.getElementById('movil-paso2').style.display = 'none';
+      document.getElementById('movil-tel-input').value = data.telefono;
+      await cargarEstadoMovil();
+      toast2('✅ Móvil verificado correctamente');
+    } else {
+      err.textContent = data.message || 'Código incorrecto';
+    }
+  } catch(e) { err.textContent = 'Error de conexión'; }
+}
+
 // Iconos disponibles para dispositivos
 const DEVICE_ICONS = [
   { emoji: '📱', label: 'Móvil' },
@@ -2954,7 +3273,57 @@ function showUpdateBar() {
   document.body.appendChild(bar);
 }
 
- function showForceChangeModal(tempPass) {
+// ── MÓVIL EN SETUP DE NUEVO PERFIL ────────────────────────────────────────
+async function fcEnviarSms() {
+  const tel = document.getElementById('fc-movil-tel').value.trim();
+  const err = document.getElementById('fc-movil-err');
+  err.textContent = '';
+  if (!tel) return (err.textContent = 'Introduce un número');
+  if (!/^\+\d{9,15}$/.test(tel)) return (err.textContent = 'Formato: +34600000000');
+  try {
+    const res  = await authFetch('/api/usuarios/verificar-movil/enviar', {
+      method: 'POST', body: JSON.stringify({ telefono: tel })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('fc-movil-paso1').style.display = 'none';
+      document.getElementById('fc-movil-paso2').style.display = 'block';
+      document.getElementById('fc-movil-sms-info').textContent = `📲 SMS enviado a ${tel}`;
+    } else {
+      err.textContent = data.message || 'Error al enviar SMS';
+    }
+  } catch(e) { err.textContent = 'Error de conexión'; }
+}
+
+async function fcConfirmarSms() {
+  const codigo = document.getElementById('fc-movil-codigo').value.trim();
+  const err    = document.getElementById('fc-movil-err');
+  err.textContent = '';
+  if (!codigo || codigo.length !== 6) return (err.textContent = 'Introduce los 6 dígitos');
+  try {
+    const res  = await authFetch('/api/usuarios/verificar-movil/confirmar', {
+      method: 'POST', body: JSON.stringify({ codigo })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('fc-movil-paso2').style.display = 'none';
+      document.getElementById('fc-movil-paso3').style.display = 'block';
+      document.getElementById('fc-movil-ok-tel').textContent = data.telefono;
+    } else {
+      err.textContent = data.message || 'Código incorrecto';
+    }
+  } catch(e) { err.textContent = 'Error de conexión'; }
+}
+
+function fcVolverMovil() {
+  document.getElementById('fc-movil-paso1').style.display = 'block';
+  document.getElementById('fc-movil-paso2').style.display = 'none';
+  document.getElementById('fc-movil-paso3').style.display = 'none';
+  document.getElementById('fc-movil-err').textContent = '';
+  document.getElementById('fc-movil-codigo').value = '';
+}
+
+function showForceChangeModal(tempPass) {
   S._tempPass = tempPass || null; // Guardamos solo en memoria, nunca en localStorage
   const el = document.getElementById('force-change-screen');
   if(!el) return;

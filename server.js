@@ -179,7 +179,9 @@ const userSchema = new mongoose.Schema({
   pin: String,
   role: { type: String, default: 'user' },
   isNew: { type: Boolean, default: true },
-  avatar: { type: String, default: null }
+  avatar: { type: String, default: null },
+  telefono: { type: String, default: null },
+  telefonoVerificado: { type: Boolean, default: false }
 }, { collection: 'users', timestamps: true, suppressReservedKeysWarning: true });
 
 const logSchema = new mongoose.Schema({
@@ -240,6 +242,20 @@ const Config     = mongoose.model('Config',     configSchema);
 const PushSub    = mongoose.model('PushSub',    pushSubSchema);
 const NotifPref  = mongoose.model('NotifPref',  notifPrefSchema);
 const Automation = mongoose.model('Automation', automationSchema);
+
+// Schema para configuración de llamadas de verificación
+const llamadaConfigSchema = new mongoose.Schema({
+  id: { type: String, default: 'llamadas_config', unique: true },
+  numeros: [{
+    telefono: String,
+    nombre: String,
+    activo: { type: Boolean, default: true }
+  }]
+}, { collection: 'llamadas_config' });
+const LlamadaConfig = mongoose.model('LlamadaConfig', llamadaConfigSchema);
+
+// Mapa temporal de códigos SMS: username -> { codigo, expira }
+const smsVerifCodes = new Map();
 
 // --- 4. DOS CLIENTES TUYA ---
 
@@ -430,6 +446,20 @@ app.delete('/api/usuarios/:username', requireAuth, async (req, res) => {
     await User.findOneAndDelete({ username: req.params.username });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// Admin asigna móvil a cualquier usuario directamente (sin verificación SMS)
+app.patch('/api/usuarios/:username/movil', requireAuth, async (req, res) => {
+  try {
+    const admin = await User.findOne({ username: req.sessionUser });
+    if (admin?.role !== 'admin') return res.status(403).json({ success: false });
+    const { telefono } = req.body;
+    await User.updateOne(
+      { username: req.params.username },
+      { $set: { telefono: telefono || null, telefonoVerificado: !!telefono } }
+    );
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
 });
 
 // --- 10. AUTH ---
@@ -1102,22 +1132,48 @@ async function desarmarAlarma(activadoPor) {
 // Estado de confirmación del salto actual (se resetea con cada nueva alarma)
 let twilioConfirmacion = null; // null | { nombre, numero, fecha }
 let twilioSecuenciaIdx = 0;    // índice del número actual en la secuencia
+let twilioNumerosActivos = []; // cargado desde MongoDB al iniciar cada alarma
 
 async function llamarAlarma() {
-  if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM || !TWILIO_TO.length) {
+  if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
     console.warn('⚠️ Twilio no configurado — llamada omitida');
     return;
   }
-  // Resetear estado al iniciar nueva alarma
+  // Cargar números desde MongoDB (si hay) o fallback a TWILIO_TO
+  try {
+    const cfg = await LlamadaConfig.findOne({ id: 'llamadas_config' });
+    if (cfg?.numeros?.length) {
+      twilioNumerosActivos = cfg.numeros.filter(n => n.activo);
+    } else {
+      // Fallback a variables de entorno
+      twilioNumerosActivos = TWILIO_TO.map(tel => ({
+        telefono: tel,
+        nombre: TWILIO_NOMBRES[tel] || tel,
+        activo: true
+      }));
+    }
+  } catch(e) {
+    console.error('❌ Error cargando config llamadas:', e.message);
+    twilioNumerosActivos = TWILIO_TO.map(tel => ({
+      telefono: tel,
+      nombre: TWILIO_NOMBRES[tel] || tel,
+      activo: true
+    }));
+  }
+
+  if (!twilioNumerosActivos.length) {
+    console.warn('⚠️ No hay números configurados para llamar');
+    return;
+  }
+
   twilioConfirmacion = null;
   twilioSecuenciaIdx = 0;
   await llamarSiguiente();
 }
 
 async function llamarSiguiente() {
-  if (twilioConfirmacion) return; // ya fue confirmada, no seguir llamando
-  if (twilioSecuenciaIdx >= TWILIO_TO.length) {
-    // Nadie contestó tras todos los intentos
+  if (twilioConfirmacion) return; // ya fue confirmada
+  if (twilioSecuenciaIdx >= twilioNumerosActivos.length) {
     console.warn('🚨 Ningún usuario atendió la llamada de alarma');
     try {
       await new Log({
@@ -1128,11 +1184,10 @@ async function llamarSiguiente() {
     return;
   }
 
-  const numero = TWILIO_TO[twilioSecuenciaIdx];
-  const nombre = TWILIO_NOMBRES[numero] || numero;
+  const { telefono: numero, nombre } = twilioNumerosActivos[twilioSecuenciaIdx];
   const client = twilio(TWILIO_SID, TWILIO_TOKEN);
   const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
-  const twimlUrl   = `${backendUrl}/twilio/locucion`;
+  const twimlUrl    = `${backendUrl}/twilio/locucion`;
   const callbackUrl = `${backendUrl}/twilio/status`;
 
   console.log(`📞 Iniciando llamada a ${numero} (${nombre})`);
@@ -1186,10 +1241,11 @@ app.use('/twilio/locucion', (req, res) => {
 
 // Endpoint statusCallback — Twilio avisa cuando termina cada llamada
 app.use('/twilio/status', async (req, res) => {
-  res.sendStatus(200); // responder rápido a Twilio
+  res.sendStatus(200);
   const callStatus = req.body?.CallStatus || req.query?.CallStatus;
   const numero     = req.body?.To         || req.query?.To || '';
-  const nombre     = TWILIO_NOMBRES[numero] || numero;
+  const entrada    = twilioNumerosActivos.find(n => n.telefono === numero);
+  const nombre     = entrada?.nombre || TWILIO_NOMBRES[numero] || numero;
 
   console.log(`📋 Estado llamada ${numero} (${nombre}): ${callStatus}`);
 
@@ -1199,7 +1255,6 @@ app.use('/twilio/status', async (req, res) => {
   }
 
   if (callStatus === 'completed') {
-    // La llamada terminó — si no hubo confirmación, pasar al siguiente
     if (!twilioConfirmacion) {
       console.warn(`⚠️ Llamada a ${numero} (${nombre}) terminó sin confirmación`);
       twilioSecuenciaIdx++;
@@ -1273,6 +1328,95 @@ app.use('/twilio/confirmar', async (req, res) => {
   <Pause length="2"/>
 </Response>`);
   }
+});
+
+// ── GESTIÓN LLAMADAS DE VERIFICACIÓN (admin) ──────────────────────────────
+
+// Obtener configuración de llamadas
+app.get('/api/llamadas-config', requireAuth, async (req, res) => {
+  try {
+    const cfg = await LlamadaConfig.findOne({ id: 'llamadas_config' });
+    res.json(cfg?.numeros || []);
+  } catch(e) { res.status(500).json([]); }
+});
+
+// Guardar configuración completa de llamadas (reemplaza todo)
+app.post('/api/llamadas-config', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (user?.role !== 'admin') return res.status(403).json({ success: false });
+    const { numeros } = req.body;
+    await LlamadaConfig.findOneAndUpdate(
+      { id: 'llamadas_config' },
+      { $set: { numeros } },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
+});
+
+// ── VERIFICACIÓN DE MÓVIL POR SMS ─────────────────────────────────────────
+
+// Enviar SMS con código de verificación
+app.post('/api/usuarios/verificar-movil/enviar', requireAuth, async (req, res) => {
+  try {
+    const { telefono } = req.body;
+    if (!telefono || !/^\+\d{9,15}$/.test(telefono))
+      return res.status(400).json({ success: false, message: 'Número inválido. Usa formato +34XXXXXXXXX' });
+
+    if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM)
+      return res.status(500).json({ success: false, message: 'Twilio no configurado' });
+
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+    smsVerifCodes.set(req.sessionUser, { codigo, telefono, expira: Date.now() + 10 * 60 * 1000 });
+
+    const client = twilio(TWILIO_SID, TWILIO_TOKEN);
+    await client.messages.create({
+      to: telefono,
+      from: TWILIO_FROM,
+      body: `Tu código de verificación de Verisure es: ${codigo}. Caduca en 10 minutos.`
+    });
+
+    console.log(`📱 SMS de verificación enviado a ${telefono} para ${req.sessionUser}`);
+    res.json({ success: true });
+  } catch(e) {
+    console.error('❌ Error enviando SMS:', e.message);
+    res.status(500).json({ success: false, message: 'Error al enviar SMS' });
+  }
+});
+
+// Verificar código SMS
+app.post('/api/usuarios/verificar-movil/confirmar', requireAuth, async (req, res) => {
+  try {
+    const { codigo } = req.body;
+    const entry = smsVerifCodes.get(req.sessionUser);
+
+    if (!entry) return res.status(400).json({ success: false, message: 'No hay verificación pendiente' });
+    if (Date.now() > entry.expira) {
+      smsVerifCodes.delete(req.sessionUser);
+      return res.status(400).json({ success: false, message: 'Código caducado. Solicita uno nuevo.' });
+    }
+    if (entry.codigo !== codigo.trim())
+      return res.status(400).json({ success: false, message: 'Código incorrecto' });
+
+    await User.updateOne(
+      { username: req.sessionUser },
+      { $set: { telefono: entry.telefono, telefonoVerificado: true } }
+    );
+    smsVerifCodes.delete(req.sessionUser);
+    console.log(`✅ Móvil ${entry.telefono} verificado para ${req.sessionUser}`);
+    res.json({ success: true, telefono: entry.telefono });
+  } catch(e) {
+    res.status(500).json({ success: false, message: 'Error al verificar' });
+  }
+});
+
+// Obtener datos de móvil del usuario actual
+app.get('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser }, 'telefono telefonoVerificado');
+    res.json({ telefono: user?.telefono || null, verificado: user?.telefonoVerificado || false });
+  } catch(e) { res.status(500).json({ telefono: null, verificado: false }); }
 });
 
 // --- 15. ARRANQUE ---
