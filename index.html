@@ -1037,30 +1037,6 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           </div>
         </div>
 
-        <!-- GRUPO: LLAMADAS DE VERIFICACIÓN (solo admin) -->
-        <div class="sl-section-label admin-only" style="display:none">Llamadas de verificación</div>
-        <div class="sl-group admin-only" style="display:none">
-          <div class="sl-item" onclick="toggleLlamadasPanel()">
-            <div class="sl-icon ic-green">📞</div>
-            <div class="sl-text">
-              <div class="sl-label">Números de llamada</div>
-              <div class="sl-sublabel">Configura el orden y nombres para alertas</div>
-            </div>
-            <div class="sl-arrow">›</div>
-          </div>
-          <div id="llamadas-panel" style="display:none" class="sl-panel">
-            <div id="llamadas-list" style="margin-bottom:12px"></div>
-            <div style="display:flex;gap:8px;margin-bottom:8px">
-              <input type="tel" id="new-llamada-tel" placeholder="+34600000000"
-                style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
-              <input type="text" id="new-llamada-nombre" placeholder="Nombre"
-                style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
-            </div>
-            <button class="btn-add" onclick="addLlamada()" style="width:100%">+ Añadir número</button>
-            <div class="cfg-saved" id="llamadas-ok" style="margin-top:6px"></div>
-          </div>
-        </div>
-
         <!-- GRUPO: SESIÓN -->
         <div class="sl-section-label">Sesión</div>
         <div class="sl-group" style="margin-bottom:32px">
@@ -1101,6 +1077,26 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
           <div class="admin-card" style="background:var(--red-light);border:1.5px solid #fcc">
             <div style="font-size:13px;color:var(--muted);font-weight:700">Si necesitas agregar a un usuario nuevo, contacta con el administrador de la instalación.</div>
           </div>
+        </div>
+      </div>
+
+      <!-- LLAMADAS DE VERIFICACIÓN -->
+      <div class="admin-section" style="margin-top:0">
+        <div class="admin-card">
+          <div class="ac-title">📞 Llamadas de verificación</div>
+          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:14px">
+            Orden en que se llama cuando salta la alarma. Arrastra las flechas para reordenar.
+          </div>
+          <div id="llamadas-list" style="margin-bottom:14px"></div>
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Añadir número manualmente</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input type="tel" id="new-llamada-tel" placeholder="+34600000000"
+              style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
+            <input type="text" id="new-llamada-nombre" placeholder="Nombre"
+              style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
+          </div>
+          <button class="btn-add" onclick="addLlamada()" style="width:100%">+ Añadir número</button>
+          <div class="cfg-saved" id="llamadas-ok" style="margin-top:6px"></div>
         </div>
       </div>
     </div>
@@ -2066,7 +2062,7 @@ function navTo(page){
   document.getElementById('pg-'+page).classList.add('active');
   const nb=document.getElementById('nav-'+page); if(nb)nb.classList.add('active');
   if(page==='historial'){ populateUsuarioFilter(); renderLog(); renderLogFiltrado(); }
-  if(page==='admin')renderUsersAdmin();
+  if(page==='admin'){ renderUsersAdmin(); cargarLlamadas(); }
   if(page==='cuenta'){ loadConfigForm(); updateThemeUI(localStorage.getItem('theme') || 'system'); }
   if(page==='dispositivos')renderDispositivos();
   if(page==='automatizaciones')renderAutomatizaciones();
@@ -2773,44 +2769,91 @@ function toggleSessionsPanel() {
 // ── LLAMADAS DE VERIFICACIÓN ───────────────────────────────────────────────
 let llamadasData = [];
 
-function toggleLlamadasPanel() {
-  const p = document.getElementById('llamadas-panel');
-  const open = p.style.display === 'none';
-  p.style.display = open ? 'block' : 'none';
-  if (open) cargarLlamadas();
-}
+// llamadasUsuarios: usuarios con móvil verificado cargados del servidor
+let llamadasUsuarios = [];
 
 async function cargarLlamadas() {
   try {
-    const res = await authFetch('/api/llamadas-config');
-    llamadasData = await res.json();
+    const [resCfg, resUsers] = await Promise.all([
+      authFetch('/api/llamadas-config'),
+      authFetch('/api/usuarios')
+    ]);
+    llamadasData   = await resCfg.json();
+    const allUsers = await resUsers.json();
+    llamadasUsuarios = allUsers.filter(u => u.telefono);
     renderLlamadas();
   } catch(e) { console.error('Error cargando llamadas:', e); }
 }
 
 function renderLlamadas() {
   const el = document.getElementById('llamadas-list');
-  if (!llamadasData.length) {
-    el.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:8px">Sin números configurados</div>';
-    return;
+  if (!el) return;
+
+  // Teléfonos ya en la lista configurada
+  const yaEnLista = new Set(llamadasData.map(n => n.telefono));
+
+  // Usuarios con móvil NO añadidos aún
+  const pendientes = llamadasUsuarios.filter(u => !yaEnLista.has(u.telefono));
+
+  let html = '';
+
+  // Sección: orden de llamadas configurado
+  if (llamadasData.length) {
+    llamadasData.forEach((n, i) => {
+      // Buscar si corresponde a un usuario verificado
+      const userMatch = llamadasUsuarios.find(u => u.telefono === n.telefono);
+      const verificado = userMatch?.telefonoVerificado;
+      html += `
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <button onclick="moverLlamada(${i},-1)" ${i===0?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===0?0.3:1}">▲</button>
+          <button onclick="moverLlamada(${i},1)" ${i===llamadasData.length-1?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===llamadasData.length-1?0.3:1}">▼</button>
+        </div>
+        <div style="width:36px;height:36px;border-radius:50%;background:${verificado?'#e8f5e9':'#f5f5f5'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
+          ${verificado?'✅':'📵'}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:800;color:var(--text)">${i+1}. ${escapeHtml(n.nombre)}</div>
+          <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono)}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
+        </div>
+        <label class="toggle-switch" title="${n.activo?'Activo':'Inactivo'}">
+          <input type="checkbox" ${n.activo?'checked':''} onchange="toggleActivoLlamada(${i},this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+        <button onclick="eliminarLlamada(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--red)">🗑️</button>
+      </div>`;
+    });
+  } else {
+    html += '<div style="font-size:13px;color:var(--muted);text-align:center;padding:8px 0 12px">Sin números en la lista aún</div>';
   }
-  el.innerHTML = llamadasData.map((n, i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;flex-direction:column;gap:2px">
-        <button onclick="moverLlamada(${i},-1)" ${i===0?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===0?0.3:1}">▲</button>
-        <button onclick="moverLlamada(${i},1)" ${i===llamadasData.length-1?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===llamadasData.length-1?0.3:1}">▼</button>
-      </div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:800;color:var(--text)">${i+1}. ${escapeHtml(n.nombre)}</div>
-        <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono)}</div>
-      </div>
-      <label class="toggle-switch" title="Activo">
-        <input type="checkbox" ${n.activo?'checked':''} onchange="toggleActivoLlamada(${i},this.checked)">
-        <span class="toggle-slider"></span>
-      </label>
-      <button onclick="eliminarLlamada(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--red)">🗑️</button>
-    </div>
-  `).join('');
+
+  // Sección: usuarios verificados no añadidos
+  if (pendientes.length) {
+    html += `<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 8px">
+      Usuarios con móvil verificado — pulsa para añadir
+    </div>`;
+    pendientes.forEach(u => {
+      html += `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="width:36px;height:36px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">✅</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:800;color:var(--text)">${escapeHtml(u.name)}</div>
+          <div style="font-size:12px;color:#34c759;font-weight:700">${escapeHtml(u.telefono)}</div>
+        </div>
+        <button onclick="añadirUsuarioALlamadas('${escapeHtml(u.telefono)}','${escapeHtml(u.name)}')"
+          style="padding:7px 14px;background:#34c759;color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
+          + Añadir
+        </button>
+      </div>`;
+    });
+  }
+
+  el.innerHTML = html;
+}
+
+async function añadirUsuarioALlamadas(telefono, nombre) {
+  llamadasData.push({ telefono, nombre, activo: true });
+  await guardarLlamadas();
 }
 
 function moverLlamada(idx, dir) {
