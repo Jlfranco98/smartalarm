@@ -1101,26 +1101,54 @@ async function desarmarAlarma(activadoPor) {
 
 // Estado de confirmación del salto actual (se resetea con cada nueva alarma)
 let twilioConfirmacion = null; // null | { nombre, numero, fecha }
+let twilioSecuenciaIdx = 0;    // índice del número actual en la secuencia
 
 async function llamarAlarma() {
   if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM || !TWILIO_TO.length) {
     console.warn('⚠️ Twilio no configurado — llamada omitida');
     return;
   }
-  // Resetear confirmación anterior al iniciar una nueva alarma
+  // Resetear estado al iniciar nueva alarma
   twilioConfirmacion = null;
+  twilioSecuenciaIdx = 0;
+  await llamarSiguiente();
+}
 
-  const client     = twilio(TWILIO_SID, TWILIO_TOKEN);
+async function llamarSiguiente() {
+  if (twilioConfirmacion) return; // ya fue confirmada, no seguir llamando
+  if (twilioSecuenciaIdx >= TWILIO_TO.length) {
+    // Nadie contestó tras todos los intentos
+    console.warn('🚨 Ningún usuario atendió la llamada de alarma');
+    try {
+      await new Log({
+        usuario: 'Verisure',
+        accion: '🚨📞 Verificación NO confirmada por ningún usuario'
+      }).save();
+    } catch(e) { console.error('❌ Error guardando log no atendida:', e.message); }
+    return;
+  }
+
+  const numero = TWILIO_TO[twilioSecuenciaIdx];
+  const nombre = TWILIO_NOMBRES[numero] || numero;
+  const client = twilio(TWILIO_SID, TWILIO_TOKEN);
   const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
   const twimlUrl   = `${backendUrl}/twilio/locucion`;
+  const callbackUrl = `${backendUrl}/twilio/status`;
 
-  for (const numero of TWILIO_TO) {
-    try {
-      await client.calls.create({ to: numero, from: TWILIO_FROM, url: twimlUrl });
-      console.log(`📞 Llamada de verificación de salto iniciada a: ${numero}`);
-    } catch (e) {
-      console.error(`❌ Error llamada Twilio a ${numero}:`, e.message);
-    }
+  console.log(`📞 Iniciando llamada a ${numero} (${nombre})`);
+  try {
+    await client.calls.create({
+      to: numero,
+      from: TWILIO_FROM,
+      url: twimlUrl,
+      statusCallback: callbackUrl,
+      statusCallbackMethod: 'POST',
+      statusCallbackEvent: ['completed'],
+    });
+  } catch(e) {
+    console.error(`❌ Error llamada Twilio a ${numero} (${nombre}):`, e.message);
+    twilioSecuenciaIdx++;
+    await llamarSiguiente();
   }
 }
 
@@ -1154,6 +1182,34 @@ app.use('/twilio/locucion', (req, res) => {
   </Say>
   <Pause length="2"/>
 </Response>`);
+});
+
+// Endpoint statusCallback — Twilio avisa cuando termina cada llamada
+app.use('/twilio/status', async (req, res) => {
+  res.sendStatus(200); // responder rápido a Twilio
+  const callStatus = req.body?.CallStatus || req.query?.CallStatus;
+  const numero     = req.body?.To         || req.query?.To || '';
+  const nombre     = TWILIO_NOMBRES[numero] || numero;
+
+  console.log(`📋 Estado llamada ${numero} (${nombre}): ${callStatus}`);
+
+  if (twilioConfirmacion) {
+    console.log(`✅ Alarma ya confirmada por ${twilioConfirmacion.nombre} — ignorando callback`);
+    return;
+  }
+
+  if (callStatus === 'completed') {
+    // La llamada terminó — si no hubo confirmación, pasar al siguiente
+    if (!twilioConfirmacion) {
+      console.warn(`⚠️ Llamada a ${numero} (${nombre}) terminó sin confirmación`);
+      twilioSecuenciaIdx++;
+      await llamarSiguiente();
+    }
+  } else if (['no-answer', 'busy', 'failed', 'canceled'].includes(callStatus)) {
+    console.warn(`⚠️ Llamada a ${numero} (${nombre}) no atendida — estado: ${callStatus}`);
+    twilioSecuenciaIdx++;
+    await llamarSiguiente();
+  }
 });
 
 // Endpoint que recibe la tecla pulsada durante la llamada
