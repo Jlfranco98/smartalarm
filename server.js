@@ -1173,6 +1173,15 @@ app.use('/twilio/confirmar', async (req, res) => {
 </Response>`);
     }
   } else {
+    // Nadie confirmó — guardar log como alerta no verificada
+    const numerosLlamados = TWILIO_TO.join(', ');
+    try {
+      await new Log({
+        usuario: 'Verisure',
+        accion: `🚨📞 Verificación NO confirmada por ningún usuario`
+      }).save();
+    } catch(e) { console.error('❌ Error guardando log no confirmación:', e.message); }
+
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">

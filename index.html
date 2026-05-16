@@ -2168,7 +2168,7 @@ const CATEGORIAS = {
     subcats: [
       { id: 'alarma', label: '🚨 Alarma saltada', keywords: ['ALARMA SALTADA', 'alarma saltada'] },
       { id: 'agua', label: '💧 Fugas de agua', keywords: ['Fuga de agua', 'agua detectada'] },
-      { id: 'llamada', label: '📞 Verificaciones', keywords: ['verificación salto', 'verificacion salto', 'falsa alarma'] },
+      { id: 'llamada', label: '📞 Verificaciones', keywords: ['verificación salto', 'verificacion salto', 'falsa alarma', 'no verificada', 'ningún usuario confirmó'] },
     ]
   },
   errores: {
@@ -2191,7 +2191,7 @@ function clasificarEvento(l) {
   }
 
   // 2. VERIFICACIÓN POR LLAMADA (antes que saltos para no confundirse)
-  if (texto.includes('verificaci') && texto.includes('salto') || texto.includes('falsa alarma')) {
+  if ((texto.includes('verificaci') && texto.includes('salto')) || texto.includes('falsa alarma') || (texto.includes('verificación no confirmada') || texto.includes('no confirmada por ningún'))) {
     return { cat: 'saltos', sub: 'llamada' };
   }
 
@@ -2454,7 +2454,12 @@ function buildLogItem(l, full = false) {
     if (cl.sub === 'sos' || texto.includes('pánico') || texto.includes('sos')) {
       icono = '🆘'; icClass = 'ic-sos'; badgeColor = '#7d3fc8'; badgeBg = '#f3e5ff'; catLabel = '🆘 SOS';
     } else if (cl.cat === 'saltos' && cl.sub === 'llamada') {
-      icono = '📞'; icClass = 'ic-llamada'; badgeColor = '#059669'; badgeBg = '#d1fae5'; catLabel = '📞 VERIFICADA';
+      const esNoVerificada = texto.includes('verificación no confirmada') || texto.includes('no confirmada por ningún');
+      icono = esNoVerificada ? '📵' : '📞';
+      icClass = esNoVerificada ? 'ic-salto' : 'ic-llamada';
+      badgeColor = esNoVerificada ? '#e8192c' : '#059669';
+      badgeBg = esNoVerificada ? '#fdecea' : '#d1fae5';
+      catLabel = esNoVerificada ? '📵 NO VERIFICADA' : '📞 VERIFICADA';
     } else if (cl.cat === 'saltos' && cl.sub === 'agua') {
       icono = '💧'; icClass = 'ic-agua'; badgeColor = '#2196f3'; badgeBg = '#e3f2fd'; catLabel = '💧 AGUA';
     } else if (cl.cat === 'saltos') {
