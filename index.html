@@ -911,14 +911,16 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
             <div class="sl-arrow">›</div>
           </div>
 
-          <div class="sl-item" style="cursor:default">
+          <div class="sl-item" onclick="toggleMovilPanel()">
             <div class="sl-icon ic-green">📱</div>
             <div class="sl-text">
               <div class="sl-label">Número de móvil</div>
               <div class="sl-sublabel" id="movil-sublabel">Para llamadas de verificación</div>
             </div>
+            <span id="movil-badge" style="display:none;font-size:10px;font-weight:800;padding:3px 9px;border-radius:10px;white-space:nowrap;margin-right:6px"></span>
+            <div class="sl-arrow" id="movil-arrow">›</div>
           </div>
-          <div id="movil-panel" class="sl-panel">
+          <div id="movil-panel" style="display:none" class="sl-panel">
             <div id="movil-estado" style="margin-bottom:12px;font-size:13px;color:var(--muted);font-weight:600"></div>
             <!-- Paso 1: introducir número (sin verificar o vacío) -->
             <div id="movil-paso1">
@@ -2952,9 +2954,36 @@ async function guardarLlamadas() {
 // ── VERIFICACIÓN DE MÓVIL ──────────────────────────────────────────────────
 
 async function toggleMovilPanel() {
-  // Ya no se usa para toggle — el panel siempre está visible
-  // Se mantiene por compatibilidad con otros posibles llamadores
-  await cargarEstadoMovil();
+  const p = document.getElementById('movil-panel');
+  const arrow = document.getElementById('movil-arrow');
+  const open = p.style.display === 'none';
+  p.style.display = open ? 'block' : 'none';
+  if (arrow) arrow.style.transform = open ? 'rotate(90deg)' : '';
+  if (open) await cargarEstadoMovil();
+}
+
+function _actualizarMovilBadge(telefono, verificado) {
+  const badge = document.getElementById('movil-badge');
+  if (!badge) return;
+  if (telefono && verificado) {
+    badge.textContent = 'Verificado';
+    badge.style.display = 'inline-block';
+    badge.style.background = '#e8fdf3';
+    badge.style.color = '#00b562';
+    badge.style.border = '1px solid #00b56240';
+  } else if (telefono && !verificado) {
+    badge.textContent = 'Sin verificar';
+    badge.style.display = 'inline-block';
+    badge.style.background = '#fff8f0';
+    badge.style.color = 'var(--orange)';
+    badge.style.border = '1px solid var(--orange)40';
+  } else {
+    badge.textContent = 'No configurado';
+    badge.style.display = 'inline-block';
+    badge.style.background = '#fff0f1';
+    badge.style.color = 'var(--red)';
+    badge.style.border = '1px solid var(--red)40';
+  }
 }
 
 async function cargarEstadoMovil() {
@@ -2973,24 +3002,24 @@ async function cargarEstadoMovil() {
     paso3v.style.display = 'none';
 
     if (data.telefono && data.verificado) {
-      // Verificado: mostrar input bloqueado + botón eliminar
       paso3v.style.display = 'block';
       document.getElementById('movil-tel-verified').value = data.telefono;
-      sublabel.textContent = `✅ ${data.telefono}`;
+      sublabel.textContent = data.telefono;
       estadoEl.innerHTML = `<span style="color:#34c759;font-weight:700">✅ Número verificado</span>`;
     } else if (data.telefono && !data.verificado) {
-      // Sin verificar: mostrar formulario con número
       paso1.style.display = 'block';
       document.getElementById('movil-tel-input').value = data.telefono;
-      sublabel.textContent = '⚠️ Pendiente de verificar';
+      sublabel.textContent = 'Pendiente de verificar';
       estadoEl.innerHTML = `<span style="color:var(--orange);font-weight:700">⚠️ Número sin verificar</span>`;
     } else {
-      // Sin número: mostrar formulario vacío
       paso1.style.display = 'block';
       document.getElementById('movil-tel-input').value = '';
       sublabel.textContent = 'Para llamadas de verificación';
       estadoEl.innerHTML = `<span style="color:var(--muted)">Sin número configurado</span>`;
     }
+
+    // Actualizar badge siempre (aunque el panel esté cerrado)
+    _actualizarMovilBadge(data.telefono, data.verificado);
   } catch(e) {}
 }
 
