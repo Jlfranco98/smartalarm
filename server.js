@@ -432,24 +432,18 @@ app.post('/api/usuarios', requireAuth, async (req, res) => {
 // DELETE propio móvil — debe ir ANTES de /:username para que Express no lo capture como param
 app.delete('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
   try {
-    // 1. Obtener el teléfono actual del usuario
     const user = await User.findOne({ username: req.sessionUser }, 'telefono');
     const telefono = user?.telefono;
-
-    // 2. Borrar teléfono del usuario
     await User.updateOne(
       { username: req.sessionUser },
       { $set: { telefono: null, telefonoVerificado: false } }
     );
-
-    // 3. Si tenía teléfono, quitarlo también de llamadas_config
     if (telefono) {
       await LlamadaConfig.updateOne(
         { id: 'llamadas_config' },
         { $pull: { numeros: { telefono } } }
       );
     }
-
     res.json({ success: true });
   } catch(e) { res.status(500).json({ success: false }); }
 });
@@ -457,7 +451,19 @@ app.delete('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
 app.delete('/api/usuarios/:username', requireAuth, async (req, res) => {
   try {
     if (req.params.username === 'admin') return res.status(403).json({ success: false, message: 'No se puede eliminar al admin principal' });
+    // Obtener teléfono antes de borrar para limpiar llamadas_config
+    const userToDel = await User.findOne({ username: req.params.username }, 'telefono');
+    const telefono = userToDel?.telefono;
     await User.findOneAndDelete({ username: req.params.username });
+    // Limpiar sesiones activas del usuario eliminado
+    await Session.deleteMany({ username: req.params.username });
+    // Limpiar de llamadas_config si tenía teléfono
+    if (telefono) {
+      await LlamadaConfig.updateOne(
+        { id: 'llamadas_config' },
+        { $pull: { numeros: { telefono } } }
+      );
+    }
     res.json({ success: true });
   } catch (e) { res.status(500).json({ success: false }); }
 });
@@ -513,6 +519,16 @@ app.get('/api/sessions', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json([]); }
 });
 
+// IMPORTANTE: sessions/user/:username debe ir ANTES de sessions/:id
+app.delete('/api/sessions/user/:username', requireAuth, async (req, res) => { try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
+    await Session.deleteMany({ username: req.params.username });
+    await PushSub.deleteMany({ username: req.params.username });
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
+});
+
 app.delete('/api/sessions/:id', requireAuth, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.sessionUser });
@@ -524,26 +540,6 @@ app.delete('/api/sessions/:id', requireAuth, async (req, res) => {
       if (otherSessions === 0) await PushSub.deleteMany({ username: session.username });
     }
     await Session.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-  } catch(e) { res.status(500).json({ success: false }); }
-});
-
-app.patch('/api/sessions/:id/device-name', requireAuth, async (req, res) => {
-  try {
-    const user = await User.findOne({ username: req.sessionUser });
-    if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
-    const { deviceName } = req.body;
-    if (!deviceName || !deviceName.trim()) return res.status(400).json({ success: false, message: 'Nombre no válido' });
-    await Session.findByIdAndUpdate(req.params.id, { $set: { deviceName: deviceName.trim().slice(0, 60) } });
-    res.json({ success: true });
-  } catch(e) { res.status(500).json({ success: false }); }
-});
-
-app.delete('/api/sessions/user/:username', requireAuth, async (req, res) => {  try {
-    const user = await User.findOne({ username: req.sessionUser });
-    if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
-    await Session.deleteMany({ username: req.params.username });
-    await PushSub.deleteMany({ username: req.params.username });
     res.json({ success: true });
   } catch(e) { res.status(500).json({ success: false }); }
 });
