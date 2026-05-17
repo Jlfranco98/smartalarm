@@ -1659,6 +1659,8 @@ function save(){
 
 // ── Login / Logout ─────────────────────────────────────────────────────────
 // Obtener o generar deviceToken permanente para este dispositivo
+let _loginInProgress = false;
+
 function getDeviceToken() {
   let dt = localStorage.getItem('mialarm_device_token');
   if (!dt) {
@@ -1678,10 +1680,17 @@ function saveDeviceName(name) {
 }
 
 async function doLogin() {
+  if (_loginInProgress) return;
+  _loginInProgress = true;
   const u = document.getElementById('li-user').value.trim();
   const p = document.getElementById('li-pass').value;
   const err = document.getElementById('li-err');
-  if (!u || !p) { err.textContent = 'Introduce usuario y contraseña'; return; }
+  const btn = document.querySelector('#s-login .btn-red');
+  if (!u || !p) { err.textContent = 'Introduce usuario y contraseña'; _loginInProgress = false; return; }
+
+  // Deshabilitar botón y mostrar cargando
+  if (btn) { btn.disabled = true; btn.textContent = '⌛ Iniciando sesión...'; }
+  err.textContent = '';
 
   const deviceToken = getDeviceToken();
   const deviceName  = getDeviceName();
@@ -1718,7 +1727,11 @@ async function doLogin() {
       err.textContent = data.message || 'Credenciales incorrectas';
     }
   } catch (e) {
-    err.textContent = 'Error de conexión';
+    document.getElementById('li-err').textContent = 'Error de conexión';
+  } finally {
+    _loginInProgress = false;
+    const btn = document.querySelector('#s-login .btn-red');
+    if (btn) { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
   }
 }
 
