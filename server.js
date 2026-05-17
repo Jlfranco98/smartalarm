@@ -1433,6 +1433,17 @@ app.get('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ telefono: null, verificado: false }); }
 });
 
+// DELETE: el propio usuario desvincula su móvil
+app.delete('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
+  try {
+    await User.updateOne(
+      { username: req.sessionUser },
+      { $set: { telefono: null, telefonoVerificado: false } }
+    );
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
+});
+
 // --- 15. ARRANQUE ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, async () => {

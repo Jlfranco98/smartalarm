@@ -3225,19 +3225,8 @@ async function confirmarDesvincularMovil() {
   });
   if (!ok) return;
   try {
-    let exito = false;
     const res = await authFetch('/api/usuarios/mi-movil', { method: 'DELETE' });
     if (res.ok) {
-      exito = true;
-    } else {
-      // Fallback: PATCH con teléfono vacío
-      const res2 = await authFetch(`/api/usuarios/${S.currentUser.username}/movil`, {
-        method: 'PATCH',
-        body: JSON.stringify({ telefono: '' })
-      });
-      if (res2.ok) exito = true;
-    }
-    if (exito) {
       toast2('✅ Número desvinculado');
       await cargarEstadoMovil();
       if (typeof cargarLlamadas === 'function') cargarLlamadas();
