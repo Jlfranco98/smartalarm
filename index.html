@@ -3225,13 +3225,21 @@ async function confirmarDesvincularMovil() {
   });
   if (!ok) return;
   try {
-    const res = await authFetch('/api/usuarios/mi-movil', { method: 'DELETE' });
+    // Intentar DELETE primero, si falla usar PATCH (ambos endpoints ahora permiten al propio usuario)
+    let res = await authFetch('/api/usuarios/mi-movil', { method: 'DELETE' });
+    if (!res.ok) {
+      res = await authFetch(`/api/usuarios/${S.currentUser.username}/movil`, {
+        method: 'PATCH',
+        body: JSON.stringify({ telefono: '' })
+      });
+    }
     if (res.ok) {
       toast2('✅ Número desvinculado');
       await cargarEstadoMovil();
       if (typeof cargarLlamadas === 'function') cargarLlamadas();
     } else {
-      toast2('⚠️ No se pudo desvincular el número');
+      const data = await res.json().catch(() => ({}));
+      toast2('⚠️ Error: ' + (data.message || res.status));
     }
   } catch(e) { toast2('⚠️ Error de conexión'); }
 }

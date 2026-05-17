@@ -440,8 +440,11 @@ app.delete('/api/usuarios/:username', requireAuth, async (req, res) => {
 // Admin asigna móvil a cualquier usuario directamente (sin verificación SMS)
 app.patch('/api/usuarios/:username/movil', requireAuth, async (req, res) => {
   try {
-    const admin = await User.findOne({ username: req.sessionUser });
-    if (admin?.role !== 'admin') return res.status(403).json({ success: false });
+    const requestingUser = await User.findOne({ username: req.sessionUser });
+    // Permitir si es admin O si es el propio usuario
+    if (requestingUser?.role !== 'admin' && req.sessionUser !== req.params.username) {
+      return res.status(403).json({ success: false });
+    }
     const { telefono } = req.body;
     await User.updateOne(
       { username: req.params.username },
@@ -1431,6 +1434,16 @@ app.get('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
     const user = await User.findOne({ username: req.sessionUser }, 'telefono telefonoVerificado');
     res.json({ telefono: user?.telefono || null, verificado: user?.telefonoVerificado || false });
   } catch(e) { res.status(500).json({ telefono: null, verificado: false }); }
+});
+
+app.delete('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
+  try {
+    await User.updateOne(
+      { username: req.sessionUser },
+      { $set: { telefono: null, telefonoVerificado: false } }
+    );
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
 });
 
 // DELETE: el propio usuario desvincula su móvil
