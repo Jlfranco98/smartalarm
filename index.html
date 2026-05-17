@@ -1695,6 +1695,11 @@ async function doLogin() {
   const deviceToken = getDeviceToken();
   const deviceName  = getDeviceName();
 
+  const resetBtn = () => {
+    _loginInProgress = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
+  };
+
   try {
     const response = await fetch('/api/login', {
       method: 'POST',
@@ -1711,27 +1716,28 @@ async function doLogin() {
 
       // Usuario nuevo → configurar cuenta primero
       if (data.user.isNew || data.user.mustChange) {
+        resetBtn();
         showForceChangeModal(p);
         return;
       }
 
       // Dispositivo nuevo sin nombre → mostrar modal de nombre
       if (!data.sessionReutilizada && !deviceName) {
+        resetBtn();
         showDeviceNameModal();
         return;
       }
 
       // LOGIN NORMAL
+      resetBtn();
       enterApp();
     } else {
       err.textContent = data.message || 'Credenciales incorrectas';
+      resetBtn();
     }
   } catch (e) {
-    document.getElementById('li-err').textContent = 'Error de conexión';
-  } finally {
-    _loginInProgress = false;
-    const btn = document.querySelector('#s-login .btn-red');
-    if (btn) { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
+    err.textContent = 'Error de conexión';
+    resetBtn();
   }
 }
 
