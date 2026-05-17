@@ -522,20 +522,6 @@ app.patch('/api/sessions/:id/device-name', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ success: false }); }
 });
 
-// Cualquier usuario puede nombrar su propia sesión activa
-app.patch('/api/sessions/my-device-name', requireAuth, async (req, res) => {
-  try {
-    const { deviceName } = req.body;
-    if (!deviceName || !deviceName.trim()) return res.status(400).json({ success: false });
-    const token = req.headers['x-app-token'];
-    await Session.findOneAndUpdate(
-      { token, username: req.sessionUser },
-      { $set: { deviceName: deviceName.trim().slice(0, 60) } }
-    );
-    res.json({ success: true });
-  } catch(e) { res.status(500).json({ success: false }); }
-});
-
 app.delete('/api/sessions/user/:username', requireAuth, async (req, res) => {  try {
     const user = await User.findOne({ username: req.sessionUser });
     if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
