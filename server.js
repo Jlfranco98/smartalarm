@@ -131,19 +131,8 @@ const CLOUDINARY_URL     = process.env.CLOUDINARY_URL || '';  // formato: cloudi
 // Twilio (llamadas de alarma)
 const TWILIO_SID   = process.env.TWILIO_SID   || '';
 const TWILIO_TOKEN = process.env.TWILIO_TOKEN  || '';
-const TWILIO_FROM  = process.env.TWILIO_FROM   || ''; // número Twilio: +12184234129
+const TWILIO_FROM  = process.env.TWILIO_FROM   || ''; 
 const TWILIO_TO    = (process.env.TWILIO_TO    || '').split(',').map(n => n.trim()).filter(Boolean);
-
-// Mapa número → nombre para identificar quién confirma la llamada
-// Formato en Railway: TWILIO_NOMBRES=+34666111222:José,+34677333444:María
-const TWILIO_NOMBRES = (() => {
-  const mapa = {};
-  (process.env.TWILIO_NOMBRES || '').split(',').forEach(par => {
-    const [num, ...resto] = par.trim().split(':');
-    if (num && resto.length) mapa[num.trim()] = resto.join(':').trim();
-  });
-  return mapa;
-})();
 
 // Cuenta A: solo sensor de luz (alarma crítica)
 const TUYA_CLIENT_ID_ALARMA     = process.env.TUYA_CLIENT_ID_ALARMA;
@@ -1294,7 +1283,7 @@ app.use('/twilio/confirmar', async (req, res) => {
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    La alerta ya ha sido verificada y cancelada por ${primerNombre}, . No es necesaria ninguna acción adicional. Hasta pronto.
+    La alerta ya ha sido verificada y cancelada por ${primerNombre}. No es necesaria ninguna acción adicional. Hasta pronto.
   </Say>
   <Pause length="2"/>
 </Response>`);
@@ -1384,7 +1373,7 @@ app.post('/api/usuarios/verificar-movil/enviar', requireAuth, async (req, res) =
     await client.messages.create({
       to: telefono,
       from: TWILIO_FROM,
-      body: `Tu código de verificación de Verisure es: ${codigo}. Caduca en 10 minutos.`
+      body: `Su codigo de verificacion para SmartAlarm es: ${codigo}.`
     });
 
     console.log(`📱 SMS de verificación enviado a ${telefono} para ${req.sessionUser}`);
