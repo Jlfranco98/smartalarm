@@ -1978,20 +1978,20 @@ async function renderUsersAdmin(){
         <div style="flex:1;min-width:160px">
           <div class="ur-name">${escapeHtml(u.name)}</div>
           <div class="ur-role">@${escapeHtml(u.username)} · ${u.role==='admin'?'Admin':'Usuario'}</div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
-            <span style="font-size:14px">${u.telefono ? (u.telefonoVerificado ? '✅' : '⚠️') : '📵'}</span>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <span style="font-size:14px;flex-shrink:0">${u.telefono ? (u.telefonoVerificado ? '✅' : '⚠️') : '📵'}</span>
             ${isAdmin ? `
-              <span style="font-size:13px;font-weight:700;color:var(--text)">${numCorto || 'Sin número'}</span>
-              ${u.telefonoVerificado ? '<span style="font-size:11px;color:#34c759;font-weight:700">· Verificado</span>' : (u.telefono ? '<span style="font-size:11px;color:var(--orange);font-weight:700">· Sin verificar</span>' : '')}
-              <button onclick="abrirMovilAdminModal('${escapeHtml(u.username)}','${escapeHtml(u.name)}','${escapeHtml(numCorto)}')"
-                title="Editar número"
-                style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;color:var(--muted)">✏️</button>
-              ${u.telefono ? `<button onclick="borrarMovilAdmin('${escapeHtml(u.username)}')"
-                title="Eliminar número"
-                style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;color:var(--red)">🗑️</button>` : ''}
+              <span style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">${numCorto || 'Sin número'}${u.telefonoVerificado ? '<span style="font-size:11px;color:#34c759;font-weight:700"> · Verificado</span>' : (u.telefono ? '<span style="font-size:11px;color:var(--orange);font-weight:700"> · Sin verificar</span>' : '')}</span>
+              <span style="display:inline-flex;gap:2px;flex-shrink:0">
+                <button onclick="abrirMovilAdminModal('${escapeHtml(u.username)}','${escapeHtml(u.name)}','${escapeHtml(numCorto)}')"
+                  title="Editar número"
+                  style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;color:var(--muted)">✏️</button>
+                ${u.telefono ? `<button onclick="borrarMovilAdmin('${escapeHtml(u.username)}')"
+                  title="Eliminar número"
+                  style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;color:var(--red)">🗑️</button>` : ''}
+              </span>
             ` : `
-              <span style="font-size:12px;color:var(--muted);font-weight:600">${numCorto || 'Sin número'}</span>
-              ${u.telefonoVerificado ? '<span style="font-size:11px;color:#34c759;font-weight:700;margin-left:2px">· Verificado</span>' : (u.telefono ? '<span style="font-size:11px;color:var(--orange);font-weight:700;margin-left:2px">· Sin verificar</span>' : '')}
+              <span style="font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap">${numCorto || 'Sin número'}${u.telefonoVerificado ? '<span style="font-size:11px;color:#34c759;font-weight:700"> · Verificado</span>' : (u.telefono ? '<span style="font-size:11px;color:var(--orange);font-weight:700"> · Sin verificar</span>' : '')}</span>
             `}
           </div>
         </div>
