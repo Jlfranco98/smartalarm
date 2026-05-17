@@ -989,7 +989,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
                 <label>Número verificado</label>
                 <div style="display:flex;align-items:center;gap:8px">
                   <input id="movil-tel-verified" type="tel" readonly
-                    style="flex:1;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--muted);background:var(--bg);cursor:not-allowed">
+                    style="flex:1;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:800;color:var(--text);background:var(--bg);cursor:not-allowed;letter-spacing:.5px">
                   <button onclick="confirmarDesvincularMovil()"
                     title="Desvincular número"
                     style="width:42px;height:42px;border-radius:12px;background:var(--red-light);border:1.5px solid #fcc;color:var(--red);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -998,7 +998,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
                 </div>
               </div>
               <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:-4px;padding:0 2px">
-                ✅ Número verificado · Para desvincular pulsa el icono 🗑️
+                Para desvincular pulsa el icono 🗑️
               </div>
             </div>
             <div class="err-small" id="movil-err" style="text-align:center;margin-top:6px"></div>
@@ -3196,8 +3196,8 @@ async function cargarEstadoMovil() {
 
     if (data.telefono && data.verificado) {
       paso3v.style.display = 'block';
-      document.getElementById('movil-tel-verified').value = data.telefono;
-      sublabel.textContent = data.telefono;
+      document.getElementById('movil-tel-verified').value = data.telefono.replace(/^\+34/, '');
+      sublabel.textContent = data.telefono.replace(/^\+34/, '');
       estadoEl.innerHTML = `<span style="color:#34c759;font-weight:700">✅ Número verificado</span>`;
     } else if (data.telefono && !data.verificado) {
       paso1.style.display = 'block';
