@@ -970,6 +970,24 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
         </div>
 
+        <!-- GRUPO: CONTACTO VERISURE -->
+        <div class="sl-section-label">Alertas de llamada</div>
+        <div class="sl-group">
+          <div class="sl-item" onclick="descargarContactoVerisure()">
+            <div class="sl-icon" style="background:#ffebee">📱</div>
+            <div class="sl-text">
+              <div class="sl-label">Agregar contacto Verisure</div>
+              <div class="sl-sublabel">Para recibir llamadas aunque el móvil esté en silencio</div>
+            </div>
+            <div class="sl-arrow">›</div>
+          </div>
+          <div style="padding:10px 14px 14px;background:#fff8f0;border-radius:0 0 14px 14px;font-size:12px;color:var(--muted);font-weight:600;line-height:1.6">
+            Tras añadir el contacto, activa la excepción en tu móvil:<br>
+            <b>iOS:</b> Contactos → Verisure → Tono → Excepción por emergencia ✅<br>
+            <b>Android:</b> Contactos → Verisure → Marcar como prioritario ⭐
+          </div>
+        </div>
+
         <!-- GRUPO: NOTIFICACIONES -->
         <div class="sl-section-label">Notificaciones</div>
         <div class="sl-group">
@@ -1100,14 +1118,20 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
             Orden en que se llama cuando salta la alarma.
           </div>
           <div id="llamadas-list" style="margin-bottom:14px"></div>
-          <div id="llamadas-add-section" style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Añadir número manualmente</div>
-          <div id="llamadas-add-inputs" style="display:flex;gap:8px;margin-bottom:8px">
-            <input type="tel" id="new-llamada-tel" placeholder="+34600000000"
-              style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
-            <input type="text" id="new-llamada-nombre" placeholder="Nombre"
-              style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
+          <button onclick="toggleAddLlamadaForm()" id="llamadas-add-toggle"
+            style="width:100%;padding:11px;background:transparent;border:1.5px dashed var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:var(--muted);cursor:pointer;margin-bottom:8px">
+            ＋ Añadir número manualmente
+          </button>
+          <div id="llamadas-add-form" style="display:none">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Añadir número manualmente</div>
+            <div id="llamadas-add-inputs" style="display:flex;gap:8px;margin-bottom:8px">
+              <input type="tel" id="new-llamada-tel" placeholder="+34600000000"
+                style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
+              <input type="text" id="new-llamada-nombre" placeholder="Nombre"
+                style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
+            </div>
+            <button class="btn-add" onclick="addLlamada()" style="width:100%" id="llamadas-add-btn">+ Añadir número</button>
           </div>
-          <button class="btn-add" onclick="addLlamada()" style="width:100%" id="llamadas-add-btn">+ Añadir número</button>
           <div class="cfg-saved" id="llamadas-ok" style="margin-top:6px"></div>
         </div>
       </div>
@@ -2956,6 +2980,38 @@ function eliminarLlamada(idx) {
     llamadasData.splice(idx, 1);
     guardarLlamadas();
   });
+}
+
+function toggleAddLlamadaForm() {
+  const form = document.getElementById('llamadas-add-form');
+  const btn  = document.getElementById('llamadas-add-toggle');
+  const open = form.style.display === 'none';
+  form.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '✕ Cerrar' : '＋ Añadir número manualmente';
+}
+
+async function descargarContactoVerisure() {
+  try {
+    const res  = await authFetch('/api/twilio-number');
+    const data = await res.json();
+    const numero  = data.numero  || '';
+    const logoB64 = data.logoB64 || '';
+
+    let vcf = `BEGIN:VCARD\nVERSION:3.0\nFN:Verisure\nORG:Verisure\nTEL;TYPE=CELL,PREF:${numero}\n`;
+    if (logoB64) vcf += `PHOTO;ENCODING=b;TYPE=PNG:${logoB64}\n`;
+    vcf += `NOTE:Sistema de seguridad Smart Alarm. Activa excepcion de emergencia para recibir llamadas en silencio.\nEND:VCARD`;
+
+    const blob = new Blob([vcf], { type: 'text/vcard' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'Verisure.vcf';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast2('📱 Contacto descargado — ábrelo para añadirlo');
+  } catch(e) {
+    toast2('Error al descargar el contacto');
+  }
 }
 
 async function addLlamada() {

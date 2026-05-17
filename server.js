@@ -1331,6 +1331,19 @@ app.use('/twilio/confirmar', async (req, res) => {
   }
 });
 
+// Devuelve el número de Twilio y el logo para el vCard del contacto Verisure
+app.get('/api/twilio-number', requireAuth, async (req, res) => {
+  let logoB64 = '';
+  try {
+    const fs = require('fs');
+    const iconPath = path.join(__dirname, 'icon-192.png');
+    if (fs.existsSync(iconPath)) {
+      logoB64 = fs.readFileSync(iconPath).toString('base64');
+    }
+  } catch(e) {}
+  res.json({ numero: TWILIO_FROM || '', logoB64 });
+});
+
 // ── GESTIÓN LLAMADAS DE VERIFICACIÓN (admin) ──────────────────────────────
 
 // Obtener configuración de llamadas
