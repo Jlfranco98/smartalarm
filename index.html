@@ -679,6 +679,32 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
   </div>
 </div>
 
+<!-- ════════════════ MODAL AÑADIR NÚMERO LLAMADAS ════════════════ -->
+<div class="auto-modal-bg" id="add-llamada-modal-bg" onclick="if(event.target===this)closeAddLlamadaModal()">
+  <div class="auto-modal" style="padding:24px 20px 32px">
+    <div class="auto-modal-title">📞 Añadir número manualmente</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:16px">Introduce el número y el nombre para las llamadas de verificación</div>
+    <div style="margin-bottom:8px">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Teléfono</div>
+      <div style="display:flex;align-items:center;gap:0;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:0">
+        <span style="padding:12px 10px 12px 14px;background:var(--bg);font-size:15px;font-weight:800;color:var(--muted);border-right:1.5px solid var(--border);white-space:nowrap">+34</span>
+        <input id="add-llamada-modal-tel" type="tel" placeholder="600 000 000" maxlength="9" inputmode="numeric"
+          style="flex:1;padding:12px 14px;border:none;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--text);background:transparent;outline:none"
+          onkeydown="if(event.key==='Enter')document.getElementById('add-llamada-modal-nombre').focus()">
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;margin-top:10px">Nombre</div>
+      <input id="add-llamada-modal-nombre" type="text" placeholder="Ej: Mamá, Vecino, Empresa…"
+        style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--text);background:var(--white);outline:none"
+        onkeydown="if(event.key==='Enter')guardarAddLlamadaModal()">
+    </div>
+    <div class="err-small" id="add-llamada-modal-err" style="text-align:center;margin-bottom:10px"></div>
+    <button class="btn-red" onclick="guardarAddLlamadaModal()" style="width:100%;margin-bottom:10px">Añadir número</button>
+    <button onclick="closeAddLlamadaModal()" style="width:100%;padding:13px;background:transparent;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer">Cancelar</button>
+  </div>
+</div>
+
 <!-- ════════════════ LOGIN ════════════════ -->
 <div id="s-login" class="screen active">
   <div class="login-top">
@@ -1113,11 +1139,13 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
     <div class="page" id="pg-admin">
       <div class="sec-hdr">
         <span class="sec-title">Gestión de usuarios</span>
-        <span class="sec-more admin-only" id="add-user-btn" style="display:none" onclick="openAddUserModal()">＋ Nuevo usuario</span>
       </div>
       <div class="admin-section">
         <div class="admin-card">
-          <div class="ac-title">Usuarios registrados</div>
+          <div class="ac-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Usuarios registrados</span>
+            <span class="sec-more admin-only" id="add-user-btn" style="display:none;font-size:13px;font-weight:700;color:var(--red);cursor:pointer" onclick="openAddUserModal()">＋ Nuevo usuario</span>
+          </div>
           <div id="users-admin-list"></div>
         </div>
         <div id="add-user-form-admin" style="display:none">
@@ -1130,25 +1158,14 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
       <!-- LLAMADAS DE VERIFICACIÓN -->
       <div class="admin-section" style="margin-top:0">
         <div class="admin-card">
-          <div class="ac-title">📞 Llamadas de verificación</div>
+          <div class="ac-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>📞 Llamadas de verificación</span>
+            <span class="admin-only" id="llamadas-add-btn-header" style="font-size:12px;font-weight:800;color:var(--red);cursor:pointer" onclick="openAddLlamadaModal()">＋ Añadir nuevo número</span>
+          </div>
           <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:14px">
             Orden en que se llama cuando salta la alarma.
           </div>
-          <div id="llamadas-list" style="margin-bottom:14px"></div>
-          <button onclick="toggleAddLlamadaForm()" id="llamadas-add-toggle"
-            style="width:100%;padding:11px;background:transparent;border:1.5px dashed var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:var(--muted);cursor:pointer;margin-bottom:8px">
-            ＋ Añadir número manualmente
-          </button>
-          <div id="llamadas-add-form" style="display:none">
-            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Añadir número manualmente</div>
-            <div id="llamadas-add-inputs" style="display:flex;gap:8px;margin-bottom:8px">
-              <input type="tel" id="new-llamada-tel" placeholder="+34600000000"
-                style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
-              <input type="text" id="new-llamada-nombre" placeholder="Nombre"
-                style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text)">
-            </div>
-            <button class="btn-add" onclick="addLlamada()" style="width:100%" id="llamadas-add-btn">+ Añadir número</button>
-          </div>
+          <div id="llamadas-list" style="margin-bottom:8px"></div>
           <div class="cfg-saved" id="llamadas-ok" style="margin-top:6px"></div>
         </div>
       </div>
@@ -2042,7 +2059,42 @@ async function guardarMovilAdmin(username) {
   } catch(e) { toast2('Error de conexión'); }
 }
 
+function openAddLlamadaModal() {
+  document.getElementById('add-llamada-modal-tel').value = '';
+  document.getElementById('add-llamada-modal-nombre').value = '';
+  document.getElementById('add-llamada-modal-err').textContent = '';
+  document.getElementById('add-llamada-modal-bg').classList.add('open');
+  setTimeout(() => document.getElementById('add-llamada-modal-tel').focus(), 100);
+}
+
+function closeAddLlamadaModal() {
+  document.getElementById('add-llamada-modal-bg').classList.remove('open');
+}
+
+async function guardarAddLlamadaModal() {
+  const digits = document.getElementById('add-llamada-modal-tel').value.trim().replace(/\s/g, '');
+  const nombre = document.getElementById('add-llamada-modal-nombre').value.trim();
+  const err    = document.getElementById('add-llamada-modal-err');
+  err.textContent = '';
+
+  if (!digits) return (err.textContent = 'Introduce un número');
+  if (!/^\d{9}$/.test(digits)) return (err.textContent = 'Introduce 9 dígitos sin espacios');
+  if (!nombre) return (err.textContent = 'Introduce un nombre');
+
+  const tel = '+34' + digits;
+  llamadasData.push({ telefono: tel, nombre, activo: true });
+  await guardarLlamadas();
+  closeAddLlamadaModal();
+}
+
 async function borrarMovilAdmin(username) {
+  const ok = await showConfirm({
+    icon: '🗑️',
+    title: 'Eliminar número',
+    msg: `¿Eliminar el número de móvil de @${username}? El usuario dejará de recibir llamadas de verificación.`,
+    confirmLabel: 'Eliminar'
+  });
+  if (!ok) return;
   try {
     const res = await authFetch(`/api/usuarios/${username}/movil`, {
       method: 'PATCH',
@@ -2129,6 +2181,8 @@ initTheme();
   // Gestión de visibilidad de formularios
   const addBtn = document.getElementById('add-user-btn');
   if (addBtn) addBtn.style.display = isAdmin ? 'inline' : 'none';
+  const llamadasAddBtn = document.getElementById('llamadas-add-btn-header');
+  if (llamadasAddBtn) llamadasAddBtn.style.display = isAdmin ? 'inline' : 'none';
   const nonAdminNote = document.getElementById('add-user-form-admin');
   if(nonAdminNote) nonAdminNote.style.display = isAdmin ? 'none' : 'block';
   
@@ -2940,7 +2994,7 @@ function renderLlamadas() {
           </div>
           <div style="flex:1">
             <div style="font-size:14px;font-weight:800;color:var(--text)">${i+1}. ${escapeHtml(n.nombre)}</div>
-            <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono)}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
+            <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono.replace(/^\+34/,''))}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
           </div>
           <label class="toggle-switch" title="${n.activo?'Activo':'Inactivo'}">
             <input type="checkbox" ${n.activo?'checked':''} onchange="toggleActivoLlamada(${i},this.checked)">
@@ -2957,7 +3011,7 @@ function renderLlamadas() {
           </div>
           <div style="flex:1">
             <div style="font-size:14px;font-weight:800;color:var(--text)">${i+1}. ${escapeHtml(n.nombre)}</div>
-            <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono)}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
+            <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono.replace(/^\+34/,''))}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
           </div>
           <span style="font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;background:${n.activo?'var(--green-light)':'var(--bg)'};color:${n.activo?'var(--green)':'var(--muted)'}">
             ${n.activo?'Activo':'Inactivo'}
@@ -3040,13 +3094,7 @@ function eliminarLlamada(idx) {
   });
 }
 
-function toggleAddLlamadaForm() {
-  const form = document.getElementById('llamadas-add-form');
-  const btn  = document.getElementById('llamadas-add-toggle');
-  const open = form.style.display === 'none';
-  form.style.display = open ? 'block' : 'none';
-  btn.textContent = open ? '✕ Cerrar' : '＋ Añadir número manualmente';
-}
+// toggleAddLlamadaForm — reemplazada por openAddLlamadaModal
 
 async function descargarContactoVerisure() {
   try {
