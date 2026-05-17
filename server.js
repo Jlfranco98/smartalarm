@@ -1188,6 +1188,8 @@ async function llamarSiguiente() {
       statusCallback: callbackUrl,
       statusCallbackMethod: 'POST',
       statusCallbackEvent: ['completed'],
+      timeout: 20, //Si el llamado no responde en 20 segundos, pasa al siguiente numero
+      timeLimit: 59, //La llamada no durará mas de 59 segundos para solo cobren tarifa de 1 minuto
     });
   } catch(e) {
     console.error(`❌ Error llamada Twilio a ${numero} (${nombre}):`, e.message);
