@@ -432,10 +432,24 @@ app.post('/api/usuarios', requireAuth, async (req, res) => {
 // DELETE propio móvil — debe ir ANTES de /:username para que Express no lo capture como param
 app.delete('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
   try {
+    // 1. Obtener el teléfono actual del usuario
+    const user = await User.findOne({ username: req.sessionUser }, 'telefono');
+    const telefono = user?.telefono;
+
+    // 2. Borrar teléfono del usuario
     await User.updateOne(
       { username: req.sessionUser },
       { $set: { telefono: null, telefonoVerificado: false } }
     );
+
+    // 3. Si tenía teléfono, quitarlo también de llamadas_config
+    if (telefono) {
+      await LlamadaConfig.updateOne(
+        { id: 'llamadas_config' },
+        { $pull: { numeros: { telefono } } }
+      );
+    }
+
     res.json({ success: true });
   } catch(e) { res.status(500).json({ success: false }); }
 });
