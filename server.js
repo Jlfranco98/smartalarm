@@ -1245,7 +1245,7 @@ app.use('/twilio/status', async (req, res) => {
   const callStatus = req.body?.CallStatus || req.query?.CallStatus;
   const numero     = req.body?.To         || req.query?.To || '';
   const entrada    = twilioNumerosActivos.find(n => n.telefono === numero);
-  const nombre     = entrada?.nombre || TWILIO_NOMBRES[numero] || numero;
+  const nombre     = entrada?.nombre || numero;
 
   console.log(`📋 Estado llamada ${numero} (${nombre}): ${callStatus}`);
 
@@ -1273,10 +1273,20 @@ app.use('/twilio/confirmar', async (req, res) => {
   const numero = req.body?.To     || req.query?.To || '';   // número al que Twilio llamó
   res.type('text/xml');
 
-  if (tecla === '1') {
-    // Identificar quién confirma por su número de teléfono
-    const nombre = TWILIO_NOMBRES[numero] || numero || 'Teléfono desconocido';
+  // Buscar nombre en twilioNumerosActivos (cargado desde MongoDB) o en Users por teléfono
+  let nombre = numero;
+  const entradaActiva = twilioNumerosActivos.find(n => n.telefono === numero);
+  if (entradaActiva?.nombre) {
+    nombre = entradaActiva.nombre;
+  } else {
+    // Fallback: buscar en MongoDB por teléfono del usuario
+    try {
+      const userDoc = await User.findOne({ telefono: numero });
+      if (userDoc) nombre = userDoc.name || userDoc.username;
+    } catch(e) {}
+  }
 
+  if (tecla === '1') {
     if (twilioConfirmacion) {
       // Ya confirmó otra persona antes — informar y NO crear log duplicado
       const primerNombre = twilioConfirmacion.nombre;
