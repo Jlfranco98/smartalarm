@@ -662,6 +662,25 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 </head>
 <body>
 
+<!-- ════════════════ DEVICE NAME MODAL ════════════════ -->
+<div class="confirm-modal-bg" id="device-name-modal-bg">
+  <div class="confirm-modal">
+    <div class="confirm-modal-icon">📱</div>
+    <div class="confirm-modal-title">¿Cómo se llama este dispositivo?</div>
+    <div class="confirm-modal-sub">Para identificarlo en las sesiones activas</div>
+    <input id="device-name-modal-input" type="text"
+      placeholder="Ej: iPhone Jose, iPad cocina…"
+      maxlength="40"
+      style="width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);margin-bottom:10px;box-sizing:border-box"
+      onkeydown="if(event.key==='Enter')saveDeviceNameModal()">
+    <div class="err-small" id="device-name-modal-err" style="text-align:center;margin-bottom:8px"></div>
+    <div class="confirm-modal-btns">
+      <button class="confirm-modal-btn-ok warning" onclick="saveDeviceNameModal()">Guardar y entrar</button>
+      <button class="confirm-modal-btn-cancel" onclick="document.getElementById('device-name-modal-bg').classList.remove('open');enterApp()">Omitir por ahora</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════════ LOGIN ════════════════ -->
 <div id="s-login" class="screen active">
   <div class="login-top">
@@ -1639,17 +1658,39 @@ function save(){
 }
 
 // ── Login / Logout ─────────────────────────────────────────────────────────
+// Obtener o generar deviceToken permanente para este dispositivo
+function getDeviceToken() {
+  let dt = localStorage.getItem('mialarm_device_token');
+  if (!dt) {
+    dt = 'dt_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('mialarm_device_token', dt);
+  }
+  return dt;
+}
+
+// Comprobar si este dispositivo ya tiene nombre guardado
+function getDeviceName() {
+  return localStorage.getItem('mialarm_device_name') || '';
+}
+
+function saveDeviceName(name) {
+  localStorage.setItem('mialarm_device_name', name);
+}
+
 async function doLogin() {
   const u = document.getElementById('li-user').value.trim();
   const p = document.getElementById('li-pass').value;
   const err = document.getElementById('li-err');
   if (!u || !p) { err.textContent = 'Introduce usuario y contraseña'; return; }
 
+  const deviceToken = getDeviceToken();
+  const deviceName  = getDeviceName();
+
   try {
     const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: u, password: p })
+      body: JSON.stringify({ username: u, password: p, deviceToken, deviceName })
     });
     const data = await response.json();
 
@@ -1657,31 +1698,72 @@ async function doLogin() {
       err.textContent = '';
       S.currentUser = data.user;
       S.sessionToken = data.token;
-      
-      save(); // Guardamos sesión SIN contraseña en localStorage
+      save();
 
-      // COMPROBACIÓN: Si es usuario nuevo debe configurar su cuenta
-      if (data.user.isNew || data.user.mustChange) { 
-        console.log("Detectado usuario nuevo, mostrando pantalla de cambio...");
-        showForceChangeModal(p); // Pasamos el password solo en memoria, nunca a localStorage
-        return; // Detenemos aquí para que no entre a la app
+      // Usuario nuevo → configurar cuenta primero
+      if (data.user.isNew || data.user.mustChange) {
+        showForceChangeModal(p);
+        return;
+      }
+
+      // Dispositivo nuevo sin nombre → mostrar modal de nombre
+      if (!data.sessionReutilizada && !deviceName) {
+        showDeviceNameModal();
+        return;
       }
 
       // LOGIN NORMAL
-      document.getElementById('main-nav').style.display = 'flex';
-      gestionarVisibilidadAdmin();
-      await fetchHistory(); 
-      await fetchStatus();
-      renderApp();
-      document.getElementById('s-login').classList.remove('active');
-      document.getElementById('s-app').classList.add('active');
-      startPolling();
+      enterApp();
     } else {
       err.textContent = data.message || 'Credenciales incorrectas';
     }
   } catch (e) {
     err.textContent = 'Error de conexión';
   }
+}
+
+function enterApp() {
+  document.getElementById('main-nav').style.display = 'flex';
+  gestionarVisibilidadAdmin();
+  fetchHistory();
+  fetchStatus();
+  renderApp();
+  document.getElementById('s-login').classList.remove('active');
+  document.getElementById('s-app').classList.add('active');
+  startPolling();
+}
+
+// Modal para nombrar el dispositivo en el primer login
+function showDeviceNameModal() {
+  document.getElementById('device-name-modal-bg').classList.add('open');
+}
+
+async function saveDeviceNameModal() {
+  const input = document.getElementById('device-name-modal-input');
+  const name  = input?.value.trim();
+  if (!name) return (document.getElementById('device-name-modal-err').textContent = 'Escribe un nombre para el dispositivo');
+
+  // Guardar en localStorage
+  saveDeviceName(name);
+
+  // Actualizar el nombre en el servidor para la sesión actual
+  try {
+    const sessions = await (await authFetch('/api/sessions')).json();
+    const miSesion = sessions.find(s => s.username === S.currentUser?.username && !s.deviceName);
+    if (miSesion) {
+      // Usar el endpoint de device-name con un icono por defecto
+      const icono = /iphone|ipad|ios/i.test(navigator.userAgent) ? '📱' :
+                    /android/i.test(navigator.userAgent) ? '📱' : '🖥️';
+      await authFetch(`/api/sessions/${miSesion._id}/device-name`, {
+        method: 'PATCH',
+        body: JSON.stringify({ deviceName: icono + ' ' + name })
+      });
+      saveDeviceName(icono + ' ' + name);
+    }
+  } catch(e) {}
+
+  document.getElementById('device-name-modal-bg').classList.remove('open');
+  enterApp();
 }
 
 function doLogout() {

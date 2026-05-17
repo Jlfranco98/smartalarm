@@ -204,12 +204,13 @@ const pushSubSchema = new mongoose.Schema({
 }, { collection: 'push_subscriptions', timestamps: true });
 
 const sessionSchema = new mongoose.Schema({
-  token:      { type: String, required: true, unique: true },
-  username:   { type: String, required: true },
-  createdAt:  { type: Date, default: Date.now, expires: 60 * 60 * 24 * 90 }, // 90 días
-  lastSeenAt: { type: Date, default: Date.now },
-  userAgent:  { type: String, default: '' },
-  deviceName: { type: String, default: '' }  // Nombre personalizado del dispositivo
+  token:       { type: String, required: true, unique: true },
+  username:    { type: String, required: true },
+  createdAt:   { type: Date, default: Date.now, expires: 60 * 60 * 24 * 90 }, // 90 días
+  lastSeenAt:  { type: Date, default: Date.now },
+  userAgent:   { type: String, default: '' },
+  deviceName:  { type: String, default: '' },   // Nombre personalizado del dispositivo
+  deviceToken: { type: String, default: '' }    // ID permanente del dispositivo (localStorage)
 }, { collection: 'sessions' });
 
 const notifPrefSchema = new mongoose.Schema({
@@ -466,9 +467,8 @@ app.patch('/api/usuarios/:username/movil', requireAuth, async (req, res) => {
 app.post('/api/login', async (req, res) => {
   const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
   try {
-    const { username, password, deviceName } = req.body;
+    const { username, password, deviceName, deviceToken } = req.body;
 
-    // Comprobar rate limit antes de tocar la base de datos
     const rl = checkLoginRateLimit(ip);
     if (!rl.allowed) {
       return res.status(429).json({ success: false, message: `Demasiados intentos. Inténtalo en ${rl.waitMins} minuto${rl.waitMins > 1 ? 's' : ''}.` });
@@ -476,11 +476,37 @@ app.post('/api/login', async (req, res) => {
 
     const user = await User.findOne({ username });
     if (user && await bcrypt.compare(password, user.password)) {
-      resetLoginRateLimit(ip); // Login correcto: limpiar conteo
-      const token = generateToken();
+      resetLoginRateLimit(ip);
       const ua = req.headers['user-agent'] || '';
-      await Session.create({ token, username: user.username, userAgent: ua, deviceName: (deviceName || '').trim().slice(0, 60) });
-      res.json({ success: true, token, user: { name: user.name, username: user.username, role: user.role, isNew: user.isNew, avatar: user.avatar || null } });
+
+      let token;
+      let sessionReutilizada = false;
+
+      // Si viene deviceToken, buscar sesión previa de este dispositivo
+      if (deviceToken) {
+        const sesionExistente = await Session.findOne({ deviceToken, username: user.username });
+        if (sesionExistente) {
+          token = sesionExistente.token;
+          await Session.updateOne({ _id: sesionExistente._id }, { $set: { lastSeenAt: new Date(), userAgent: ua } });
+          sessionReutilizada = true;
+          console.log(`♻️ Sesión reutilizada para ${username} — ${sesionExistente.deviceName}`);
+        }
+      }
+
+      // Si no hay sesión reutilizable, crear una nueva
+      if (!sessionReutilizada) {
+        token = generateToken();
+        await Session.create({
+          token,
+          username: user.username,
+          userAgent: ua,
+          deviceName: (deviceName || '').trim().slice(0, 60),
+          deviceToken: deviceToken || ''
+        });
+        console.log(`🔑 Nueva sesión creada para ${username}`);
+      }
+
+      res.json({ success: true, token, sessionReutilizada, user: { name: user.name, username: user.username, role: user.role, isNew: user.isNew, avatar: user.avatar || null } });
     }
     else res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
   } catch (e) { res.status(500).json({ success: false }); }
