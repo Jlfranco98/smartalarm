@@ -429,6 +429,17 @@ app.post('/api/usuarios', requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
+// DELETE propio móvil — debe ir ANTES de /:username para que Express no lo capture como param
+app.delete('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
+  try {
+    await User.updateOne(
+      { username: req.sessionUser },
+      { $set: { telefono: null, telefonoVerificado: false } }
+    );
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
+});
+
 app.delete('/api/usuarios/:username', requireAuth, async (req, res) => {
   try {
     if (req.params.username === 'admin') return res.status(403).json({ success: false, message: 'No se puede eliminar al admin principal' });
@@ -1434,27 +1445,6 @@ app.get('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
     const user = await User.findOne({ username: req.sessionUser }, 'telefono telefonoVerificado');
     res.json({ telefono: user?.telefono || null, verificado: user?.telefonoVerificado || false });
   } catch(e) { res.status(500).json({ telefono: null, verificado: false }); }
-});
-
-app.delete('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
-  try {
-    await User.updateOne(
-      { username: req.sessionUser },
-      { $set: { telefono: null, telefonoVerificado: false } }
-    );
-    res.json({ success: true });
-  } catch(e) { res.status(500).json({ success: false }); }
-});
-
-// DELETE: el propio usuario desvincula su móvil
-app.delete('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
-  try {
-    await User.updateOne(
-      { username: req.sessionUser },
-      { $set: { telefono: null, telefonoVerificado: false } }
-    );
-    res.json({ success: true });
-  } catch(e) { res.status(500).json({ success: false }); }
 });
 
 // --- 15. ARRANQUE ---
