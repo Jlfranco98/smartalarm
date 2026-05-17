@@ -662,6 +662,23 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 </head>
 <body>
 
+<!-- ════════════════ MODAL EDITAR MÓVIL ADMIN ════════════════ -->
+<div class="auto-modal-bg" id="movil-admin-modal-bg" onclick="if(event.target===this)cerrarMovilAdminModal()">
+  <div class="auto-modal" style="padding:24px 20px 32px">
+    <div class="auto-modal-title">✏️ Editar número de móvil</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:16px" id="movil-admin-modal-subtitle"></div>
+    <div style="display:flex;align-items:center;gap:0;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px">
+      <span style="padding:12px 10px 12px 14px;background:var(--bg);font-size:15px;font-weight:800;color:var(--muted);border-right:1.5px solid var(--border);white-space:nowrap">+34</span>
+      <input id="movil-admin-modal-input" type="tel" placeholder="600 000 000" maxlength="9" inputmode="numeric"
+        style="flex:1;padding:12px 14px;border:none;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--text);background:transparent;outline:none"
+        onkeydown="if(event.key==='Enter')guardarMovilAdminModal()">
+    </div>
+    <div class="err-small" id="movil-admin-modal-err" style="text-align:center;margin-bottom:10px"></div>
+    <button class="btn-red" onclick="guardarMovilAdminModal()" style="width:100%;margin-bottom:10px">Guardar número</button>
+    <button onclick="cerrarMovilAdminModal()" style="width:100%;padding:13px;background:transparent;border:1.5px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer">Cancelar</button>
+  </div>
+</div>
+
 <!-- ════════════════ LOGIN ════════════════ -->
 <div id="s-login" class="screen active">
   <div class="login-top">
@@ -1935,7 +1952,10 @@ async function renderUsersAdmin(){
   try {
     const res = await authFetch('/api/usuarios');
     const users = await res.json();
-    el.innerHTML=users.map(u=>`
+    el.innerHTML=users.map(u=>{
+      // Mostrar número sin +34
+      const numCorto = u.telefono ? u.telefono.replace(/^\+34/, '') : '';
+      return `
       <div class="user-row" style="flex-wrap:wrap;gap:8px;align-items:flex-start">
         <div class="ur-av" style="margin-top:4px">${escapeHtml(u.name.slice(0,2).toUpperCase())}</div>
         <div style="flex:1;min-width:160px">
@@ -1944,28 +1964,66 @@ async function renderUsersAdmin(){
           <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
             <span style="font-size:14px">${u.telefono ? (u.telefonoVerificado ? '✅' : '⚠️') : '📵'}</span>
             ${isAdmin ? `
-              <input type="tel" id="movil-admin-${escapeHtml(u.username)}"
-                value="${escapeHtml(u.telefono||'')}"
-                placeholder="+34600000000"
-                style="font-size:12px;padding:5px 8px;border:1.5px solid var(--border);border-radius:8px;font-family:'Nunito',sans-serif;width:150px;color:var(--text)"
-                onkeydown="if(event.key==='Enter')guardarMovilAdmin('${escapeHtml(u.username)}')">
-              <button onclick="guardarMovilAdmin('${escapeHtml(u.username)}')"
-                style="font-size:11px;padding:5px 10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">
-                💾
-              </button>
+              <span style="font-size:13px;font-weight:700;color:var(--text)">${numCorto || 'Sin número'}</span>
+              ${u.telefonoVerificado ? '<span style="font-size:11px;color:#34c759;font-weight:700">· Verificado</span>' : (u.telefono ? '<span style="font-size:11px;color:var(--orange);font-weight:700">· Sin verificar</span>' : '')}
+              <button onclick="abrirMovilAdminModal('${escapeHtml(u.username)}','${escapeHtml(u.name)}','${escapeHtml(numCorto)}')"
+                title="Editar número"
+                style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;color:var(--muted)">✏️</button>
               ${u.telefono ? `<button onclick="borrarMovilAdmin('${escapeHtml(u.username)}')"
-                style="font-size:11px;padding:5px 8px;background:none;border:1.5px solid #fcc;color:var(--red);border-radius:8px;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">
-                🗑️
-              </button>` : ''}
+                title="Eliminar número"
+                style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;color:var(--red)">🗑️</button>` : ''}
             ` : `
-              <span style="font-size:12px;color:var(--muted);font-weight:600">${u.telefono ? escapeHtml(u.telefono) : 'Sin número'}</span>
+              <span style="font-size:12px;color:var(--muted);font-weight:600">${numCorto || 'Sin número'}</span>
               ${u.telefonoVerificado ? '<span style="font-size:11px;color:#34c759;font-weight:700;margin-left:2px">· Verificado</span>' : (u.telefono ? '<span style="font-size:11px;color:var(--orange);font-weight:700;margin-left:2px">· Sin verificar</span>' : '')}
             `}
           </div>
         </div>
         ${isAdmin && u.username !== S.currentUser.username ? `<button class="ur-del" onclick="removeUser('${escapeHtml(u.username)}')">Eliminar usuario</button>` : ''}
-      </div>`).join('');
+      </div>`;
+    }).join('');
   } catch(e) { el.innerHTML = "Error al cargar usuarios"; }
+}
+
+let _movilAdminUsername = '';
+
+function abrirMovilAdminModal(username, nombre, numCorto) {
+  _movilAdminUsername = username;
+  document.getElementById('movil-admin-modal-subtitle').textContent = nombre;
+  document.getElementById('movil-admin-modal-input').value = numCorto;
+  document.getElementById('movil-admin-modal-err').textContent = '';
+  document.getElementById('movil-admin-modal-bg').classList.add('open');
+  setTimeout(() => document.getElementById('movil-admin-modal-input').focus(), 100);
+}
+
+function cerrarMovilAdminModal() {
+  document.getElementById('movil-admin-modal-bg').classList.remove('open');
+  _movilAdminUsername = '';
+}
+
+async function guardarMovilAdminModal() {
+  const input = document.getElementById('movil-admin-modal-input');
+  const err   = document.getElementById('movil-admin-modal-err');
+  const digits = input.value.trim().replace(/\s/g, '');
+  err.textContent = '';
+
+  if (!digits) return (err.textContent = 'Introduce un número');
+  if (!/^\d{9}$/.test(digits)) return (err.textContent = 'Introduce 9 dígitos sin espacios');
+
+  const telefono = '+34' + digits;
+  try {
+    const res = await authFetch(`/api/usuarios/${_movilAdminUsername}/movil`, {
+      method: 'PATCH',
+      body: JSON.stringify({ telefono })
+    });
+    if (res.ok) {
+      cerrarMovilAdminModal();
+      toast2('✅ Móvil guardado');
+      renderUsersAdmin();
+      cargarLlamadas();
+    } else {
+      err.textContent = 'Error al guardar';
+    }
+  } catch(e) { err.textContent = 'Error de conexión'; }
 }
 
 async function guardarMovilAdmin(username) {
@@ -1990,7 +2048,7 @@ async function borrarMovilAdmin(username) {
       method: 'PATCH',
       body: JSON.stringify({ telefono: '' })
     });
-    if (res.ok) { toast2('Móvil eliminado'); renderUsersAdmin(); }
+    if (res.ok) { toast2('Móvil eliminado'); renderUsersAdmin(); cargarLlamadas(); }
   } catch(e) { toast2('Error de conexión'); }
 }
 
