@@ -3384,11 +3384,36 @@ document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='En
 // ── Funciones de UI ────────────────────────────────────────────────────────
 async function refreshStatus(event) {
   const btn = event?.currentTarget || event?.target;
-  const orig = btn?.innerHTML;
   if (btn) btn.innerHTML = '⌛';
 
-  await fetchStatus();
-  await fetchHistorialGlobal();
+  // Detectar página activa
+  const activePage = document.querySelector('.page.active')?.id || 'pg-inicio';
+
+  switch(activePage) {
+    case 'pg-inicio':
+      await fetchStatus();
+      await fetchHistorialGlobal();
+      break;
+    case 'pg-historial':
+      await fetchHistorialGlobal();
+      renderLogFiltrado();
+      break;
+    case 'pg-admin':
+      await renderUsersAdmin();
+      await cargarLlamadas();
+      break;
+    case 'pg-dispositivos':
+      await renderDispositivos();
+      break;
+    case 'pg-automatizaciones':
+      await renderAutomatizaciones();
+      break;
+    case 'pg-cuenta':
+      await fetchStatus();
+      break;
+    default:
+      await fetchStatus();
+  }
 
   if (btn) {
     btn.innerHTML = '✅';
