@@ -1742,14 +1742,16 @@ async function doLogin() {
 }
 
 function enterApp() {
-  document.getElementById('main-nav').style.display = 'flex';
-  gestionarVisibilidadAdmin();
-  fetchHistory();
-  fetchStatus();
-  renderApp();
   document.getElementById('s-login').classList.remove('active');
   document.getElementById('s-app').classList.add('active');
-  startPolling();
+  document.getElementById('main-nav').style.display = 'flex';
+  gestionarVisibilidadAdmin();
+  setTimeout(() => {
+    fetchHistory();
+    fetchStatus();
+    renderApp();
+    startPolling();
+  }, 50);
 }
 
 // Modal para nombrar el dispositivo en el primer login
