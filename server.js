@@ -1284,7 +1284,7 @@ app.use('/twilio/confirmar', async (req, res) => {
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    La alerta ya ha sido verificada por ${primerNombre}, quien confirmó que no es un salto de alarma real. No es necesaria ninguna acción adicional. Hasta pronto.
+    La alerta ya ha sido verificada y cancelada por ${primerNombre}, . No es necesaria ninguna acción adicional. Hasta pronto.
   </Say>
   <Pause length="2"/>
 </Response>`);
@@ -1305,7 +1305,7 @@ app.use('/twilio/confirmar', async (req, res) => {
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    Verificación de alarma completa y cancelada. Gracias por confirmar, ${nombre}. El incidente quedará registrado en el historial. Hasta pronto.
+    Verificación de alarma completa y cancelada. Gracias por confirmar ${nombre}. El incidente quedará registrado en la aplicación. Hasta pronto.
   </Say>
   <Pause length="2"/>
 </Response>`);
