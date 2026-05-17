@@ -1970,32 +1970,30 @@ async function renderUsersAdmin(){
     const res = await authFetch('/api/usuarios');
     const users = await res.json();
     el.innerHTML=users.map(u=>{
-      // Mostrar número sin +34
       const numCorto = u.telefono ? u.telefono.replace(/^\+34/, '') : '';
+      const canDelete = isAdmin && u.username !== S.currentUser.username;
       return `
-      <div class="user-row" style="flex-wrap:wrap;gap:8px;align-items:flex-start">
-        <div class="ur-av" style="margin-top:4px">${escapeHtml(u.name.slice(0,2).toUpperCase())}</div>
-        <div style="flex:1;min-width:160px">
-          <div class="ur-name">${escapeHtml(u.name)}</div>
-          <div class="ur-role">@${escapeHtml(u.username)} · ${u.role==='admin'?'Admin':'Usuario'}</div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <div class="user-row" style="align-items:flex-start;flex-wrap:nowrap">
+        <div class="ur-av" style="margin-top:4px;flex-shrink:0">${escapeHtml(u.name.slice(0,2).toUpperCase())}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+            <div style="min-width:0">
+              <div class="ur-name">${escapeHtml(u.name)}</div>
+              <div class="ur-role">@${escapeHtml(u.username)} · ${u.role==='admin'?'Admin':'Usuario'}</div>
+            </div>
+            ${canDelete ? `<button class="ur-del" onclick="removeUser('${escapeHtml(u.username)}')" style="flex-shrink:0;margin-top:2px">Eliminar usuario</button>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
             <span style="font-size:14px;flex-shrink:0">${u.telefono ? (u.telefonoVerificado ? '✅' : '⚠️') : '📵'}</span>
             ${isAdmin ? `
-              <span style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">${numCorto || 'Sin número'}${u.telefonoVerificado ? '<span style="font-size:11px;color:#34c759;font-weight:700"> · Verificado</span>' : (u.telefono ? '<span style="font-size:11px;color:var(--orange);font-weight:700"> · Sin verificar</span>' : '')}</span>
-              <span style="display:inline-flex;gap:2px;flex-shrink:0">
-                <button onclick="abrirMovilAdminModal('${escapeHtml(u.username)}','${escapeHtml(u.name)}','${escapeHtml(numCorto)}')"
-                  title="Editar número"
-                  style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;color:var(--muted)">✏️</button>
-                ${u.telefono ? `<button onclick="borrarMovilAdmin('${escapeHtml(u.username)}')"
-                  title="Eliminar número"
-                  style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;color:var(--red)">🗑️</button>` : ''}
-              </span>
+              <span style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">${numCorto || 'Sin número'}${u.telefonoVerificado ? ' <span style="font-size:11px;color:#34c759;font-weight:700">· Verificado</span>' : (u.telefono ? ' <span style="font-size:11px;color:var(--orange);font-weight:700">· Sin verificar</span>' : '')}</span>
+              <button onclick="abrirMovilAdminModal('${escapeHtml(u.username)}','${escapeHtml(u.name)}','${escapeHtml(numCorto)}')" title="Editar número" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;color:var(--muted);flex-shrink:0">✏️</button>
+              ${u.telefono ? `<button onclick="borrarMovilAdmin('${escapeHtml(u.username)}')" title="Eliminar número" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;color:var(--muted);flex-shrink:0">🗑️</button>` : ''}
             ` : `
-              <span style="font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap">${numCorto || 'Sin número'}${u.telefonoVerificado ? '<span style="font-size:11px;color:#34c759;font-weight:700"> · Verificado</span>' : (u.telefono ? '<span style="font-size:11px;color:var(--orange);font-weight:700"> · Sin verificar</span>' : '')}</span>
+              <span style="font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap">${numCorto || 'Sin número'}${u.telefonoVerificado ? ' <span style="font-size:11px;color:#34c759;font-weight:700">· Verificado</span>' : (u.telefono ? ' <span style="font-size:11px;color:var(--orange);font-weight:700">· Sin verificar</span>' : '')}</span>
             `}
           </div>
         </div>
-        ${isAdmin && u.username !== S.currentUser.username ? `<button class="ur-del" onclick="removeUser('${escapeHtml(u.username)}')">Eliminar usuario</button>` : ''}
       </div>`;
     }).join('');
   } catch(e) { el.innerHTML = "Error al cargar usuarios"; }
