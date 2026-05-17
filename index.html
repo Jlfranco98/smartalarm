@@ -3044,11 +3044,7 @@ function renderLlamadas() {
 
   el.innerHTML = html;
 
-  // Mostrar/ocultar sección de añadir manualmente según rol
-  const addSection = document.getElementById('llamadas-add-section');
-  const addInputs  = document.getElementById('llamadas-add-inputs');
-  const addBtn     = document.getElementById('llamadas-add-btn');
-  [addSection, addInputs, addBtn].forEach(el2 => { if(el2) el2.style.display = isAdmin ? '' : 'none'; });
+  // Mostrar/ocultar botón añadir número según rol (ya gestionado en renderApp)
 }
 
 async function añadirUsuarioALlamadas(telefono, nombre) {
@@ -3092,8 +3088,6 @@ function eliminarLlamada(idx) {
   });
 }
 
-// toggleAddLlamadaForm — reemplazada por openAddLlamadaModal
-
 async function descargarContactoVerisure() {
   try {
     const res  = await authFetch('/api/twilio-number');
@@ -3116,17 +3110,6 @@ async function descargarContactoVerisure() {
   } catch(e) {
     toast2('Error al descargar el contacto');
   }
-}
-
-async function addLlamada() {
-  const tel    = document.getElementById('new-llamada-tel').value.trim();
-  const nombre = document.getElementById('new-llamada-nombre').value.trim();
-  if (!tel || !nombre) return toast2('Rellena teléfono y nombre');
-  if (!/^\+\d{9,15}$/.test(tel)) return toast2('Formato: +34600000000');
-  llamadasData.push({ telefono: tel, nombre, activo: true });
-  document.getElementById('new-llamada-tel').value = '';
-  document.getElementById('new-llamada-nombre').value = '';
-  await guardarLlamadas();
 }
 
 async function guardarLlamadas() {

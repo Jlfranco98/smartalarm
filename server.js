@@ -529,6 +529,18 @@ app.delete('/api/sessions/user/:username', requireAuth, async (req, res) => { tr
   } catch(e) { res.status(500).json({ success: false }); }
 });
 
+// Renombrar dispositivo de una sesión (solo admin)
+app.patch('/api/sessions/:id/device-name', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin') return res.status(403).json({ success: false });
+    const { deviceName } = req.body;
+    if (!deviceName || !deviceName.trim()) return res.status(400).json({ success: false, message: 'Nombre no válido' });
+    await Session.findByIdAndUpdate(req.params.id, { $set: { deviceName: deviceName.trim().slice(0, 60) } });
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
+});
+
 app.delete('/api/sessions/:id', requireAuth, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.sessionUser });
@@ -843,6 +855,27 @@ setInterval(async () => {
 // --- 13. HISTORIAL Y CONFIG ---
 app.get('/api/logs', requireAuth,      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
 app.get('/api/historial', requireAuth, async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
+
+// Borrar logs (solo admin) — ?dias=30|60|90|180|365|all
+app.delete('/api/logs', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin') return res.status(403).json({ success: false, message: 'Solo admins' });
+    const { dias } = req.query;
+    let eliminados;
+    if (dias === 'all') {
+      const r = await Log.deleteMany({});
+      eliminados = r.deletedCount;
+    } else {
+      const n = parseInt(dias);
+      if (!n || n <= 0) return res.status(400).json({ success: false, message: 'Parámetro dias inválido' });
+      const limite = new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+      const r = await Log.deleteMany({ fecha: { $lt: limite } });
+      eliminados = r.deletedCount;
+    }
+    res.json({ success: true, eliminados });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
 app.get('/api/config', requireAuth,    async (req, res) => { try { res.json(await Config.findOne({ id: 'global_config' }) || {}); } catch (e) { res.status(500).json({}); } });
 app.post('/api/config', requireAuth, async (req, res) => {
   try {
