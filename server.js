@@ -1464,22 +1464,19 @@ app.use('/twilio/confirmar', async (req, res) => {
     }
 
   } else if (tecla === '2') {
-    // ALARMA REAL
+    // ALARMA REAL — no llamar al siguiente, el usuario ya sabe que es real
     twilioConfirmacion = { nombre, numero, fecha: new Date(), real: true };
     console.log(`🚨📞 Alarma REAL confirmada por: ${nombre} - ${numero}`);
     try {
       await new Log({
         usuario: nombre,
-        accion: `🚨📞 Alarma REAL confirmada — avisando al siguiente contacto`
+        accion: `🚨📞 Alarma REAL confirmada por ${nombre}`
       }).save();
     } catch(e) { console.error('❌ Error guardando log alarma real:', e.message); }
-    // Llamar al siguiente contacto
-    twilioSecuenciaIdx++;
-    await llamarSiguiente();
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    Alarma confirmada. Avisando al siguiente contacto de emergencia.
+    Alarma confirmada como salto real.
     Por favor, extreme su seguridad y llame al 112 si es necesario.
   </Say>
   <Pause length="2"/>
