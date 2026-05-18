@@ -1470,7 +1470,7 @@ app.use('/twilio/confirmar', async (req, res) => {
     try {
       await new Log({
         usuario: nombre,
-        accion: `🚨📞 Alarma REAL confirmada por ${nombre}`
+        accion: `🚨📞 Alarma REAL confirmada por`
       }).save();
     } catch(e) { console.error('❌ Error guardando log alarma real:', e.message); }
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
