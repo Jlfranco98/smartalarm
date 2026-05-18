@@ -1264,27 +1264,135 @@ app.use('/twilio', express.urlencoded({ extended: false }), (req, res, next) => 
 // Endpoint público que Twilio llama para obtener la locución TwiML
 // MacroDroid dispara /alerta-alarma → llamarAlarma() → Twilio llama a este endpoint
 app.use('/twilio/locucion', (req, res) => {
+  // Extraer nombre del usuario actual para la locución
+  const numero = req.body?.To || req.query?.To || '';
+  const entrada = twilioNumerosActivos.find(n => n.telefono === numero);
+  const nombre = entrada?.nombre || 'usuario';
+  const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
+
   res.type('text/xml');
   res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather numDigits="1" timeout="15" action="https://smartalarm-production.up.railway.app/twilio/confirmar" method="POST">
+  <Gather numDigits="4" timeout="15" action="${backendUrl}/twilio/pin" method="POST" finishOnKey="">
     <Say language="es-ES" voice="Polly.Lucia">
-      Sistema de seguridad Verisure.
-    </Say>
-    <Pause length="1"/>
-    <Say language="es-ES" voice="Polly.Lucia">
-      Se ha producido un salto de alarma en su vivienda.
-      Le rogamos que compruebe el estado de su instalación inmediatamente.
-      Si se encuentra en su domicilio y todo está correcto,
-      pulse la tecla uno de su teclado para cancelar la alerta.
-      En caso contrario, no pulse ninguna tecla y espere.
+      Hola, ${nombre}. Le llamamos de Smart Alarm. Se ha disparado la alarma de su hogar.
+      Por favor, identifíquese tecleando su PIN de seguridad.
     </Say>
   </Gather>
   <Say language="es-ES" voice="Polly.Lucia">
-    No hemos recibido respuesta. Vamos a iniciar la verificación humana, Permanezca en lugar seguro. En breves un operador gestionará el salto de alarma.
+    No hemos recibido respuesta. Avisando al siguiente contacto de emergencia.
   </Say>
   <Pause length="2"/>
 </Response>`);
+});
+
+// Mapa temporal de intentos de PIN fallidos por número de teléfono
+const pinIntentosFallidos = new Map();
+
+// Endpoint que recibe el PIN introducido — lo verifica con bcrypt (intento 1)
+app.use('/twilio/pin', async (req, res) => {
+  const pin    = req.body?.Digits || req.query?.Digits || '';
+  const numero = req.body?.To     || req.query?.To     || '';
+  const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
+
+  let nombre = 'usuario';
+  let pinValido = false;
+  try {
+    const userDoc = await User.findOne({ telefono: numero });
+    if (userDoc) {
+      nombre = userDoc.name || userDoc.username;
+      if (userDoc.pin && pin) {
+        pinValido = await bcrypt.compare(pin, userDoc.pin);
+      }
+    }
+  } catch(e) { console.error('❌ Error verificando PIN Twilio:', e.message); }
+
+  res.type('text/xml');
+
+  if (pinValido) {
+    pinIntentosFallidos.delete(numero);
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" timeout="15" action="${backendUrl}/twilio/confirmar?nombre=${encodeURIComponent(nombre)}&amp;numero=${encodeURIComponent(numero)}" method="POST">
+    <Say language="es-ES" voice="Polly.Lucia">
+      Verificación correcta.
+      Pulse 1 si se trata de una falsa alarma,
+      o pulse 2 para confirmar que la alarma es real.
+    </Say>
+  </Gather>
+  <Say language="es-ES" voice="Polly.Lucia">
+    No hemos recibido respuesta. Avisando al siguiente contacto de emergencia.
+  </Say>
+  <Pause length="2"/>
+</Response>`);
+  } else {
+    // Primer intento fallido — dar segundo intento
+    console.warn(`⚠️ PIN incorrecto (intento 1) en llamada a ${numero}`);
+    pinIntentosFallidos.set(numero, { nombre });
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="4" timeout="15" action="${backendUrl}/twilio/pin2" method="POST" finishOnKey="">
+    <Say language="es-ES" voice="Polly.Lucia">
+      PIN incorrecto. Por favor, vuelva a teclear su PIN de seguridad.
+    </Say>
+  </Gather>
+  <Say language="es-ES" voice="Polly.Lucia">
+    No hemos recibido respuesta. Avisando al siguiente contacto de emergencia.
+  </Say>
+  <Pause length="2"/>
+</Response>`);
+  }
+});
+
+// Endpoint segundo intento de PIN
+app.use('/twilio/pin2', async (req, res) => {
+  const pin    = req.body?.Digits || req.query?.Digits || '';
+  const numero = req.body?.To     || req.query?.To     || '';
+  const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
+
+  let nombre = pinIntentosFallidos.get(numero)?.nombre || 'usuario';
+  let pinValido = false;
+  try {
+    const userDoc = await User.findOne({ telefono: numero });
+    if (userDoc) {
+      nombre = userDoc.name || userDoc.username;
+      if (userDoc.pin && pin) {
+        pinValido = await bcrypt.compare(pin, userDoc.pin);
+      }
+    }
+  } catch(e) { console.error('❌ Error verificando PIN Twilio (intento 2):', e.message); }
+
+  pinIntentosFallidos.delete(numero);
+  res.type('text/xml');
+
+  if (pinValido) {
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" timeout="15" action="${backendUrl}/twilio/confirmar?nombre=${encodeURIComponent(nombre)}&amp;numero=${encodeURIComponent(numero)}" method="POST">
+    <Say language="es-ES" voice="Polly.Lucia">
+      Verificación correcta.
+      Pulse 1 si se trata de una falsa alarma,
+      o pulse 2 para confirmar que la alarma es real.
+    </Say>
+  </Gather>
+  <Say language="es-ES" voice="Polly.Lucia">
+    No hemos recibido respuesta. Avisando al siguiente contacto de emergencia.
+  </Say>
+  <Pause length="2"/>
+</Response>`);
+  } else {
+    // Segundo intento fallido — pasar al siguiente contacto
+    console.warn(`⚠️ PIN incorrecto (intento 2) en llamada a ${numero} — pasando al siguiente`);
+    twilioSecuenciaIdx++;
+    await llamarSiguiente();
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say language="es-ES" voice="Polly.Lucia">
+    PIN incorrecto. Avisando al siguiente contacto de emergencia.
+  </Say>
+  <Pause length="2"/>
+</Response>`);
+  }
 });
 
 // Endpoint statusCallback — Twilio avisa cuando termina cada llamada
@@ -1315,28 +1423,16 @@ app.use('/twilio/status', async (req, res) => {
   }
 });
 
-// Endpoint que recibe la tecla pulsada durante la llamada
+// Endpoint que recibe la tecla pulsada (1=falsa alarma, 2=alarma real)
 app.use('/twilio/confirmar', async (req, res) => {
   const tecla  = req.body?.Digits || req.query?.Digits;
-  const numero = req.body?.To     || req.query?.To || '';   // número al que Twilio llamó
+  const numero = req.body?.To     || req.query?.To     || req.query?.numero || '';
+  const nombre = req.query?.nombre ? decodeURIComponent(req.query.nombre) : (req.body?.nombre || numero);
   res.type('text/xml');
 
-  // Buscar nombre en twilioNumerosActivos (cargado desde MongoDB) o en Users por teléfono
-  let nombre = numero;
-  const entradaActiva = twilioNumerosActivos.find(n => n.telefono === numero);
-  if (entradaActiva?.nombre) {
-    nombre = entradaActiva.nombre;
-  } else {
-    // Fallback: buscar en MongoDB por teléfono del usuario
-    try {
-      const userDoc = await User.findOne({ telefono: numero });
-      if (userDoc) nombre = userDoc.name || userDoc.username;
-    } catch(e) {}
-  }
-
   if (tecla === '1') {
+    // FALSA ALARMA
     if (twilioConfirmacion) {
-      // Ya confirmó otra persona antes — informar y NO crear log duplicado
       const primerNombre = twilioConfirmacion.nombre;
       console.log(`📞 ${nombre} intentó confirmar pero ya lo hizo ${primerNombre}`);
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
@@ -1347,37 +1443,59 @@ app.use('/twilio/confirmar', async (req, res) => {
   <Pause length="2"/>
 </Response>`);
     } else {
-      // Primera confirmación — guardar estado y crear log
       twilioConfirmacion = { nombre, numero, fecha: new Date() };
-      console.log(`✅📞 Salto de alarma verificado por: ${nombre} - ${numero}`);
+      console.log(`✅📞 Falsa alarma confirmada por: ${nombre} - ${numero}`);
       try {
         await new Log({
           usuario: nombre,
           accion: `📞 Verificación salto de alarma — falsa alarma`
         }).save();
-      } catch (e) {
-        console.error('❌ Error guardando log de confirmación Twilio:', e.message);
-      }
-      // Desarmar la alarma automáticamente
+      } catch(e) { console.error('❌ Error guardando log:', e.message); }
       await desarmarAlarma(nombre);
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    Verificación de alarma completa y cancelada. Gracias por confirmar ${nombre}. El incidente quedará registrado en la aplicación. Hasta pronto.
+    Gracias, ${nombre}. Alarma desactivada remotamente.
+    No olvide volver a activarla por su seguridad.
+    Que tenga un buen día.
   </Say>
   <Pause length="2"/>
 </Response>`);
     }
-  } else {
-    // Nadie confirmó — guardar log como alerta no verificada
-    const numerosLlamados = TWILIO_TO.join(', ');
+
+  } else if (tecla === '2') {
+    // ALARMA REAL
+    twilioConfirmacion = { nombre, numero, fecha: new Date(), real: true };
+    console.log(`🚨📞 Alarma REAL confirmada por: ${nombre} - ${numero}`);
     try {
       await new Log({
-        usuario: 'Verisure',
+        usuario: nombre,
+        accion: `🚨📞 Alarma REAL confirmada — avisando al siguiente contacto`
+      }).save();
+    } catch(e) { console.error('❌ Error guardando log alarma real:', e.message); }
+    // Llamar al siguiente contacto
+    twilioSecuenciaIdx++;
+    await llamarSiguiente();
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say language="es-ES" voice="Polly.Lucia">
+    Alarma confirmada. Avisando al siguiente contacto de emergencia.
+    Por favor, extreme su seguridad y llame al 112 si es necesario.
+  </Say>
+  <Pause length="2"/>
+</Response>`);
+
+  } else {
+    // Tecla no reconocida o timeout — pasar al siguiente
+    console.warn(`⚠️ Tecla no reconocida (${tecla}) en llamada a ${numero}`);
+    twilioSecuenciaIdx++;
+    await llamarSiguiente();
+    try {
+      await new Log({
+        usuario: 'Smart Alarm',
         accion: `🚨📞 Verificación NO confirmada por ningún usuario`
       }).save();
     } catch(e) { console.error('❌ Error guardando log no confirmación:', e.message); }
-
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
