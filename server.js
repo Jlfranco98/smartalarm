@@ -1275,12 +1275,12 @@ app.use('/twilio/locucion', (req, res) => {
 <Response>
   <Gather numDigits="4" timeout="15" action="${backendUrl}/twilio/pin" method="POST" finishOnKey="">
     <Say language="es-ES" voice="Polly.Lucia">
-      Hola, ${nombre}. Le llamamos de Smart Alarm. Se ha disparado la alarma de su hogar.
-      Por favor, identifíquese tecleando su PIN de seguridad.
+      Hola, ${nombre}. Le llamamos de Verisure. Se ha producido un salto de alarma en su hogar.
+      Por favor, identifíquese tecleando su clave de seguridad.
     </Say>
   </Gather>
   <Say language="es-ES" voice="Polly.Lucia">
-    No hemos recibido respuesta. Avisando al siguiente contacto de emergencia.
+    No hemos recibido ninguna respuesta. Avisando al siguiente contacto de emergencia.
   </Say>
   <Pause length="2"/>
 </Response>`);
@@ -1333,7 +1333,7 @@ app.use('/twilio/pin', async (req, res) => {
 <Response>
   <Gather numDigits="4" timeout="15" action="${backendUrl}/twilio/pin2" method="POST" finishOnKey="">
     <Say language="es-ES" voice="Polly.Lucia">
-      PIN incorrecto. Por favor, vuelva a teclear su PIN de seguridad.
+      Clave de seguridad incorrecta. Por favor, vuelva a teclear su clave de seguridad.
     </Say>
   </Gather>
   <Say language="es-ES" voice="Polly.Lucia">
@@ -1388,7 +1388,7 @@ app.use('/twilio/pin2', async (req, res) => {
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    PIN incorrecto. Avisando al siguiente contacto de emergencia.
+    Clave de seguridad incorrecta. Avisando al siguiente contacto de emergencia.
   </Say>
   <Pause length="2"/>
 </Response>`);
