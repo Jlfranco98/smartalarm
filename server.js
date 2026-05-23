@@ -742,9 +742,15 @@ app.post('/api/control', requireAuth, async (req, res) => {
         ? `PÁNICO / SOS — 📍 ${mapsUrl} (±${ubicacion.precision}m)`
         : nombres[action] || action;
       const userDoc = await User.findOne({ username: req.sessionUser });
-      await new Log({ usuario: userDoc?.name || req.sessionUser, accion: accionLog }).save();
+      const nombreUsuario = userDoc?.name || req.sessionUser;
+      await new Log({ usuario: nombreUsuario, accion: accionLog }).save();
       await Config.findOneAndUpdate({ id: 'global_config' }, { $set: { alarmStatus } }, { upsert: true });
-      sendPushNotification(action, userDoc?.name || req.sessionUser, ubicacion).catch(console.error);
+      sendPushNotification(action, nombreUsuario, ubicacion).catch(console.error);
+      // Si es SOS, llamar simultáneamente a todos los contactos menos al activador
+      if (action === 'sos') {
+        const telefonoActivador = userDoc?.telefono || null;
+        llamarSosTodos(nombreUsuario, telefonoActivador).catch(console.error);
+      }
     }
     res.json({ success: result.success, result: result.result });
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
@@ -1180,7 +1186,55 @@ let twilioConfirmacion = null; // null | { nombre, numero, fecha }
 let twilioSecuenciaIdx = 0;    // índice del número actual en la secuencia
 let twilioNumerosActivos = []; // cargado desde MongoDB al iniciar cada alarma
 
-async function llamarAlarma() {
+// Llamadas SOS simultáneas a todos los contactos menos al que activó el SOS
+async function llamarSosTodos(nombreActivador, telefonoActivador) {
+  if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
+    console.warn('⚠️ Twilio no configurado — llamadas SOS omitidas');
+    return;
+  }
+  try {
+    const cfg = await LlamadaConfig.findOne({ id: 'llamadas_config' });
+    // Coger TODOS los números (activos e inactivos) menos el del activador
+    let numeros = cfg?.numeros?.length
+      ? cfg.numeros
+      : TWILIO_TO.map(tel => ({ telefono: tel, nombre: TWILIO_NOMBRES[tel] || tel }));
+
+    // Excluir al que activó el SOS por teléfono o por nombre
+    numeros = numeros.filter(n => {
+      if (telefonoActivador && n.telefono === telefonoActivador) return false;
+      if (n.nombre === nombreActivador) return false;
+      return true;
+    });
+
+    if (!numeros.length) {
+      console.warn('⚠️ SOS: no hay otros contactos a los que llamar');
+      return;
+    }
+
+    const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
+    const twimlUrl   = `${backendUrl}/twilio/sos-locucion?nombre=${encodeURIComponent(nombreActivador)}`;
+
+    console.log(`🆘 Iniciando llamadas SOS simultáneas a ${numeros.length} contactos`);
+
+    await Promise.allSettled(numeros.map(async ({ telefono, nombre }) => {
+      try {
+        const call = await twilioClient.calls.create({
+          to:           telefono,
+          from:         TWILIO_FROM,
+          url:          twimlUrl,
+          timeLimit:    59,
+          statusCallback: `${backendUrl}/twilio/status`,
+          statusCallbackMethod: 'POST'
+        });
+        console.log(`📞 SOS llamada iniciada a ${nombre} (${telefono}): ${call.sid}`);
+      } catch(e) {
+        console.error(`❌ SOS error llamando a ${nombre} (${telefono}):`, e.message);
+      }
+    }));
+  } catch(e) {
+    console.error('❌ Error en llamarSosTodos:', e.message);
+  }
+}
   if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
     console.warn('⚠️ Twilio no configurado — llamada omitida');
     return;
@@ -1261,13 +1315,62 @@ app.use('/twilio', express.urlencoded({ extended: false }), (req, res, next) => 
   next();
 });
 
-// Endpoint público que Twilio llama para obtener la locución TwiML
-// MacroDroid dispara /alerta-alarma → llamarAlarma() → Twilio llama a este endpoint
+// Locución SOS — sin PIN, solo aviso de emergencia
+app.use('/twilio/sos-locucion', (req, res) => {
+  const nombre = req.query?.nombre ? decodeURIComponent(req.query.nombre) : 'un usuario';
+  res.type('text/xml');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say language="es-ES" voice="Polly.Lucia">
+    ¡Atención! Se ha activado una alerta de emergencia.
+    ${nombre} necesita ayuda urgente.
+    Su ubicación ha sido registrada en la aplicación Smart Alarm.
+    Por favor, contacte con él de inmediato o llame al 112.
+  </Say>
+  <Pause length="2"/>
+</Response>`);
+});
+
+// Helper: saludo según hora del día
+function saludoHora() {
+  const hora = new Date().getHours();
+  if (hora >= 6  && hora < 14) return 'Buenos días';
+  if (hora >= 14 && hora < 21) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+// Helper: despedida según hora del día
+function despedidaHora() {
+  const hora = new Date().getHours();
+  if (hora >= 6  && hora < 14) return 'Que tenga un buen día';
+  if (hora >= 14 && hora < 21) return 'Que tenga una buena tarde';
+  return 'Que tenga una buena noche';
+}
+
+// Helper: TwiML para PIN correcto — evita duplicar el bloque en /pin y /pin2
+function twimlPinCorrecto(backendUrl, nombre, numero) {
+  const primerNombre = nombre.split(' ')[0];
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" timeout="15" action="${backendUrl}/twilio/confirmar?nombre=${encodeURIComponent(nombre)}&amp;numero=${encodeURIComponent(numero)}" method="POST">
+    <Say language="es-ES" voice="Polly.Lucia">
+      Gracias por verificarse, ${primerNombre}.
+      Por favor, pulse 1 si se trata de una falsa alarma,
+      o pulse 2 para confirmar que es un salto real.
+    </Say>
+  </Gather>
+  <Say language="es-ES" voice="Polly.Lucia">
+    No hemos recibido respuesta. Avisando al siguiente contacto de emergencia.
+  </Say>
+  <Pause length="2"/>
+</Response>`;
+}
+
 app.use('/twilio/locucion', (req, res) => {
-  // Extraer nombre del usuario actual para la locución
-  const numero = req.body?.To || req.query?.To || '';
+  const numero  = req.body?.To || req.query?.To || '';
   const entrada = twilioNumerosActivos.find(n => n.telefono === numero);
-  const nombre = entrada?.nombre || 'usuario';
+  const nombre  = entrada?.nombre || 'usuario';
+  const primerNombre = nombre.split(' ')[0];
   const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
 
   res.type('text/xml');
@@ -1275,12 +1378,12 @@ app.use('/twilio/locucion', (req, res) => {
 <Response>
   <Gather numDigits="4" timeout="15" action="${backendUrl}/twilio/pin" method="POST" finishOnKey="">
     <Say language="es-ES" voice="Polly.Lucia">
-      Hola, ${nombre}. Le llamamos de Verisure. Se ha producido un salto de alarma en su hogar.
+      ${saludoHora()}, ${primerNombre}. Le llamamos de Smart Alarm. Se ha disparado la alarma de su hogar.
       Por favor, identifíquese tecleando su clave de seguridad.
     </Say>
   </Gather>
   <Say language="es-ES" voice="Polly.Lucia">
-    No hemos recibido ninguna respuesta. Avisando al siguiente contacto de emergencia.
+    No hemos recibido respuesta. Avisando al siguiente contacto de emergencia.
   </Say>
   <Pause length="2"/>
 </Response>`);
@@ -1311,29 +1414,15 @@ app.use('/twilio/pin', async (req, res) => {
 
   if (pinValido) {
     pinIntentosFallidos.delete(numero);
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather numDigits="1" timeout="15" action="${backendUrl}/twilio/confirmar?nombre=${encodeURIComponent(nombre)}&amp;numero=${encodeURIComponent(numero)}" method="POST">
-    <Say language="es-ES" voice="Polly.Lucia">
-      Verificación correcta.
-      Pulse 1 si se trata de una falsa alarma,
-      o pulse 2 para confirmar que la alarma es real.
-    </Say>
-  </Gather>
-  <Say language="es-ES" voice="Polly.Lucia">
-    No hemos recibido respuesta. Avisando al siguiente contacto de emergencia.
-  </Say>
-  <Pause length="2"/>
-</Response>`);
+    res.send(twimlPinCorrecto(backendUrl, nombre, numero));
   } else {
-    // Primer intento fallido — dar segundo intento
     console.warn(`⚠️ PIN incorrecto (intento 1) en llamada a ${numero}`);
     pinIntentosFallidos.set(numero, { nombre });
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="4" timeout="15" action="${backendUrl}/twilio/pin2" method="POST" finishOnKey="">
     <Say language="es-ES" voice="Polly.Lucia">
-      Clave de seguridad incorrecta. Por favor, vuelva a teclear su clave de seguridad.
+      Clave incorrecta. Por favor, inténtelo de nuevo.
     </Say>
   </Gather>
   <Say language="es-ES" voice="Polly.Lucia">
@@ -1366,29 +1455,15 @@ app.use('/twilio/pin2', async (req, res) => {
   res.type('text/xml');
 
   if (pinValido) {
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather numDigits="1" timeout="15" action="${backendUrl}/twilio/confirmar?nombre=${encodeURIComponent(nombre)}&amp;numero=${encodeURIComponent(numero)}" method="POST">
-    <Say language="es-ES" voice="Polly.Lucia">
-      Verificación correcta.
-      Pulse 1 si se trata de una falsa alarma,
-      o pulse 2 para confirmar que la alarma es real.
-    </Say>
-  </Gather>
-  <Say language="es-ES" voice="Polly.Lucia">
-    No hemos recibido respuesta. Avisando al siguiente contacto de emergencia.
-  </Say>
-  <Pause length="2"/>
-</Response>`);
+    res.send(twimlPinCorrecto(backendUrl, nombre, numero));
   } else {
-    // Segundo intento fallido — pasar al siguiente contacto
     console.warn(`⚠️ PIN incorrecto (intento 2) en llamada a ${numero} — pasando al siguiente`);
     twilioSecuenciaIdx++;
     await llamarSiguiente();
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    Clave de seguridad incorrecta. Avisando al siguiente contacto de emergencia.
+    Clave incorrecta. Avisando al siguiente contacto de emergencia.
   </Say>
   <Pause length="2"/>
 </Response>`);
@@ -1428,17 +1503,18 @@ app.use('/twilio/confirmar', async (req, res) => {
   const tecla  = req.body?.Digits || req.query?.Digits;
   const numero = req.body?.To     || req.query?.To     || req.query?.numero || '';
   const nombre = req.query?.nombre ? decodeURIComponent(req.query.nombre) : (req.body?.nombre || numero);
+  const primerNombre = nombre.split(' ')[0];
   res.type('text/xml');
 
   if (tecla === '1') {
     // FALSA ALARMA
     if (twilioConfirmacion) {
-      const primerNombre = twilioConfirmacion.nombre;
-      console.log(`📞 ${nombre} intentó confirmar pero ya lo hizo ${primerNombre}`);
+      const nombreCompleto = twilioConfirmacion.nombre;
+      console.log(`📞 ${nombre} intentó confirmar pero ya lo hizo ${nombreCompleto}`);
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    La alerta ya ha sido verificada y cancelada por ${primerNombre}. No es necesaria ninguna acción adicional. Hasta pronto.
+    La alerta ya ha sido verificada y cancelada por ${nombreCompleto}. No es necesaria ninguna acción adicional. Hasta pronto.
   </Say>
   <Pause length="2"/>
 </Response>`);
@@ -1455,9 +1531,10 @@ app.use('/twilio/confirmar', async (req, res) => {
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say language="es-ES" voice="Polly.Lucia">
-    Gracias, ${nombre}. Alarma desactivada remotamente.
+    Gracias, ${primerNombre}, por confirmar que se trata de una falsa alarma.
+    Hemos desarmado su alarma remotamente.
     No olvide volver a activarla por su seguridad.
-    Que tenga un buen día.
+    ${despedidaHora()}.
   </Say>
   <Pause length="2"/>
 </Response>`);
