@@ -737,6 +737,11 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
   animation:longpressRing 3s ease-out forwards;
   transition:transform .15s;
 }
+.hi-card.lp-enabled{
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+}
 </style>
 </head>
 <body>
@@ -2898,9 +2903,6 @@ function buildLogItem(l, full = false) {
     }
 
     const logId = l._id?.$oid || l._id || '';
-    const adminHint = (full && isAdmin() && logId)
-      ? `<div style="font-size:9px;color:var(--border);font-weight:700;margin-top:4px;letter-spacing:.03em;user-select:none">Mantén 3s para borrar</div>`
-      : '';
 
     return `
     <div class="hist-item">
@@ -2914,7 +2916,6 @@ function buildLogItem(l, full = false) {
           <div class="hi-user">${escapeHtml(l.usuario || l.user || 'Sistema')}</div>
           <div class="hi-time">${fechaTexto}</div>
         </div>
-        ${adminHint}
       </div>
     </div>`;
   })();
@@ -4678,11 +4679,20 @@ async function executeDelLogById() {
 function addLongPressToCard(cardEl, log) {
   if (!isAdmin()) return;
 
-  let timer = null;
+  // Bloquear selección de texto y callout del navegador en la tarjeta
+  cardEl.classList.add('lp-enabled');
+
+  let timer  = null;
   let moved  = false;
+  let startX = 0;
+  let startY = 0;
 
   function startPress(e) {
-    moved = false;
+    // Ignorar si es un enlace o botón dentro de la tarjeta
+    if (e.target.closest('a, button')) return;
+    moved  = false;
+    startX = e.touches ? e.touches[0].clientX : e.clientX;
+    startY = e.touches ? e.touches[0].clientY : e.clientY;
     cardEl.classList.add('pressing');
     timer = setTimeout(() => {
       if (!moved) {
@@ -4695,10 +4705,19 @@ function addLongPressToCard(cardEl, log) {
 
   function cancelPress() {
     clearTimeout(timer);
+    timer = null;
     cardEl.classList.remove('pressing');
   }
 
-  function onMove() { moved = true; cancelPress(); }
+  function onMove(e) {
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    // Tolerancia de 8px antes de considerar que se movió
+    if (Math.abs(x - startX) > 8 || Math.abs(y - startY) > 8) {
+      moved = true;
+      cancelPress();
+    }
+  }
 
   cardEl.addEventListener('mousedown',   startPress);
   cardEl.addEventListener('touchstart',  startPress, { passive: true });
@@ -4708,8 +4727,10 @@ function addLongPressToCard(cardEl, log) {
   cardEl.addEventListener('touchcancel', cancelPress);
   cardEl.addEventListener('mousemove',   onMove);
   cardEl.addEventListener('touchmove',   onMove, { passive: true });
-  // Evitar el menú contextual en long-press móvil
-  cardEl.addEventListener('contextmenu', e => e.preventDefault());
+  // Bloquar menú contextual del navegador (lo que aparece al mantener en móvil)
+  cardEl.addEventListener('contextmenu', e => { e.preventDefault(); return false; });
+  // Bloquear selección de texto durante el press
+  cardEl.addEventListener('selectstart', e => e.preventDefault());
 }
 
 // ── Mostrar botón de borrado solo para admins (se llama tras login)
