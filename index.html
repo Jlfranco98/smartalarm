@@ -2785,7 +2785,7 @@ function renderLogFiltrado(resetPage = true) {
       <div class="hist-day-group">
         <div class="hist-day-label">${g.label}</div>
         <div class="hist-timeline">
-          ${g.items.map(l => buildLogItem(l, true)).join('')}
+          ${g.items.map(l => buildLogItem(l, true, 'hist')).join('')}
         </div>
       </div>`;
   }).join('');
@@ -2845,7 +2845,7 @@ function toggleFiltros() {
   btn.classList.toggle('active', open);
 }
 
-function buildLogItem(l, full = false) {
+function buildLogItem(l, full = false, prefix = 'home') {
   let raw = l.fecha?.$date || l.fecha;
   let fechaTexto = "Sincronizando...";
   if (raw) {
@@ -2907,7 +2907,7 @@ function buildLogItem(l, full = false) {
     return `
     <div class="hist-item">
       <div class="hi-icon-wrap ${icClass}">${icono}</div>
-      <div class="hi-card" id="hicard-${logId}" data-logid="${logId}">
+      <div class="hi-card" id="hicard-${prefix}-${logId}" data-logid="${logId}">
         <div class="hi-card-top">
           <div class="hi-action">${accionHtml}</div>
           <span class="hi-badge" style="color:${badgeColor};background:${badgeBg};border:1px solid ${badgeColor}30">${catLabel}</span>
@@ -2927,7 +2927,7 @@ function attachLogLongPress(logs) {
   (logs || []).forEach(l => {
     const id = l._id?.$oid || l._id || '';
     if (!id) return;
-    const cardEl = document.getElementById('hicard-' + id);
+    const cardEl = document.getElementById('hicard-hist-' + id);
     if (cardEl && !cardEl._lpAttached) {
       cardEl._lpAttached = true;
       addLongPressToCard(cardEl, l);
