@@ -196,7 +196,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 
 /* Agrupación por día */
 .hist-day-group{margin-bottom:8px}
-.hist-day-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:16px 0 10px;display:flex;align-items:center;gap:8px}
+.hist-day-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:16px 0 10px;display:flex;align-items:center;gap:8px;-webkit-user-select:none;user-select:none}
 .hist-day-label::after{content:'';flex:1;height:1px;background:var(--border)}
 
 /* Timeline container */
@@ -207,7 +207,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .hist-item{position:relative;margin-bottom:12px;display:flex;align-items:flex-start;gap:12px}
 
 /* Icono circular en la línea */
-.hi-icon-wrap{position:absolute;left:-44px;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.hi-icon-wrap{position:absolute;left:-44px;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,.12);-webkit-user-select:none;user-select:none}
 .hi-icon-wrap.ic-accion{background:#dbeafe;border:2px solid #3b82f6}
 .hi-icon-wrap.ic-disarm{background:#e8f5e9;border:2px solid #34c759}
 .hi-icon-wrap.ic-noche{background:#fff3e0;border:2px solid var(--orange)}
@@ -218,7 +218,7 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .hi-icon-wrap.ic-llamada{background:#d1fae5;border:2px solid #059669}
 
 /* Tarjeta del evento */
-.hi-card{flex:1;background:var(--white);border-radius:14px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,.06);min-width:0}
+.hi-card{flex:1;background:var(--white);border-radius:14px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,.06);min-width:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .hi-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .hi-action{font-size:13.5px;font-weight:800;color:var(--text);flex:1;line-height:1.3}
 .hi-badge{font-size:9px;font-weight:900;padding:3px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0;letter-spacing:.4px}
@@ -4679,17 +4679,16 @@ async function executeDelLogById() {
 function addLongPressToCard(cardEl, log) {
   if (!isAdmin()) return;
 
-  // Bloquear selección de texto y callout del navegador en la tarjeta
-  cardEl.classList.add('lp-enabled');
-
   let timer  = null;
   let moved  = false;
   let startX = 0;
   let startY = 0;
 
   function startPress(e) {
-    // Ignorar si es un enlace o botón dentro de la tarjeta
     if (e.target.closest('a, button')) return;
+    // preventDefault() bloquea selección de texto y menú contextual nativo
+    // Solo funciona si touchstart no es passive
+    e.preventDefault();
     moved  = false;
     startX = e.touches ? e.touches[0].clientX : e.clientX;
     startY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -4712,7 +4711,6 @@ function addLongPressToCard(cardEl, log) {
   function onMove(e) {
     const x = e.touches ? e.touches[0].clientX : e.clientX;
     const y = e.touches ? e.touches[0].clientY : e.clientY;
-    // Tolerancia de 8px antes de considerar que se movió
     if (Math.abs(x - startX) > 8 || Math.abs(y - startY) > 8) {
       moved = true;
       cancelPress();
@@ -4720,16 +4718,15 @@ function addLongPressToCard(cardEl, log) {
   }
 
   cardEl.addEventListener('mousedown',   startPress);
-  cardEl.addEventListener('touchstart',  startPress, { passive: true });
+  // passive: false ES IMPRESCINDIBLE para que preventDefault() funcione en touch
+  cardEl.addEventListener('touchstart',  startPress, { passive: false });
   cardEl.addEventListener('mouseup',     cancelPress);
   cardEl.addEventListener('mouseleave',  cancelPress);
   cardEl.addEventListener('touchend',    cancelPress);
   cardEl.addEventListener('touchcancel', cancelPress);
   cardEl.addEventListener('mousemove',   onMove);
   cardEl.addEventListener('touchmove',   onMove, { passive: true });
-  // Bloquar menú contextual del navegador (lo que aparece al mantener en móvil)
   cardEl.addEventListener('contextmenu', e => { e.preventDefault(); return false; });
-  // Bloquear selección de texto durante el press
   cardEl.addEventListener('selectstart', e => e.preventDefault());
 }
 
