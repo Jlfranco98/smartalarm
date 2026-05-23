@@ -862,6 +862,19 @@ setInterval(async () => {
 app.get('/api/logs', requireAuth,      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
 app.get('/api/historial', requireAuth, async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
 
+// Borrar un registro individual por ID (solo admin)
+app.delete('/api/logs/:id', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin') return res.status(403).json({ success: false, message: 'Solo admins' });
+    const { id } = req.params;
+    if (!id || !id.match(/^[a-f\d]{24}$/i)) return res.status(400).json({ success: false, message: 'ID inválido' });
+    const r = await Log.deleteOne({ _id: id });
+    if (r.deletedCount === 0) return res.status(404).json({ success: false, message: 'Registro no encontrado' });
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // Borrar logs (solo admin) — ?dias=30|60|90|180|365|all
 app.delete('/api/logs', requireAuth, async (req, res) => {
   try {

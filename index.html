@@ -658,6 +658,85 @@ html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color
 .dcm-btn-cancel{background:var(--bg);color:var(--text)}
 .dcm-btn-delete{background:var(--red);color:#fff}
 .dcm-btn-delete:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;transform:none}
+
+/* ══════════════════════════════════════════════════════════
+   MODAL BORRAR REGISTRO INDIVIDUAL (long-press admin)
+══════════════════════════════════════════════════════════ */
+#del-log-bg{
+  position:fixed;inset:0;z-index:9600;
+  display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(0,0,0,0);
+  opacity:0;pointer-events:none;
+  transition:opacity .25s,background .25s;
+}
+#del-log-bg.open{
+  opacity:1;pointer-events:all;
+  background:rgba(0,0,0,.55);
+}
+.dlm-sheet{
+  background:var(--white);
+  border-radius:24px 24px 0 0;
+  padding:0 0 calc(28px + var(--safe-bot));
+  width:100%;max-width:480px;
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(.4,0,.2,1);
+}
+#del-log-bg.open .dlm-sheet{transform:translateY(0)}
+.dlm-handle{width:36px;height:4px;background:var(--border);border-radius:4px;margin:12px auto 0}
+.dlm-header{padding:20px 20px 4px;text-align:center}
+.dlm-icon-big{font-size:36px;margin-bottom:8px}
+.dlm-title{font-size:18px;font-weight:900;color:var(--text);margin-bottom:4px}
+.dlm-body{padding:0 20px 20px}
+.dlm-detail-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:12px;margin-bottom:8px}
+.dlm-detail-icon{font-size:20px;flex-shrink:0}
+.dlm-detail-info{flex:1;min-width:0}
+.dlm-detail-label{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.dlm-detail-val{font-size:13px;font-weight:700;color:var(--text);word-break:break-word;line-height:1.35;margin-top:2px}
+
+/* Slider tipo iPhone */
+.dlm-slider-wrap{
+  position:relative;height:60px;border-radius:30px;
+  background:var(--red-light);border:1.5px solid #f8b4ba;
+  overflow:hidden;margin-top:16px;
+  touch-action:none;user-select:none;-webkit-user-select:none;
+}
+.dlm-slider-track-label{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:900;color:var(--red);letter-spacing:.04em;
+  pointer-events:none;z-index:1;padding-left:60px;
+}
+.dlm-slider-fill{
+  position:absolute;left:0;top:0;bottom:0;width:60px;
+  background:var(--red);border-radius:30px;
+  z-index:2;pointer-events:none;
+}
+.dlm-slider-thumb{
+  position:absolute;left:4px;top:4px;bottom:4px;width:52px;
+  background:#fff;border-radius:26px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;z-index:3;
+  box-shadow:0 2px 10px rgba(0,0,0,.2);
+  cursor:grab;touch-action:none;
+}
+.dlm-slider-thumb:active{cursor:grabbing}
+.dlm-cancel-btn{
+  width:100%;margin-top:10px;padding:14px;
+  background:transparent;border:1.5px solid var(--border);border-radius:14px;
+  font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;
+  color:var(--muted);cursor:pointer;
+}
+
+/* Feedback visual long-press en tarjeta historial */
+@keyframes longpressRing{
+  0%{box-shadow:0 0 0 0 rgba(232,25,44,0)}
+  60%{box-shadow:0 0 0 4px rgba(232,25,44,0.25)}
+  100%{box-shadow:0 0 0 4px rgba(232,25,44,0.25)}
+}
+.hi-card.pressing{
+  transform:scale(0.97);
+  animation:longpressRing 3s ease-out forwards;
+  transition:transform .15s;
+}
 </style>
 </head>
 <body>
@@ -2706,6 +2785,9 @@ function renderLogFiltrado(resetPage = true) {
       </div>`;
   }).join('');
 
+  // Adjuntar long-press a los cards del admin
+  requestAnimationFrame(() => attachLogLongPress(pagina));
+
   renderPaginacion(totalFiltrados, histPage, totalPages);
 }
 
@@ -2815,10 +2897,15 @@ function buildLogItem(l, full = false) {
       accionHtml = `PÁNICO / SOS — <a href="${url}" target="_blank" style="color:#7d3fc8;text-decoration:underline;font-weight:900">📍 Ver ubicación ${precision}</a>`;
     }
 
+    const logId = l._id?.$oid || l._id || '';
+    const adminHint = (full && isAdmin() && logId)
+      ? `<div style="font-size:9px;color:var(--border);font-weight:700;margin-top:4px;letter-spacing:.03em;user-select:none">Mantén 3s para borrar</div>`
+      : '';
+
     return `
     <div class="hist-item">
       <div class="hi-icon-wrap ${icClass}">${icono}</div>
-      <div class="hi-card">
+      <div class="hi-card" id="hicard-${logId}" data-logid="${logId}">
         <div class="hi-card-top">
           <div class="hi-action">${accionHtml}</div>
           <span class="hi-badge" style="color:${badgeColor};background:${badgeBg};border:1px solid ${badgeColor}30">${catLabel}</span>
@@ -2827,9 +2914,24 @@ function buildLogItem(l, full = false) {
           <div class="hi-user">${escapeHtml(l.usuario || l.user || 'Sistema')}</div>
           <div class="hi-time">${fechaTexto}</div>
         </div>
+        ${adminHint}
       </div>
     </div>`;
   })();
+}
+
+// Adjuntar long-press a todos los hi-cards del historial (llamar tras render)
+function attachLogLongPress(logs) {
+  if (!isAdmin()) return;
+  (logs || []).forEach(l => {
+    const id = l._id?.$oid || l._id || '';
+    if (!id) return;
+    const cardEl = document.getElementById('hicard-' + id);
+    if (cardEl && !cardEl._lpAttached) {
+      cardEl._lpAttached = true;
+      addLongPressToCard(cardEl, l);
+    }
+  });
 }
   
 function renderLog() {
@@ -4407,7 +4509,210 @@ async function executeDeleteHistorial() {
   }
 }
 
-// Mostrar botón de borrado solo para admins (se llama tras login)
+// ── Borrar registro individual (admin long-press) ──────────────────────────
+let _delLogTarget = null;
+let _longPressTimer = null;
+let _longPressActive = false;
+
+function isAdmin() {
+  return (typeof S !== 'undefined' && S.currentUser?.role === 'admin') ||
+         (typeof currentUser !== 'undefined' && currentUser?.role === 'admin') ||
+         (typeof appUser !== 'undefined' && appUser?.role === 'admin');
+}
+
+function openDelLogModal(log) {
+  if (!isAdmin()) return;
+  _delLogTarget = log;
+
+  // Rellenar detalles
+  document.getElementById('dlm-accion').textContent = log.accion || log.action || 'Acción';
+  document.getElementById('dlm-usuario').textContent = log.usuario || log.user || 'Sistema';
+
+  let raw = log.fecha?.$date || log.fecha;
+  let fechaTxt = '—';
+  if (raw) {
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      const dia  = d.getDate().toString().padStart(2,'0');
+      const mes  = (d.getMonth()+1).toString().padStart(2,'0');
+      const anio = d.getFullYear();
+      const hh   = d.getHours().toString().padStart(2,'0');
+      const mm   = d.getMinutes().toString().padStart(2,'0');
+      fechaTxt   = `${dia}/${mes}/${anio} a las ${hh}:${mm}h`;
+    }
+  }
+  document.getElementById('dlm-fecha').textContent = fechaTxt;
+
+  // Reset slider
+  resetDelLogSlider();
+
+  document.getElementById('del-log-bg').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // Inicializar slider tras abrir (necesita que esté visible para medir ancho)
+  requestAnimationFrame(() => initDelLogSlider());
+}
+
+function closeDelLogModal() {
+  document.getElementById('del-log-bg').classList.remove('open');
+  document.body.style.overflow = '';
+  _delLogTarget = null;
+  resetDelLogSlider();
+}
+
+function resetDelLogSlider() {
+  const thumb = document.getElementById('dlm-slider-thumb');
+  const fill  = document.getElementById('dlm-slider-fill');
+  const label = document.getElementById('dlm-slider-label');
+  if (thumb) { thumb.style.left = '4px'; thumb.style.transition = 'left .3s cubic-bezier(.4,0,.2,1)'; }
+  if (fill)  { fill.style.width = '60px'; fill.style.transition = 'width .3s cubic-bezier(.4,0,.2,1)'; }
+  if (label) { label.textContent = 'Desliza para borrar →'; label.style.opacity = '1'; }
+}
+
+function initDelLogSlider() {
+  const wrap  = document.getElementById('dlm-slider-wrap');
+  const thumb = document.getElementById('dlm-slider-thumb');
+  const fill  = document.getElementById('dlm-slider-fill');
+  const label = document.getElementById('dlm-slider-label');
+  if (!wrap || !thumb) return;
+
+  const wrapW  = wrap.offsetWidth;
+  const thumbW = thumb.offsetWidth;
+  const maxX   = wrapW - thumbW - 8; // margen derecho 4px
+
+  let dragging = false;
+  let startX = 0;
+  let currentX = 0;
+
+  function getClientX(e) {
+    return e.touches ? e.touches[0].clientX : e.clientX;
+  }
+
+  function onStart(e) {
+    e.preventDefault();
+    dragging = true;
+    startX = getClientX(e) - currentX;
+    thumb.style.transition = 'none';
+    fill.style.transition  = 'none';
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    let x = getClientX(e) - startX;
+    x = Math.max(0, Math.min(x, maxX));
+    currentX = x;
+    thumb.style.left = (4 + x) + 'px';
+    fill.style.width = (60 + x) + 'px';
+
+    // Fade label cuando avanza
+    const pct = x / maxX;
+    label.style.opacity = Math.max(0, 1 - pct * 2);
+    if (pct > 0.5) {
+      label.textContent = '¡Suelta para borrar!';
+    } else {
+      label.textContent = 'Desliza para borrar →';
+    }
+  }
+
+  async function onEnd(e) {
+    if (!dragging) return;
+    dragging = false;
+    const pct = currentX / maxX;
+
+    if (pct >= 0.85) {
+      // ¡Confirmado! Animar al final y borrar
+      thumb.style.transition = 'left .15s ease';
+      fill.style.transition  = 'width .15s ease';
+      thumb.style.left = (4 + maxX) + 'px';
+      fill.style.width = (60 + maxX) + 'px';
+      label.textContent = '🗑️ Borrando...';
+      label.style.opacity = '1';
+      if (navigator.vibrate) navigator.vibrate([50, 30, 80]);
+      await executeDelLogById();
+    } else {
+      // No llegó — volver atrás
+      currentX = 0;
+      thumb.style.transition = 'left .3s cubic-bezier(.4,0,.2,1)';
+      fill.style.transition  = 'width .3s cubic-bezier(.4,0,.2,1)';
+      thumb.style.left = '4px';
+      fill.style.width = '60px';
+      label.style.opacity = '1';
+      label.textContent = 'Desliza para borrar →';
+    }
+  }
+
+  // Limpiar listeners previos clonando el nodo
+  const newThumb = thumb.cloneNode(true);
+  thumb.parentNode.replaceChild(newThumb, thumb);
+
+  newThumb.addEventListener('mousedown',  onStart, { passive: false });
+  newThumb.addEventListener('touchstart', onStart, { passive: false });
+  document.addEventListener('mousemove',  onMove,  { passive: false });
+  document.addEventListener('touchmove',  onMove,  { passive: false });
+  document.addEventListener('mouseup',    onEnd);
+  document.addEventListener('touchend',   onEnd);
+}
+
+async function executeDelLogById() {
+  if (!_delLogTarget) return;
+  const id = _delLogTarget._id;
+  try {
+    const res  = await authFetch(`/api/logs/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    closeDelLogModal();
+    if (data.success) {
+      toast2('✅ Registro eliminado');
+      if (typeof fetchHistorialGlobal === 'function') fetchHistorialGlobal();
+      else if (typeof renderLogFiltrado === 'function') renderLogFiltrado();
+    } else {
+      toast2('⚠️ ' + (data.message || 'No se pudo borrar'));
+    }
+  } catch(e) {
+    closeDelLogModal();
+    toast2('⚠️ Error de conexión');
+  }
+}
+
+// Añadir long-press a un elemento .hi-card dado el objeto log
+function addLongPressToCard(cardEl, log) {
+  if (!isAdmin()) return;
+
+  let timer = null;
+  let moved  = false;
+
+  function startPress(e) {
+    moved = false;
+    cardEl.classList.add('pressing');
+    timer = setTimeout(() => {
+      if (!moved) {
+        cardEl.classList.remove('pressing');
+        if (navigator.vibrate) navigator.vibrate(60);
+        openDelLogModal(log);
+      }
+    }, 3000);
+  }
+
+  function cancelPress() {
+    clearTimeout(timer);
+    cardEl.classList.remove('pressing');
+  }
+
+  function onMove() { moved = true; cancelPress(); }
+
+  cardEl.addEventListener('mousedown',   startPress);
+  cardEl.addEventListener('touchstart',  startPress, { passive: true });
+  cardEl.addEventListener('mouseup',     cancelPress);
+  cardEl.addEventListener('mouseleave',  cancelPress);
+  cardEl.addEventListener('touchend',    cancelPress);
+  cardEl.addEventListener('touchcancel', cancelPress);
+  cardEl.addEventListener('mousemove',   onMove);
+  cardEl.addEventListener('touchmove',   onMove, { passive: true });
+  // Evitar el menú contextual en long-press móvil
+  cardEl.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+// ── Mostrar botón de borrado solo para admins (se llama tras login)
 function updateDeleteHistBtn() {
   const btn = document.getElementById('hist-delete-btn');
   if (!btn) return;
@@ -4467,5 +4772,49 @@ function showArmConfirm(status) {
 }
 
 </script>
+
+<!-- ════════════════ MODAL BORRAR REGISTRO INDIVIDUAL (admin long-press) ════════════════ -->
+<div id="del-log-bg" onclick="if(event.target===this)closeDelLogModal()">
+  <div class="dlm-sheet">
+    <div class="dlm-handle"></div>
+    <div class="dlm-header">
+      <div class="dlm-icon-big">🗑️</div>
+      <div class="dlm-title">Eliminar registro</div>
+    </div>
+    <div class="dlm-body">
+      <div class="dlm-detail-row">
+        <div class="dlm-detail-icon">⚡</div>
+        <div class="dlm-detail-info">
+          <div class="dlm-detail-label">Acción</div>
+          <div class="dlm-detail-val" id="dlm-accion">—</div>
+        </div>
+      </div>
+      <div class="dlm-detail-row">
+        <div class="dlm-detail-icon">👤</div>
+        <div class="dlm-detail-info">
+          <div class="dlm-detail-label">Usuario</div>
+          <div class="dlm-detail-val" id="dlm-usuario">—</div>
+        </div>
+      </div>
+      <div class="dlm-detail-row">
+        <div class="dlm-detail-icon">🕐</div>
+        <div class="dlm-detail-info">
+          <div class="dlm-detail-label">Fecha y hora</div>
+          <div class="dlm-detail-val" id="dlm-fecha">—</div>
+        </div>
+      </div>
+
+      <!-- Slider desliza para borrar -->
+      <div class="dlm-slider-wrap" id="dlm-slider-wrap">
+        <div class="dlm-slider-fill" id="dlm-slider-fill"></div>
+        <div class="dlm-slider-track-label" id="dlm-slider-label">Desliza para borrar →</div>
+        <div class="dlm-slider-thumb" id="dlm-slider-thumb">🗑️</div>
+      </div>
+
+      <button class="dlm-cancel-btn" onclick="closeDelLogModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
