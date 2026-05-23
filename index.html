@@ -55,7 +55,8 @@
   }
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);overflow:hidden}
+html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 
 /* ── Screens ─────────────────────────────────────────────── */
 .screen{position:fixed;inset:0;background:var(--white);opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .28s cubic-bezier(.4,0,.2,1),transform .28s cubic-bezier(.4,0,.2,1);z-index:1}
