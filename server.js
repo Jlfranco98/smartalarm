@@ -1235,6 +1235,8 @@ async function llamarSosTodos(nombreActivador, telefonoActivador) {
     console.error('❌ Error en llamarSosTodos:', e.message);
   }
 }
+
+async function llamarAlarma() {
   if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
     console.warn('⚠️ Twilio no configurado — llamada omitida');
     return;
