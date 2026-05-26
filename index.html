@@ -55,7 +55,7 @@
   }
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;overscroll-behavior-y:none;}
 input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 
 /* ── Screens ─────────────────────────────────────────────── */
@@ -4827,6 +4827,28 @@ function updateDeleteHistBtn() {
   btn.style.display = isAdmin ? '' : 'none';
 }
 
+
+// ── Bloquear pull-to-refresh y overscroll nativo del navegador ──────────────
+(function blockOverscroll() {
+  // Evita el rebote/pull-to-refresh en iOS y Android Chrome
+  document.addEventListener('touchmove', function(e) {
+    // Permitir scroll solo dentro de elementos con scroll propio
+    let el = e.target;
+    while (el && el !== document.body) {
+      const style = window.getComputedStyle(el);
+      const overflowY = style.overflowY;
+      const canScroll = (overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
+      if (canScroll) return; // dejar pasar el evento
+      el = el.parentElement;
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  // Bloquear también el overscroll de la página raíz
+  document.body.addEventListener('touchstart', function(e) {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+})();
 
 (function initOfflineBanner() {
   const banner = document.getElementById('offline-banner');
