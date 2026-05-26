@@ -930,6 +930,114 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 .drawer-item.danger .drawer-item-label{color:var(--red);}
 .drawer-item.danger .drawer-item-icon{background:var(--red-light);}
 .drawer-item.danger .drawer-item-icon svg{fill:var(--red);}
+
+/* Estrella admin */
+.drawer-admin-star{
+  font-size:11px;color:#f5a800;
+  background:rgba(245,168,0,.15);
+  border:1px solid rgba(245,168,0,.35);
+  border-radius:6px;padding:1px 6px;
+  font-weight:900;letter-spacing:.02em;flex-shrink:0;
+}
+.admin-star-badge{
+  display:inline-flex;align-items:center;
+  font-size:10px;color:#f5a800;
+  background:rgba(245,168,0,.15);
+  border:1px solid rgba(245,168,0,.35);
+  border-radius:6px;padding:1px 6px;
+  font-weight:900;letter-spacing:.02em;
+  margin-left:6px;vertical-align:middle;
+  flex-shrink:0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PAGE: NOTIFICACIONES
+══════════════════════════════════════════════════════════ */
+.notif-page-hero{
+  background:linear-gradient(135deg,var(--red) 0%,#b01020 100%);
+  padding:calc(var(--safe-top) + 28px) 20px 28px;
+  text-align:center;
+}
+.notif-page-icon{font-size:44px;margin-bottom:10px;line-height:1;}
+.notif-page-title{font-size:22px;font-weight:900;color:#fff;letter-spacing:-.3px;}
+.notif-page-sub{font-size:13px;color:rgba(255,255,255,.8);font-weight:600;margin-top:5px;line-height:1.4;}
+
+.notif-permission-card{
+  margin:16px 16px 0;background:var(--white);border-radius:18px;
+  padding:16px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 2px 12px rgba(0,0,0,.07);
+}
+.npc-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0;}
+.npc-icon{font-size:28px;flex-shrink:0;}
+.npc-info{flex:1;min-width:0;}
+.npc-label{font-size:14px;font-weight:800;color:var(--text);}
+.npc-sub{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px;}
+.npc-btn{
+  padding:9px 16px;background:var(--red);color:#fff;border:none;border-radius:12px;
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;
+  flex-shrink:0;transition:background .15s,transform .1s;
+}
+.npc-btn:active{background:var(--red-dark);transform:scale(0.96);}
+.npc-btn.granted{background:var(--green);cursor:default;pointer-events:none;}
+
+.notif-prefs-wrap{padding:16px 16px 32px;}
+.notif-prefs-label{
+  font-size:11px;font-weight:900;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;
+  padding:8px 4px 10px;display:flex;align-items:center;gap:8px;
+}
+.notif-pref-group{
+  background:var(--white);border-radius:18px;
+  box-shadow:0 2px 10px rgba(0,0,0,.06);
+  overflow:hidden;margin-bottom:4px;
+}
+.notif-pref-row{
+  display:flex;align-items:center;gap:14px;
+  padding:15px 16px;
+  border-bottom:1px solid var(--border);
+}
+.notif-pref-icon-wrap{
+  width:40px;height:40px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.np-red{background:#fff0f1;}
+.np-orange{background:#fff8f0;}
+.np-green{background:#f0fdf6;}
+.np-purple{background:#f3e8ff;}
+.np-gray{background:var(--bg);}
+.notif-pref-info{flex:1;min-width:0;}
+.notif-pref-name{font-size:14px;font-weight:800;color:var(--text);}
+.notif-pref-desc{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px;line-height:1.3;}
+
+/* ── Modal cerrar sesión ───────────────────────────────── */
+#logout-confirm-bg{
+  position:fixed;inset:0;z-index:9100;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0);
+  opacity:0;pointer-events:none;
+  transition:opacity .22s,background .22s;
+}
+#logout-confirm-bg.open{
+  opacity:1;pointer-events:all;
+  background:rgba(0,0,0,.5);
+}
+.lcm-box{
+  background:var(--white);border-radius:22px;
+  padding:28px 24px 20px;width:calc(100% - 56px);max-width:300px;
+  text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.18);
+  transform:scale(.92) translateY(10px);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+#logout-confirm-bg.open .lcm-box{transform:scale(1) translateY(0);}
+.lcm-icon{font-size:48px;margin-bottom:10px;line-height:1;}
+.lcm-title{font-size:17px;font-weight:900;color:var(--text);margin-bottom:6px;}
+.lcm-msg{font-size:14px;color:var(--muted);font-weight:600;line-height:1.45;margin-bottom:22px;}
+.lcm-btns{display:flex;gap:10px;}
+.lcm-btn{flex:1;padding:13px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s;}
+.lcm-btn:active{transform:scale(0.96);opacity:.8;}
+.lcm-btn-cancel{background:var(--bg);color:var(--text);}
+.lcm-btn-logout{background:var(--red);color:#fff;}
 </style>
 </head>
 <body>
@@ -1015,6 +1123,21 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
         <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
       </div>
       <span class="drawer-item-label">Usuarios</span>
+      <span class="drawer-admin-star">★</span>
+    </button>
+
+    <button class="drawer-item" id="ditem-dispositivos" onclick="drawerNav('dispositivos')">
+      <div class="drawer-item-icon">
+        <svg viewBox="0 0 24 24"><path d="M17 1H7C5.9 1 5 1.9 5 3v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14zm-4 1h-2v-1h2v1z"/></svg>
+      </div>
+      <span class="drawer-item-label">Dispositivos</span>
+    </button>
+
+    <button class="drawer-item" id="ditem-automatizaciones" onclick="drawerNav('automatizaciones')">
+      <div class="drawer-item-icon">
+        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+      </div>
+      <span class="drawer-item-label">Automatizaciones</span>
     </button>
 
     <div class="drawer-divider"></div>
@@ -1027,7 +1150,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       <span class="drawer-item-label">Mi cuenta</span>
     </button>
 
-    <button class="drawer-item" id="ditem-notif" onclick="drawerNav('cuenta'); setTimeout(()=>toggleNotifPanel(),350)">
+    <button class="drawer-item" id="ditem-notificaciones" onclick="drawerNav('notificaciones')">
       <div class="drawer-item-icon">
         <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
       </div>
@@ -1037,7 +1160,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 
   <!-- Pie: cerrar sesión -->
   <div class="drawer-footer">
-    <button class="drawer-item danger" onclick="closeDrawer(); setTimeout(doLogout, 200)">
+    <button class="drawer-item danger" onclick="openLogoutConfirm()">
       <div class="drawer-item-icon">
         <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
       </div>
@@ -1045,6 +1168,19 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
     </button>
   </div>
 
+</div>
+
+<!-- ════════════════ MODAL CERRAR SESIÓN ════════════════ -->
+<div id="logout-confirm-bg" onclick="if(event.target===this)closeLogoutConfirm()">
+  <div class="lcm-box">
+    <div class="lcm-icon">🚪</div>
+    <div class="lcm-title">¿Cerrar sesión?</div>
+    <div class="lcm-msg">Se cerrará tu sesión actual y tendrás que volver a iniciar sesión.</div>
+    <div class="lcm-btns">
+      <button class="lcm-btn lcm-btn-cancel" onclick="closeLogoutConfirm()">Cancelar</button>
+      <button class="lcm-btn lcm-btn-logout" onclick="closeLogoutConfirm();doLogout()">Cerrar sesión</button>
+    </div>
+  </div>
 </div>
 
 <!-- ════════════════ LOGIN ════════════════ -->
@@ -1143,7 +1279,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           <div class="qa-label">Mi cuenta</div>
           <div class="qa-sub">Ver tu perfil de usuario</div>
         </div>
-        <div class="qa-card" onclick="navTo('cuenta'); setTimeout(()=>toggleNotifPanel(),300)">
+        <div class="qa-card" onclick="navTo('notificaciones')">
           <div class="qa-icon">🔔</div>
           <div class="qa-label">Notificaciones</div>
           <div class="qa-sub">Configurar alertas push</div>
@@ -1161,7 +1297,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
     <div class="page" id="pg-historial">
       <div class="sec-hdr" style="padding-bottom:4px">
         <span class="sec-title">Historial de actividad</span>
-        <button class="admin-only" id="hist-delete-btn" onclick="openDeleteHistorial()" style="display:none;background:none;border:none;font-family:'Nunito',sans-serif;cursor:pointer;color:var(--red);font-size:13px;font-weight:700;padding:0">🗑️ Borrar datos</button>
+        <button class="admin-only" id="hist-delete-btn" onclick="openDeleteHistorial()" style="display:none;background:none;border:none;font-family:'Nunito',sans-serif;cursor:pointer;color:var(--red);font-size:13px;font-weight:700;padding:0">🗑️ Borrar datos <span class="admin-star-badge">★</span></button>
       </div>
 
       <!-- Filtros colapsables -->
@@ -1433,12 +1569,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
         </div>
 
         <!-- GRUPO: ADMIN (solo admin) -->
-        <div class="sl-section-label admin-only" style="display:none">Administración</div>
+        <div class="sl-section-label admin-only" style="display:none">Administración <span class="admin-star-badge">★ Admin</span></div>
         <div class="sl-group admin-only" style="display:none">
           <div class="sl-item" onclick="toggleSessionsPanel()">
             <div class="sl-icon ic-blue">📱</div>
             <div class="sl-text">
-              <div class="sl-label">Sesiones activas</div>
+              <div class="sl-label">Sesiones activas<span class="admin-star-badge">★ Admin</span></div>
               <div class="sl-sublabel">Ver y revocar accesos por dispositivo</div>
             </div>
             <div class="sl-arrow">›</div>
@@ -1450,7 +1586,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           <div class="sl-item" onclick="toggleCfgPanel()">
             <div class="sl-icon ic-gray">🔗</div>
             <div class="sl-text">
-              <div class="sl-label">Configurar servidor</div>
+              <div class="sl-label">Configurar servidor<span class="admin-star-badge">★ Admin</span></div>
               <div class="sl-sublabel">Backend, dispositivo y región Tuya</div>
             </div>
             <div class="sl-arrow">›</div>
@@ -1492,7 +1628,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
         <div class="admin-card">
           <div class="ac-title" style="display:flex;align-items:center;justify-content:space-between">
             <span>Usuarios registrados</span>
-            <span class="sec-more admin-only" id="add-user-btn" style="display:none;font-size:13px;font-weight:700;color:var(--red);cursor:pointer" onclick="openAddUserModal()">＋ Nuevo usuario</span>
+            <span class="sec-more admin-only" id="add-user-btn" style="display:none;font-size:13px;font-weight:700;color:var(--red);cursor:pointer" onclick="openAddUserModal()">＋ Nuevo usuario <span class="admin-star-badge">★</span></span>
           </div>
           <div id="users-admin-list"></div>
         </div>
@@ -1540,6 +1676,90 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       </div>
       <!-- FAB botón añadir -->
       <button class="auto-fab" onclick="openAutoModal()" id="auto-fab">＋</button>
+    </div>
+
+    <!-- ── NOTIFICACIONES ── -->
+    <div class="page" id="pg-notificaciones">
+      <div class="notif-page-hero">
+        <div class="notif-page-icon">🔔</div>
+        <div class="notif-page-title">Notificaciones</div>
+        <div class="notif-page-sub">Elige qué alertas quieres recibir en tu dispositivo</div>
+      </div>
+
+      <!-- Estado del permiso push -->
+      <div class="notif-permission-card" id="notif-perm-card">
+        <div class="npc-left">
+          <div class="npc-icon" id="notif-perm-icon">📵</div>
+          <div class="npc-info">
+            <div class="npc-label" id="notif-perm-label">Notificaciones push desactivadas</div>
+            <div class="npc-sub" id="notif-perm-sub">Actívalas para recibir alertas al instante</div>
+          </div>
+        </div>
+        <button class="npc-btn" id="notif-perm-btn" onclick="requestPushPermission()">Activar</button>
+      </div>
+
+      <!-- Preferencias -->
+      <div class="notif-prefs-wrap">
+        <div class="notif-prefs-label">Avisarme cuando...</div>
+
+        <div class="notif-pref-group">
+          <div class="notif-pref-row">
+            <div class="notif-pref-icon-wrap np-red">🔒</div>
+            <div class="notif-pref-info">
+              <div class="notif-pref-name">Armado total</div>
+              <div class="notif-pref-desc">Cuando la alarma se conecta completamente</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" id="notif-arm-away2" onchange="syncNotifPref('notif-arm-away','notif-arm-away2');saveNotifPrefs()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="notif-pref-row">
+            <div class="notif-pref-icon-wrap np-orange">🌙</div>
+            <div class="notif-pref-info">
+              <div class="notif-pref-name">Modo noche</div>
+              <div class="notif-pref-desc">Cuando se activa la protección parcial</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" id="notif-arm-home2" onchange="syncNotifPref('notif-arm-home','notif-arm-home2');saveNotifPrefs()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="notif-pref-row" style="border-bottom:none">
+            <div class="notif-pref-icon-wrap np-green">🔓</div>
+            <div class="notif-pref-info">
+              <div class="notif-pref-name">Desarmado</div>
+              <div class="notif-pref-desc">Cuando alguien desconecta la alarma</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" id="notif-disarm2" onchange="syncNotifPref('notif-disarm','notif-disarm2');saveNotifPrefs()"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <div class="notif-prefs-label" style="margin-top:8px">Alertas críticas <span style="font-size:10px;background:var(--red);color:#fff;padding:2px 8px;border-radius:10px;font-weight:900;letter-spacing:.03em;vertical-align:middle">Siempre activo</span></div>
+
+        <div class="notif-pref-group">
+          <div class="notif-pref-row">
+            <div class="notif-pref-icon-wrap np-purple">🆘</div>
+            <div class="notif-pref-info">
+              <div class="notif-pref-name">PÁNICO / SOS</div>
+              <div class="notif-pref-desc">Alerta de emergencia activada por un usuario</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked disabled style="pointer-events:none"><span class="toggle-slider" style="opacity:.55"></span></label>
+          </div>
+          <div class="notif-pref-row">
+            <div class="notif-pref-icon-wrap np-red">🚨</div>
+            <div class="notif-pref-info">
+              <div class="notif-pref-name">Salto de alarma</div>
+              <div class="notif-pref-desc">Cuando se detecta un intruso o activación</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked disabled style="pointer-events:none"><span class="toggle-slider" style="opacity:.55"></span></label>
+          </div>
+          <div class="notif-pref-row" style="border-bottom:none">
+            <div class="notif-pref-icon-wrap np-gray">📶</div>
+            <div class="notif-pref-info">
+              <div class="notif-pref-name">Dispositivo offline</div>
+              <div class="notif-pref-desc">Si el panel pierde conexión con el servidor</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked disabled style="pointer-events:none"><span class="toggle-slider" style="opacity:.55"></span></label>
+          </div>
+        </div>
+
+        <div class="cfg-saved" id="notif-page-ok" style="margin-top:6px;text-align:center"></div>
+      </div>
     </div>
 
    </div><!-- /page-area -->
@@ -2595,6 +2815,12 @@ function navTo(page){
   if(page==='cuenta'){ loadConfigForm(); updateThemeUI(localStorage.getItem('theme') || 'system'); cargarEstadoMovil(); }
   if(page==='dispositivos')renderDispositivos();
   if(page==='automatizaciones')renderAutomatizaciones();
+  if(page==='notificaciones'){
+    // Sincronizar toggles desde pg-cuenta al abrir la página
+    const ids=[['notif-arm-away','notif-arm-away2'],['notif-arm-home','notif-arm-home2'],['notif-disarm','notif-disarm2']];
+    ids.forEach(([srcId,tgtId])=>{const s=document.getElementById(srcId);const t=document.getElementById(tgtId);if(s&&t)t.checked=s.checked;});
+    updateNotifPermCard();
+  }
 }
 
 // ── Estado alarma desde MongoDB ────────────────────────────────────────────
@@ -4980,9 +5206,8 @@ function addLongPressToCard(cardEl, log) {
 
   function startPress(e) {
     if (e.target.closest('a, button')) return;
-    // preventDefault() bloquea selección de texto y menú contextual nativo
-    // Solo funciona si touchstart no es passive
-    e.preventDefault();
+    // NO llamamos preventDefault() aquí para no bloquear el scroll del contenedor
+    // El menú contextual nativo ya lo suprimimos con el listener 'contextmenu'
     moved  = false;
     startX = e.touches ? e.touches[0].clientX : e.clientX;
     startY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -5012,8 +5237,8 @@ function addLongPressToCard(cardEl, log) {
   }
 
   cardEl.addEventListener('mousedown',   startPress);
-  // passive: false ES IMPRESCINDIBLE para que preventDefault() funcione en touch
-  cardEl.addEventListener('touchstart',  startPress, { passive: false });
+  // passive: true — ya no llamamos preventDefault() en touchstart, así el scroll no se bloquea
+  cardEl.addEventListener('touchstart',  startPress, { passive: true });
   cardEl.addEventListener('mouseup',     cancelPress);
   cardEl.addEventListener('mouseleave',  cancelPress);
   cardEl.addEventListener('touchend',    cancelPress);
@@ -5045,23 +5270,23 @@ function updateDeleteHistBtn() {
   document.addEventListener('touchmove', function(e) {
     // Buscar si hay un elemento scrollable en la cadena de padres
     let el = e.target;
-    let scrollable = false;
     while (el && el !== document.documentElement) {
       const style = window.getComputedStyle(el);
       const oy = style.overflowY;
       if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) {
         const dy = e.touches[0].clientY - startY;
-        // Permitir scroll solo si NO está en el límite (arriba o abajo)
-        const atTop    = dy > 0 && el.scrollTop === 0;
-        const atBottom = dy < 0 && el.scrollTop + el.clientHeight >= el.scrollHeight;
+        // Bloquear solo si intenta hacer overscroll fuera de los límites del contenedor
+        const atTop    = dy > 0 && el.scrollTop <= 0;
+        const atBottom = dy < 0 && el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
         if (!atTop && !atBottom) {
-          scrollable = true;
-          break;
+          // Hay scroll disponible en la dirección correcta — permitir
+          return;
         }
       }
       el = el.parentElement;
     }
-    if (!scrollable) e.preventDefault();
+    // No hay contenedor scrollable o está en el límite — bloquear overscroll/pull-to-refresh
+    e.preventDefault();
   }, { passive: false });
 })();
 
@@ -5154,8 +5379,74 @@ function drawerNav(page) {
 }
 
 // Cerrar drawer con tecla Escape
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeLogoutConfirm(); } });
 
+// ── Modal confirmación cierre de sesión ─────────────────────────────────────
+function openLogoutConfirm() {
+  closeDrawer();
+  setTimeout(() => {
+    document.getElementById('logout-confirm-bg').classList.add('open');
+  }, 250);
+}
+function closeLogoutConfirm() {
+  document.getElementById('logout-confirm-bg').classList.remove('open');
+}
+
+// ── Sincronizar toggles de notificaciones entre pg-cuenta y pg-notificaciones
+function syncNotifPref(sourceId, targetId) {
+  const src = document.getElementById(sourceId);
+  const tgt = document.getElementById(targetId);
+  if (src && tgt) src.checked = tgt.checked;
+}
+
+// ── Actualizar estado del permiso push en pg-notificaciones ─────────────────
+function updateNotifPermCard() {
+  const icon  = document.getElementById('notif-perm-icon');
+  const label = document.getElementById('notif-perm-label');
+  const sub   = document.getElementById('notif-perm-sub');
+  const btn   = document.getElementById('notif-perm-btn');
+  if (!icon) return;
+  const perm = Notification?.permission;
+  if (perm === 'granted') {
+    icon.textContent  = '🔔';
+    label.textContent = 'Notificaciones activadas';
+    sub.textContent   = 'Este dispositivo recibirá todas las alertas';
+    btn.textContent   = 'Activado';
+    btn.classList.add('granted');
+  } else if (perm === 'denied') {
+    icon.textContent  = '🔕';
+    label.textContent = 'Notificaciones bloqueadas';
+    sub.textContent   = 'Actívalas en los ajustes del navegador';
+    btn.textContent   = 'Bloqueado';
+    btn.classList.add('granted');
+  } else {
+    icon.textContent  = '📵';
+    label.textContent = 'Notificaciones desactivadas';
+    sub.textContent   = 'Actívalas para recibir alertas al instante';
+    btn.textContent   = 'Activar';
+    btn.classList.remove('granted');
+  }
+}
+
+// Sincronizar toggles de notificaciones al cargar página notificaciones
+document.addEventListener('DOMContentLoaded', () => {
+  // Cuando se cargue la página de notificaciones, sincronizar los estados
+  const ids = [
+    ['notif-arm-away',  'notif-arm-away2'],
+    ['notif-arm-home',  'notif-arm-home2'],
+    ['notif-disarm',    'notif-disarm2'],
+  ];
+  // Observar cambios en los checkboxes de cuenta para sincronizar
+  ids.forEach(([srcId, tgtId]) => {
+    const src = document.getElementById(srcId);
+    if (src) src.addEventListener('change', () => {
+      const tgt = document.getElementById(tgtId);
+      if (tgt) tgt.checked = src.checked;
+    });
+  });
+});
+
+// Sobreescribir navTo para actualizar estado del permiso al entrar a notificaciones
 </script>
 
 <!-- ════════════════ MODAL BORRAR REGISTRO INDIVIDUAL (admin long-press) ════════════════ -->
