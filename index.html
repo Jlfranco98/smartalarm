@@ -4138,42 +4138,34 @@ function toast2(msg){
 document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 
 // ── Funciones de UI ────────────────────────────────────────────────────────
+// ── Botón refresco topbar — detecta página activa y refresca la que toca ─────
 async function refreshStatus(event) {
-  const btn = event?.currentTarget || event?.target;
-  if (btn) btn.innerHTML = '⌛';
-
-  // Detectar página activa
-  const activePage = document.querySelector('.page.active')?.id || 'pg-inicio';
-
-  switch(activePage) {
-    case 'pg-inicio':
-      await fetchStatus();
-      await fetchHistorialGlobal();
-      break;
-    case 'pg-historial':
-      await fetchHistorialGlobal();
-      renderLogFiltrado();
-      break;
-    case 'pg-admin':
-      await renderUsersAdmin();
-      await cargarLlamadas();
-      break;
-    case 'pg-dispositivos':
-      await renderDispositivos();
-      break;
-    case 'pg-automatizaciones':
-      await renderAutomatizaciones();
-      break;
-    case 'pg-cuenta':
-      await fetchStatus();
-      break;
-    default:
-      await fetchStatus();
+  const btn = event?.currentTarget;
+  if (btn) {
+    btn.style.transition = 'transform 0.65s ease';
+    btn.style.transform  = 'rotate(360deg)';
+    setTimeout(() => { btn.style.transition = ''; btn.style.transform = ''; }, 700);
   }
 
-  if (btn) {
-    btn.innerHTML = '✅';
-    setTimeout(() => btn.innerHTML = '🔄', 1500);
+  const activePage = document.querySelector('.page.active');
+  const pageId = activePage?.id;
+
+  if (pageId === 'pg-notificaciones') {
+    await loadNotifPrefs();
+    await updateNotifPermCard();
+  } else if (pageId === 'pg-historial') {
+    await fetchHistorialGlobal();
+    renderLogFiltrado();
+  } else if (pageId === 'pg-admin') {
+    await renderUsersAdmin();
+    await cargarLlamadas();
+  } else if (pageId === 'pg-dispositivos') {
+    await renderDispositivos();
+  } else if (pageId === 'pg-automatizaciones') {
+    await renderAutomatizaciones();
+  } else {
+    await fetchStatus();
+    await fetchHistorialGlobal();
   }
 }
 
@@ -4502,22 +4494,40 @@ async function checkNotifStatus() {
 }
 
 async function requestPushPermission() {
+  // Elementos de la tarjeta principal en pg-notificaciones
+  const permBtn = document.getElementById('notif-perm-btn');
+  const permSub = document.getElementById('notif-perm-sub');
+  // Elementos del panel legacy (pueden no existir)
   const ok  = document.getElementById('notif-ok');
   const btn = document.getElementById('notif-btn');
-  ok.style.color = 'var(--red)';
+
+  if (ok) ok.style.color = 'var(--red)';
 
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    ok.textContent = 'Tu navegador no soporta notificaciones push'; return;
+    if (ok) ok.textContent = 'Tu navegador no soporta notificaciones push';
+    if (permSub) permSub.textContent = 'Tu navegador no soporta notificaciones push';
+    return;
   }
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
-    ok.textContent = 'Permiso denegado. Actívalo en ajustes del navegador.'; return;
+    if (ok) ok.textContent = 'Permiso denegado. Actívalo en ajustes del navegador.';
+    if (permSub) permSub.textContent = 'Permiso denegado. Actívalo en ajustes del navegador.';
+    await updateNotifPermCard();
+    return;
   }
   try {
     const vapidRes = await fetch('/api/push/vapid-public');
     const { publicKey } = await vapidRes.json();
-    if (!publicKey) { ok.textContent = 'Error: VAPID no configurado en servidor'; return; }
+    if (!publicKey) {
+      if (ok) ok.textContent = 'Error: VAPID no configurado en servidor';
+      return;
+    }
     const reg = await navigator.serviceWorker.ready;
+
+    // Si hay suscripcion antigua, cancelarla para forzar una nueva (clave VAPID fresca)
+    const oldSub = await reg.pushManager.getSubscription();
+    if (oldSub) await oldSub.unsubscribe();
+
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey)
@@ -4526,12 +4536,17 @@ async function requestPushPermission() {
       method: 'POST',
       body: JSON.stringify({ username: S.currentUser.username, subscription: sub, device: navigator.userAgent.slice(0,80) })
     });
-    ok.style.color = 'var(--green)';
-    ok.textContent = 'Este dispositivo recibirá notificaciones';
-    btn.textContent = '✅ Dispositivo configurado';
-    btn.style.background = 'var(--green)';
+
+    // Actualizar UI legacy si existe
+    if (ok) { ok.style.color = 'var(--green)'; ok.textContent = 'Este dispositivo recibirá notificaciones'; }
+    if (btn) { btn.textContent = '✅ Dispositivo configurado'; btn.style.background = 'var(--green)'; }
+
+    // Actualizar tarjeta principal de pg-notificaciones
+    await updateNotifPermCard();
+
   } catch(e) {
-    ok.textContent = 'Error al activar: ' + e.message;
+    if (ok) ok.textContent = 'Error al activar: ' + e.message;
+    if (permSub) permSub.textContent = 'Error al activar: ' + e.message;
   }
 }
 
@@ -5419,32 +5434,49 @@ function notifToggleChanged(checkbox, sourceId, targetId, label) {
 }
 
 // ── Actualizar estado del permiso push en pg-notificaciones ─────────────────
-function updateNotifPermCard() {
+async function updateNotifPermCard() {
   const icon  = document.getElementById('notif-perm-icon');
   const label = document.getElementById('notif-perm-label');
   const sub   = document.getElementById('notif-perm-sub');
   const btn   = document.getElementById('notif-perm-btn');
   if (!icon) return;
+
   const perm = Notification?.permission;
-  if (perm === 'granted') {
-    icon.textContent  = '🔔';
-    label.textContent = 'Notificaciones activadas';
-    sub.textContent   = 'Este dispositivo recibirá todas las alertas';
-    btn.textContent   = 'Activado';
-    btn.classList.add('granted');
-  } else if (perm === 'denied') {
+
+  if (perm === 'denied') {
     icon.textContent  = '🔕';
     label.textContent = 'Notificaciones bloqueadas';
     sub.textContent   = 'Actívalas en los ajustes del navegador';
     btn.textContent   = 'Bloqueado';
     btn.classList.add('granted');
-  } else {
-    icon.textContent  = '📵';
-    label.textContent = 'Notificaciones desactivadas';
-    sub.textContent   = 'Actívalas para recibir alertas al instante';
-    btn.textContent   = 'Activar';
-    btn.classList.remove('granted');
+    btn.onclick = null;
+    return;
   }
+
+  if (perm === 'granted') {
+    // Comprobar si además existe suscripción push activa en el Service Worker
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const activeSub = await reg.pushManager.getSubscription();
+      if (activeSub) {
+        icon.textContent  = '🔔';
+        label.textContent = 'Notificaciones activadas';
+        sub.textContent   = 'Este dispositivo recibirá todas las alertas';
+        btn.textContent   = 'Activado';
+        btn.classList.add('granted');
+        btn.onclick = null;
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // Sin permiso O permiso granted pero sin suscripción activa (ej: token borrado de MongoDB)
+  icon.textContent  = '📵';
+  label.textContent = 'Notificaciones desactivadas';
+  sub.textContent   = 'Actívalas para recibir alertas al instante';
+  btn.textContent   = 'Activar';
+  btn.classList.remove('granted');
+  btn.onclick = requestPushPermission;
 }
 
 // Sincronizar toggles de notificaciones al cargar página notificaciones
@@ -5465,7 +5497,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Sobreescribir navTo para actualizar estado del permiso al entrar a notificaciones
 </script>
 
 <!-- ════════════════ MODAL BORRAR REGISTRO INDIVIDUAL (admin long-press) ════════════════ -->
