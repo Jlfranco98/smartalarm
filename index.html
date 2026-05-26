@@ -92,7 +92,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 #s-app{background:var(--bg);display:flex;flex-direction:column}
 
 /* Top bar */
-.topbar{background:var(--white);padding:calc(var(--safe-top) + 12px) 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:relative;z-index:10}
+.topbar{background:var(--white);padding:calc(var(--safe-top) + 12px) 16px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);position:relative;z-index:10}
 .tb-brand{font-size:22px;font-weight:900;color:var(--red);letter-spacing:-0.5px}
 .tb-address{font-size:14px;color:var(--text);font-weight:500;display:flex;justify-content:center;align-items:center;background:var(--bg);padding:5px 15px;border-radius:20px;margin:0 10px;white-space:nowrap}.user-name-style{margin-left:6px;font-weight:700;color:var(--red)}
 .user-name-style { margin-left: 6px; font-weight: 700; color: var(--red); }
@@ -102,7 +102,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 
 /* Page area */
 .page-area{flex:1;overflow:hidden;position:relative}
-.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .22s,transform .22s;padding-bottom:calc(var(--nav-h) + var(--safe-bot) + 12px)}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .22s,transform .22s;padding-bottom:calc(var(--safe-bot) + 12px)}
 .page.active{opacity:1;pointer-events:all;transform:translateY(0)}
 
 /* Bottom nav */
@@ -802,6 +802,134 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
   user-select:none;
   -webkit-touch-callout:none;
 }
+
+/* ══════════════════════════════════════════════════════════
+   HAMBURGER MENU — DRAWER LATERAL
+══════════════════════════════════════════════════════════ */
+
+/* Botón hamburguesa en topbar */
+.tb-hamburger{
+  width:36px;height:36px;border-radius:10px;
+  background:none;border:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;padding:6px;flex-shrink:0;
+  transition:background .15s;
+}
+.tb-hamburger:active{background:var(--bg);}
+.tb-hamburger span{
+  display:block;width:20px;height:2px;
+  background:var(--text);border-radius:2px;
+  transition:transform .3s,opacity .3s,width .3s;
+}
+
+/* Overlay oscuro detrás del drawer */
+.drawer-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0);
+  z-index:200;
+  pointer-events:none;
+  transition:background .3s;
+}
+.drawer-overlay.open{
+  background:rgba(0,0,0,.45);
+  pointer-events:all;
+}
+
+/* El drawer en sí */
+.drawer{
+  position:fixed;top:0;left:0;bottom:0;
+  width:78%;max-width:300px;
+  background:var(--white);
+  z-index:201;
+  transform:translateX(-100%);
+  transition:transform .32s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+  box-shadow:4px 0 32px rgba(0,0,0,.18);
+  overflow:hidden;
+}
+.drawer.open{transform:translateX(0);}
+
+/* Cabecera del drawer — perfil */
+.drawer-header{
+  background:linear-gradient(135deg,var(--red) 0%,#b01020 100%);
+  padding:calc(var(--safe-top) + 28px) 20px 24px;
+  position:relative;flex-shrink:0;
+}
+.drawer-close{
+  position:absolute;top:calc(var(--safe-top) + 12px);right:12px;
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(255,255,255,.2);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:18px;font-weight:300;line-height:1;
+  transition:background .15s;
+}
+.drawer-close:active{background:rgba(255,255,255,.35);}
+.drawer-avatar{
+  width:56px;height:56px;border-radius:50%;
+  background:rgba(255,255,255,.22);
+  border:2px solid rgba(255,255,255,.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:900;color:#fff;
+  margin-bottom:12px;overflow:hidden;position:relative;
+}
+.drawer-avatar-img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;border-radius:50%;display:none;
+}
+.drawer-name{font-size:17px;font-weight:900;color:#fff;letter-spacing:-.2px;}
+.drawer-role{
+  display:inline-block;margin-top:5px;
+  padding:3px 10px;border-radius:20px;
+  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+  font-size:10px;font-weight:800;color:#fff;
+  text-transform:uppercase;letter-spacing:.08em;
+}
+
+/* Cuerpo del drawer — ítems */
+.drawer-body{flex:1;overflow-y:auto;padding:10px 0;}
+.drawer-section-label{
+  font-size:10px;font-weight:900;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.1em;
+  padding:14px 20px 6px;
+}
+.drawer-item{
+  display:flex;align-items:center;gap:14px;
+  padding:13px 20px;cursor:pointer;
+  border:none;background:none;width:100%;
+  font-family:'Nunito',sans-serif;
+  text-align:left;transition:background .12s;
+  position:relative;
+}
+.drawer-item:active{background:var(--bg);}
+.drawer-item.active{background:var(--red-light);}
+.drawer-item.active .drawer-item-label{color:var(--red);}
+.drawer-item.active .drawer-item-icon{background:var(--red-light);color:var(--red);}
+.drawer-item-icon{
+  width:38px;height:38px;border-radius:12px;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:18px;transition:background .12s;
+}
+.drawer-item-icon svg{width:20px;height:20px;fill:var(--muted);}
+.drawer-item.active .drawer-item-icon svg{fill:var(--red);}
+.drawer-item-label{
+  font-size:14px;font-weight:800;color:var(--text);flex:1;
+}
+.drawer-item-badge{
+  font-size:10px;font-weight:900;
+  background:var(--red);color:#fff;
+  padding:2px 7px;border-radius:10px;
+}
+.drawer-divider{height:1px;background:var(--border);margin:8px 16px;}
+
+/* Pie del drawer */
+.drawer-footer{
+  padding:12px 0 calc(12px + var(--safe-bot));
+  border-top:1px solid var(--border);flex-shrink:0;
+}
+.drawer-item.danger .drawer-item-label{color:var(--red);}
+.drawer-item.danger .drawer-item-icon{background:var(--red-light);}
+.drawer-item.danger .drawer-item-icon svg{fill:var(--red);}
 </style>
 </head>
 <body>
@@ -849,6 +977,76 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
   </div>
 </div>
 
+<!-- ════════════════ DRAWER LATERAL ════════════════ -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+
+  <!-- Cabecera perfil -->
+  <div class="drawer-header">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <div class="drawer-avatar" id="drawer-avatar">
+      <img class="drawer-avatar-img" id="drawer-av-img" src="" alt="">
+      <span id="drawer-av-initials">JL</span>
+    </div>
+    <div class="drawer-name" id="drawer-name">Usuario</div>
+    <div class="drawer-role" id="drawer-role">Usuario</div>
+  </div>
+
+  <!-- Ítems de navegación -->
+  <div class="drawer-body">
+    <div class="drawer-section-label">Navegación</div>
+
+    <button class="drawer-item active" id="ditem-inicio" onclick="drawerNav('inicio')">
+      <div class="drawer-item-icon">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      </div>
+      <span class="drawer-item-label">Inicio</span>
+    </button>
+
+    <button class="drawer-item" id="ditem-historial" onclick="drawerNav('historial')">
+      <div class="drawer-item-icon">
+        <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+      </div>
+      <span class="drawer-item-label">Historial</span>
+    </button>
+
+    <button class="drawer-item admin-only" id="ditem-admin" onclick="drawerNav('admin')" style="display:none">
+      <div class="drawer-item-icon">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </div>
+      <span class="drawer-item-label">Usuarios</span>
+    </button>
+
+    <div class="drawer-divider"></div>
+    <div class="drawer-section-label">Cuenta</div>
+
+    <button class="drawer-item" id="ditem-cuenta" onclick="drawerNav('cuenta')">
+      <div class="drawer-item-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      </div>
+      <span class="drawer-item-label">Mi cuenta</span>
+    </button>
+
+    <button class="drawer-item" id="ditem-notif" onclick="drawerNav('cuenta'); setTimeout(()=>toggleNotifPanel(),350)">
+      <div class="drawer-item-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+      </div>
+      <span class="drawer-item-label">Notificaciones</span>
+    </button>
+  </div>
+
+  <!-- Pie: cerrar sesión -->
+  <div class="drawer-footer">
+    <button class="drawer-item danger" onclick="closeDrawer(); setTimeout(doLogout, 200)">
+      <div class="drawer-item-icon">
+        <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      </div>
+      <span class="drawer-item-label">Cerrar sesión</span>
+    </button>
+  </div>
+
+</div>
+
 <!-- ════════════════ LOGIN ════════════════ -->
 <div id="s-login" class="screen active">
   <div class="login-top">
@@ -878,11 +1076,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 
   <!-- Top bar -->
   <div class="topbar">
+    <button class="tb-hamburger" onclick="openDrawer()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
     <div class="tb-brand">Smart Alarm</div>
-    <div class="tb-address" id="tb-addr">C/ Sondalezas Nº33</div>
     <div class="tb-icons">
       <button class="tb-icon-btn" onclick="refreshStatus(event)" title="Actualizar">🔄</button>
-      <button class="tb-icon-btn" onclick="navTo('cuenta')" title="Cuenta">👤</button>
     </div>
   </div>
 
@@ -1346,7 +1545,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
    </div><!-- /page-area -->
 
   <!-- Bottom nav -->
-  <div class="bottomnav" id="main-nav" style="display: none;">
+  <div class="bottomnav" id="main-nav" style="display:none!important;visibility:hidden;pointer-events:none;height:0;overflow:hidden;">
     <button class="nav-item active" id="nav-inicio" onclick="navTo('inicio')">
       <div class="nav-icon">🏠</div>
       <div class="nav-label">Inicio</div>
@@ -1799,7 +1998,7 @@ async function authFetch(url, options = {}) {
     S.currentUser = null;
     S.sessionToken = null;
     localStorage.removeItem('mialarm');
-    document.getElementById('main-nav').style.display = 'none';
+    // main-nav reemplazado por drawer
     document.getElementById('s-app').classList.remove('active');
     document.getElementById('s-login').classList.add('active');
     document.getElementById('li-user').value = '';
@@ -1824,7 +2023,7 @@ function load(){
     if(d.token) S.sessionToken = d.token;
     if(d.user) {
       S.currentUser = d.user;
-      document.getElementById('main-nav').style.display = 'flex';
+      // main-nav reemplazado por drawer
       document.getElementById('s-login').classList.remove('active');
       document.getElementById('s-app').classList.add('active');
       gestionarVisibilidadAdmin();
@@ -1875,7 +2074,7 @@ async function doLogin() {
       }
 
       // LOGIN NORMAL
-      document.getElementById('main-nav').style.display = 'flex';
+      // main-nav reemplazado por drawer
       gestionarVisibilidadAdmin();
       await fetchHistory(); 
       await fetchStatus();
@@ -1895,7 +2094,7 @@ function doLogout() {
   stopPolling();
   S.currentUser = null;
   S.sessionToken = null;
-  document.getElementById('main-nav').style.display = 'none';
+  // main-nav reemplazado por drawer
   save();
   gestionarVisibilidadAdmin();
   
@@ -1931,9 +2130,14 @@ function gestionarVisibilidadAdmin() {
         // El botón de borrado historial es inline, corregir display
         const histDelBtn = document.getElementById('hist-delete-btn');
         if (histDelBtn) histDelBtn.style.display = 'inline-flex';
+        // Mostrar ítem admin en drawer
+        const ditemAdmin = document.getElementById('ditem-admin');
+        if (ditemAdmin) ditemAdmin.style.display = 'flex';
     } else {
         console.log("Login correcto por un usuario");
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+        const ditemAdminHide = document.getElementById('ditem-admin');
+        if (ditemAdminHide) ditemAdminHide.style.display = 'none';
     }
 }
   
@@ -3984,7 +4188,7 @@ async function applyForceChange() {
       document.getElementById('force-change-screen').style.display = 'none';
       document.getElementById('force-change-screen').classList.remove('active');
       document.getElementById('s-app').classList.add('active');
-      document.getElementById('main-nav').style.display = 'flex';
+      // main-nav reemplazado por drawer
       gestionarVisibilidadAdmin();
       renderApp();
       startPolling();
@@ -4909,6 +5113,48 @@ function showArmConfirm(status) {
   if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
   setTimeout(() => { overlay.classList.remove('show'); }, 2200);
 }
+
+
+// ══════════════════════════════════════════════════════════
+//  DRAWER LATERAL
+// ══════════════════════════════════════════════════════════
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+  // Actualizar datos del perfil en el drawer
+  if (S.currentUser) {
+    const u = S.currentUser;
+    const initials = (u.name || 'U').slice(0,2).toUpperCase();
+    document.getElementById('drawer-av-initials').textContent = initials;
+    document.getElementById('drawer-name').textContent = u.name || u.username;
+    const isAdmin = u.role === 'admin';
+    document.getElementById('drawer-role').textContent = isAdmin ? 'Administrador' : 'Usuario';
+    // Avatar foto si existe
+    const img = document.getElementById('drawer-av-img');
+    if (u.avatar) { img.src = u.avatar; img.style.display = 'block'; }
+    else { img.style.display = 'none'; }
+    // Mostrar/ocultar ítem admin
+    const ditemAdmin = document.getElementById('ditem-admin');
+    if (ditemAdmin) ditemAdmin.style.display = isAdmin ? 'flex' : 'none';
+  }
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+
+function drawerNav(page) {
+  closeDrawer();
+  setTimeout(() => navTo(page), 200);
+  // Actualizar ítem activo en el drawer
+  document.querySelectorAll('.drawer-item[id^="ditem-"]').forEach(el => el.classList.remove('active'));
+  const active = document.getElementById('ditem-' + page);
+  if (active) active.classList.add('active');
+}
+
+// Cerrar drawer con tecla Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
 </script>
 
