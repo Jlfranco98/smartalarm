@@ -114,28 +114,143 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 /* ══════════════════════════════════════════════════════════
    PAGE: INICIO
 ══════════════════════════════════════════════════════════ */
-.home-status-card{margin:16px 16px 0;background:var(--white);border-radius:20px;padding:28px 20px;text-align:center;box-shadow:0 2px 16px rgba(0,0,0,.06)}
-.hs-label{font-size:15px;color:var(--text);font-weight:900;margin-bottom:16px;text-transform:uppercase;letter-spacing:.08em}
-.hs-circle{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;position:relative;transition:background .4s}
-.hs-circle-armed{background:var(--red)}
-.hs-circle-disarmed{background:var(--green)}
-.hs-circle-home{background:var(--orange)}
-.hs-circle::after{content:'';position:absolute;inset:-10px;border-radius:50%;border:2px solid;opacity:.18;transition:border-color .4s}
-.hs-circle-armed::after{border-color:var(--red)}
-.hs-circle-disarmed::after{border-color:var(--green)}
-.hs-circle-home::after{border-color:var(--orange)}
-.hs-icon{font-size:38px;filter:brightness(10)}
-.hs-status{font-size:20px;font-weight:900;margin-bottom:2px;transition:color .3s}
-.hs-sub{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:18px}
-.hs-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.hs-btn{padding:12px 20px;border-radius:16px;border:none;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:90px}
-.hs-btn:active{transform:scale(0.96);opacity:.8}
-.hs-btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text)}
-.hs-btn-red{background:var(--red);color:#fff}
-.hs-btn-green{background:var(--green);color:#fff}
-.hs-btn-orange{background:var(--orange);color:#fff}
-.hs-btn-sos{background:#7d0000;color:#fff;animation:sos-pulse 1.5s infinite}
-@keyframes sos-pulse{0%,100%{box-shadow:0 0 0 0 rgba(125,0,0,0.4)}70%{box-shadow:0 0 0 12px rgba(125,0,0,0)}}
+/* ── HOME STATUS CARD — Nuevo diseño ───────────────────────── */
+.home-status-card{
+  margin:16px 16px 0;
+  background:var(--white);
+  border-radius:24px;
+  padding:24px 20px 20px;
+  text-align:center;
+  box-shadow:0 4px 24px rgba(0,0,0,.07);
+}
+.hs-greeting{
+  font-size:13px;color:var(--muted);font-weight:600;margin-bottom:2px;text-align:left;
+}
+.hs-label{
+  font-size:19px;color:var(--text);font-weight:900;
+  margin-bottom:20px;text-align:left;letter-spacing:-.3px;
+}
+
+/* Escudo SVG circular */
+.hs-circle{
+  width:110px;height:110px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 18px;position:relative;
+  transition:all .45s cubic-bezier(.4,0,.2,1);
+}
+.hs-circle-disarmed{
+  background:linear-gradient(145deg,#00d472,#00b562);
+  box-shadow:0 8px 28px rgba(0,181,98,.38);
+}
+.hs-circle-armed{
+  background:linear-gradient(145deg,#ff3b52,#e8192c);
+  box-shadow:0 8px 28px rgba(232,25,44,.38);
+}
+.hs-circle-home{
+  background:linear-gradient(145deg,#ffab30,#ff8c00);
+  box-shadow:0 8px 28px rgba(255,140,0,.38);
+}
+/* Anillo exterior pulsante */
+.hs-circle::before{
+  content:'';position:absolute;inset:-8px;border-radius:50%;
+  border:2px solid currentColor;opacity:.18;
+  animation:shield-ring 2.5s ease-in-out infinite;
+}
+.hs-circle-disarmed{color:#00b562}
+.hs-circle-armed{color:#e8192c}
+.hs-circle-home{color:#ff8c00}
+@keyframes shield-ring{
+  0%,100%{transform:scale(1);opacity:.18}
+  50%{transform:scale(1.06);opacity:.08}
+}
+/* Icono dentro del escudo */
+.hs-icon{
+  font-size:0;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.hs-icon svg{width:48px;height:48px;fill:#fff;filter:drop-shadow(0 2px 4px rgba(0,0,0,.15))}
+
+.hs-status{
+  font-size:20px;font-weight:900;margin-bottom:3px;
+  transition:color .35s;letter-spacing:-.3px;
+}
+.hs-sub{
+  font-size:13px;color:var(--muted);font-weight:600;margin-bottom:20px;
+}
+
+/* Botones principales — fila horizontal */
+.hs-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+  margin-bottom:10px;
+}
+.hs-btn{
+  padding:14px 8px 12px;
+  border-radius:18px;border:none;
+  font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;
+  cursor:pointer;
+  transition:transform .12s,box-shadow .12s,opacity .12s;
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+}
+.hs-btn:active{transform:scale(0.94);opacity:.85}
+.hs-btn svg{width:26px;height:26px}
+
+/* Armado Total */
+.hs-btn-red{
+  background:linear-gradient(145deg,#ff3b52,#e8192c);
+  color:#fff;
+  box-shadow:0 4px 16px rgba(232,25,44,.3);
+}
+.hs-btn-red svg{fill:#fff}
+
+/* Modo Noche */
+.hs-btn-orange{
+  background:linear-gradient(145deg,#ffab30,#ff8c00);
+  color:#fff;
+  box-shadow:0 4px 16px rgba(255,140,0,.3);
+}
+.hs-btn-orange svg{fill:#fff}
+
+/* Desconectar */
+.hs-btn-green{
+  background:linear-gradient(145deg,#00d472,#00b562);
+  color:#fff;
+  box-shadow:0 4px 16px rgba(0,181,98,.3);
+}
+.hs-btn-green svg{fill:#fff}
+
+/* Botón outline (inactivo/outline) */
+.hs-btn-outline{
+  background:transparent;
+  border:1.5px solid var(--border);
+  color:var(--muted);
+  box-shadow:none;
+}
+.hs-btn-outline svg{fill:var(--muted)}
+
+/* SOS — fila completa ancho */
+.hs-btn-sos{
+  width:100%;
+  flex-direction:row;
+  justify-content:center;
+  gap:10px;
+  padding:14px 20px;
+  border-radius:18px;border:none;
+  background:linear-gradient(135deg,#9b0000,#7d0000);
+  color:#fff;
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;
+  cursor:pointer;letter-spacing:.04em;
+  box-shadow:0 4px 20px rgba(125,0,0,.4);
+  animation:sos-pulse 1.5s infinite;
+  transition:transform .12s;
+}
+.hs-btn-sos:active{transform:scale(0.97)}
+.hs-btn-sos svg{width:22px;height:22px;fill:#fff;flex-shrink:0}
+@keyframes sos-pulse{
+  0%,100%{box-shadow:0 4px 20px rgba(125,0,0,.4)}
+  50%{box-shadow:0 4px 30px rgba(125,0,0,.7)}
+}
 
 /* Selection header */
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 16px 10px}
@@ -833,32 +948,35 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
     <!-- ── INICIO ── -->
     <div class="page active" id="pg-inicio">
       <div class="home-status-card">
-        <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:4px">C/ Sondalezas Nº33 - Bloque 7 - 2ºB - Málaga 29010</div>
-        <div class="hs-label">Estado de alarma</div>
+        <div class="hs-greeting" id="hs-greeting">Hola,</div>
+        <div class="hs-label" id="hs-label">Alarma desconectada</div>
         <div class="hs-circle hs-circle-disarmed" id="hs-circle">
-          <div class="hs-icon" id="hs-icon">🔓</div>
+          <div class="hs-icon" id="hs-icon">
+            <!-- Escudo abierto (desconectada) -->
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12V11c0 4.54-3.08 8.76-7 10.06C8.08 19.76 5 15.54 5 11V6.3l7-3.12z"/><path d="M10.09 13.5L7.5 10.91l-1.41 1.41 3.99 4 7.07-7.07-1.41-1.41-5.65 5.66z" opacity="0"/></svg>
+          </div>
         </div>
         <div class="hs-status" id="hs-status">Desconectada</div>
-        <div class="hs-sub" id="hs-sub">Alarma desconectada</div>
-        <div class="hs-refresh-time" id="hs-refresh-time" style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:12px"></div>
+        <div class="hs-sub" id="hs-sub">Sin protección activa</div>
+        <div class="hs-refresh-time" id="hs-refresh-time" style="font-size:11px;color:var(--muted);margin-bottom:16px"></div>
         <div class="hs-actions" id="hs-actions">
           <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">
-            <span style="font-size:22px;line-height:1">🔒</span>
+            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
             <span>Armado total</span>
           </button>
           <button class="hs-btn hs-btn-orange" onclick="openPin('arm_home')">
-            <span style="font-size:22px;line-height:1">🌙</span>
+            <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
             <span>Modo noche</span>
           </button>
           <button class="hs-btn hs-btn-green" onclick="openPin('disarm')">
-            <span style="font-size:22px;line-height:1">🔓</span>
+            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12V11c0 4.54-3.08 8.76-7 10.06C8.08 19.76 5 15.54 5 11V6.3l7-3.12zm-1.5 9.32l-2.59-2.59L6.5 11.32l3.99 4 6.01-6.01-1.41-1.41-5.59 5.59z"/></svg>
             <span>Desconectar</span>
           </button>
-          <button class="hs-btn hs-btn-sos" onclick="openSos()">
-  <span style="font-size:22px;line-height:1">🆘</span>
-  <span>PÁNICO / SOS</span>
-</button>
         </div>
+        <button class="hs-btn hs-btn-sos" onclick="openSos()">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          <span>PÁNICO / SOS</span>
+        </button>
       </div>
 
       <div class="sec-hdr">
@@ -1745,10 +1863,13 @@ async function authFetch(url, options = {}) {
   return response;
 }
 
+const _SVG_SHIELD_OPEN  = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12V11c0 4.54-3.08 8.76-7 10.06C8.08 19.76 5 15.54 5 11V6.3l7-3.12z"/></svg>`;
+const _SVG_SHIELD_FULL  = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>`;
+const _SVG_MOON         = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>`;
 const STATUS_CFG = {
-  disarmed: {label:'Desconectada', sub:'Sistema desconectado',       icon:'🔓', cirCls:'hs-circle-disarmed', color:'var(--green)'},
-  armed:    {label:'Conectada total',sub:'Protección total activada',icon:'🔒', cirCls:'hs-circle-armed',    color:'var(--red)'},
-  arm_home: {label:'Conectada parcialmente',sub:'Modo en casa activo',  icon:'🌙', cirCls:'hs-circle-home',     color:'var(--orange)'},
+  disarmed: {label:'Desconectada',         sub:'Sin protección activa',       icon:_SVG_SHIELD_OPEN, hsLabel:'Alarma desconectada',       cirCls:'hs-circle-disarmed', color:'var(--green)'},
+  armed:    {label:'Conectada totalmente', sub:'Protección total activada',   icon:_SVG_SHIELD_FULL, hsLabel:'Alarma conectada totalmente',cirCls:'hs-circle-armed',    color:'var(--red)'},
+  arm_home: {label:'Modo noche',           sub:'Protección parcial activada', icon:_SVG_MOON,        hsLabel:'Alarma conectada parcialmente',cirCls:'hs-circle-home',   color:'var(--orange)'},
 };
 const ACTION_NAMES = {arm_away:'Conectar total', arm_home:'Conectar parcialmente', disarm:'Desconectar alarma', sos:'PÁNICO / SOS'};
 
@@ -2390,6 +2511,14 @@ function updateStatusUI() {
     document.getElementById('hs-icon').innerHTML = cfg.icon;
     document.getElementById('hs-status').textContent = cfg.label;
     document.getElementById('hs-sub').textContent = cfg.sub;
+    const lbl = document.getElementById('hs-label');
+    if (lbl) lbl.textContent = cfg.hsLabel;
+  }
+  // Actualizar saludo con nombre del usuario
+  const greetEl = document.getElementById('hs-greeting');
+  if (greetEl && S.currentUser) {
+    const name = (S.currentUser.name || '').split(' ')[0];
+    greetEl.textContent = 'Hola, ' + name;
   }
 }
 
