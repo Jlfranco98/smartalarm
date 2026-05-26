@@ -1237,7 +1237,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
     <button class="tb-hamburger" onclick="openDrawer()" aria-label="Menú">
       <span></span><span></span><span></span>
     </button>
-    <div class="tb-brand">Smart Alarm</div>
+    <div class="tb-address" id="tb-address">📍 C/ Sondalezas Nº33</div>
     <div class="tb-icons">
       <button class="tb-icon-btn" onclick="refreshStatus(event)" title="Actualizar">🔄</button>
     </div>
@@ -2804,9 +2804,7 @@ function navTo(page){
   if(page==='dispositivos')renderDispositivos();
   if(page==='automatizaciones')renderAutomatizaciones();
   if(page==='notificaciones'){
-    // Sincronizar toggles desde pg-cuenta al abrir la página
-    const ids=[['notif-arm-away','notif-arm-away2'],['notif-arm-home','notif-arm-home2'],['notif-disarm','notif-disarm2']];
-    ids.forEach(([srcId,tgtId])=>{const s=document.getElementById(srcId);const t=document.getElementById(tgtId);if(s&&t)t.checked=s.checked;});
+    loadNotifPrefs();
     updateNotifPermCard();
   }
 }
@@ -4445,9 +4443,17 @@ async function loadNotifPrefs() {
   try {
     const res = await authFetch('/api/push/prefs/' + S.currentUser.username);
     const prefs = await res.json();
+    // Inputs ocultos (usados por saveNotifPrefs)
     document.getElementById('notif-arm-away').checked = prefs.arm_away !== false;
     document.getElementById('notif-arm-home').checked = prefs.arm_home !== false;
     document.getElementById('notif-disarm').checked   = prefs.disarm  !== false;
+    // Toggles visibles en pg-notificaciones
+    const a2 = document.getElementById('notif-arm-away2');
+    const h2 = document.getElementById('notif-arm-home2');
+    const d2 = document.getElementById('notif-disarm2');
+    if (a2) a2.checked = prefs.arm_away !== false;
+    if (h2) h2.checked = prefs.arm_home !== false;
+    if (d2) d2.checked = prefs.disarm  !== false;
   } catch(e) {}
 }
 
