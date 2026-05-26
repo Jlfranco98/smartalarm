@@ -1038,6 +1038,22 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 .lcm-btn:active{transform:scale(0.96);opacity:.8;}
 .lcm-btn-cancel{background:var(--bg);color:var(--text);}
 .lcm-btn-logout{background:var(--red);color:#fff;}
+/* ── Toast confirmación notificaciones ────────────────── */
+.notif-toast{
+  position:fixed;bottom:calc(32px + var(--safe-bot));left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:#1a1a1a;color:#fff;
+  display:flex;align-items:center;gap:9px;
+  padding:12px 20px;border-radius:40px;
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;
+  white-space:nowrap;pointer-events:none;
+  box-shadow:0 6px 28px rgba(0,0,0,.28);
+  opacity:0;z-index:9999;
+  transition:opacity .22s cubic-bezier(.4,0,.2,1),transform .22s cubic-bezier(.4,0,.2,1);
+}
+.notif-toast.show{
+  opacity:1;transform:translateX(-50%) translateY(0);
+}
 </style>
 </head>
 <body>
@@ -1168,6 +1184,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
     </button>
   </div>
 
+</div>
+
+<!-- ════════════════ TOAST NOTIFICACIONES ════════════════ -->
+<div id="notif-toast" class="notif-toast">
+  <span id="notif-toast-icon">✅</span>
+  <span id="notif-toast-text">Preferencia guardada</span>
 </div>
 
 <!-- ════════════════ MODAL CERRAR SESIÓN ════════════════ -->
@@ -1518,8 +1540,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
         <!-- GRUPO: NOTIFICACIONES -->
         <div class="sl-section-label">Notificaciones</div>
         <div class="sl-group">
-
-          <div class="sl-item" onclick="toggleNotifPanel()">
+          <div class="sl-item" onclick="drawerNav('notificaciones')">
             <div class="sl-icon ic-green">🔔</div>
             <div class="sl-text">
               <div class="sl-label">Preferencias de avisos</div>
@@ -1527,45 +1548,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
             </div>
             <div class="sl-arrow">›</div>
           </div>
-          <div id="notif-panel" style="display:none" class="sl-panel">
-            <div style="font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Avisarme cuando...</div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info"><div class="notif-toggle-icon">🔒</div><div class="notif-toggle-label">Armado total</div></div>
-              <label class="toggle-switch"><input type="checkbox" id="notif-arm-away" onchange="saveNotifPrefs()"><span class="toggle-slider"></span></label>
-            </div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info"><div class="notif-toggle-icon">🌙</div><div class="notif-toggle-label">Modo noche</div></div>
-              <label class="toggle-switch"><input type="checkbox" id="notif-arm-home" onchange="saveNotifPrefs()"><span class="toggle-slider"></span></label>
-            </div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info"><div class="notif-toggle-icon">🔓</div><div class="notif-toggle-label">Desarmado</div></div>
-              <label class="toggle-switch"><input type="checkbox" id="notif-disarm" onchange="saveNotifPrefs()"><span class="toggle-slider"></span></label>
-            </div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info">
-                <div class="notif-toggle-icon">🆘</div>
-                <div><div class="notif-toggle-label">PÁNICO / SOS</div><div style="font-size:11px;color:var(--muted);font-weight:600">Siempre activo</div></div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" checked disabled style="pointer-events:none"><span class="toggle-slider" style="opacity:0.5"></span></label>
-            </div>
-            <div class="notif-toggle-row">
-              <div class="notif-toggle-info">
-                <div class="notif-toggle-icon">🚨</div>
-                <div><div class="notif-toggle-label">Salto de alarma</div><div style="font-size:11px;color:var(--muted);font-weight:600">Siempre activo</div></div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" checked disabled style="pointer-events:none"><span class="toggle-slider" style="opacity:0.5"></span></label>
-            </div>
-            <div class="notif-toggle-row" style="border-bottom:none">
-              <div class="notif-toggle-info">
-                <div class="notif-toggle-icon">📶</div>
-                <div><div class="notif-toggle-label">Dispositivo offline</div><div style="font-size:11px;color:var(--muted);font-weight:600">Siempre activo</div></div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" checked disabled style="pointer-events:none"><span class="toggle-slider" style="opacity:0.5"></span></label>
-            </div>
-            <button class="btn-add" id="notif-btn" style="margin-top:14px;width:100%" onclick="requestPushPermission()">🔔 Registrar este dispositivo</button>
-            <div class="cfg-saved" id="notif-ok" style="margin-top:6px"></div>
+          <!-- Inputs ocultos para sincronización con pg-notificaciones -->
+          <div style="display:none">
+            <input type="checkbox" id="notif-arm-away">
+            <input type="checkbox" id="notif-arm-home">
+            <input type="checkbox" id="notif-disarm">
           </div>
-
         </div>
 
         <!-- GRUPO: ADMIN (solo admin) -->
@@ -1709,7 +1697,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
               <div class="notif-pref-name">Armado total</div>
               <div class="notif-pref-desc">Cuando la alarma se conecta completamente</div>
             </div>
-            <label class="toggle-switch"><input type="checkbox" id="notif-arm-away2" onchange="syncNotifPref('notif-arm-away','notif-arm-away2');saveNotifPrefs()"><span class="toggle-slider"></span></label>
+            <label class="toggle-switch"><input type="checkbox" id="notif-arm-away2" onchange="notifToggleChanged(this,'notif-arm-away','notif-arm-away2','Armado total')"><span class="toggle-slider"></span></label>
           </div>
           <div class="notif-pref-row">
             <div class="notif-pref-icon-wrap np-orange">🌙</div>
@@ -1717,7 +1705,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
               <div class="notif-pref-name">Modo noche</div>
               <div class="notif-pref-desc">Cuando se activa la protección parcial</div>
             </div>
-            <label class="toggle-switch"><input type="checkbox" id="notif-arm-home2" onchange="syncNotifPref('notif-arm-home','notif-arm-home2');saveNotifPrefs()"><span class="toggle-slider"></span></label>
+            <label class="toggle-switch"><input type="checkbox" id="notif-arm-home2" onchange="notifToggleChanged(this,'notif-arm-home','notif-arm-home2','Modo noche')"><span class="toggle-slider"></span></label>
           </div>
           <div class="notif-pref-row" style="border-bottom:none">
             <div class="notif-pref-icon-wrap np-green">🔓</div>
@@ -1725,7 +1713,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
               <div class="notif-pref-name">Desarmado</div>
               <div class="notif-pref-desc">Cuando alguien desconecta la alarma</div>
             </div>
-            <label class="toggle-switch"><input type="checkbox" id="notif-disarm2" onchange="syncNotifPref('notif-disarm','notif-disarm2');saveNotifPrefs()"><span class="toggle-slider"></span></label>
+            <label class="toggle-switch"><input type="checkbox" id="notif-disarm2" onchange="notifToggleChanged(this,'notif-disarm','notif-disarm2','Desarmado')"><span class="toggle-slider"></span></label>
           </div>
         </div>
 
@@ -5397,6 +5385,31 @@ function syncNotifPref(sourceId, targetId) {
   const src = document.getElementById(sourceId);
   const tgt = document.getElementById(targetId);
   if (src && tgt) src.checked = tgt.checked;
+}
+
+// ── Toggle con toast de confirmación en pg-notificaciones ────────────────────
+let _notifToastTimer = null;
+function notifToggleChanged(checkbox, sourceId, targetId, label) {
+  syncNotifPref(sourceId, targetId);
+  saveNotifPrefs();
+
+  const on = checkbox.checked;
+  const toast = document.getElementById('notif-toast');
+  const icon  = document.getElementById('notif-toast-icon');
+  const text  = document.getElementById('notif-toast-text');
+
+  icon.textContent = on ? '🔔' : '🔕';
+  text.textContent = on ? label + ' activado' : label + ' desactivado';
+
+  // Reiniciar timer si ya había uno
+  if (_notifToastTimer) { clearTimeout(_notifToastTimer); toast.classList.remove('show'); }
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+    _notifToastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+      _notifToastTimer = null;
+    }, 2200);
+  });
 }
 
 // ── Actualizar estado del permiso push en pg-notificaciones ─────────────────
