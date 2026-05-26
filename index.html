@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
+  overscroll-behavior: none;
   --red:#e8192c;
   --red-dark:#c0121f;
   --red-light:#fff0f1;
@@ -55,7 +56,8 @@
   }
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;overscroll-behavior-y:none;}
+html{height:100%;overflow:hidden;position:fixed;width:100%;overscroll-behavior:none;}
+body{height:100%;width:100%;background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;overscroll-behavior-y:none;}
 input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 
 /* ── Screens ─────────────────────────────────────────────── */
@@ -4828,25 +4830,34 @@ function updateDeleteHistBtn() {
 }
 
 
-// ── Bloquear pull-to-refresh y overscroll nativo del navegador ──────────────
+// ── Bloquear pull-to-refresh y overscroll — iOS + Android ──────────────────
 (function blockOverscroll() {
-  // Evita el rebote/pull-to-refresh en iOS y Android Chrome
+  let startY = 0;
+
+  document.addEventListener('touchstart', function(e) {
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
   document.addEventListener('touchmove', function(e) {
-    // Permitir scroll solo dentro de elementos con scroll propio
+    // Buscar si hay un elemento scrollable en la cadena de padres
     let el = e.target;
-    while (el && el !== document.body) {
+    let scrollable = false;
+    while (el && el !== document.documentElement) {
       const style = window.getComputedStyle(el);
-      const overflowY = style.overflowY;
-      const canScroll = (overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight;
-      if (canScroll) return; // dejar pasar el evento
+      const oy = style.overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) {
+        const dy = e.touches[0].clientY - startY;
+        // Permitir scroll solo si NO está en el límite (arriba o abajo)
+        const atTop    = dy > 0 && el.scrollTop === 0;
+        const atBottom = dy < 0 && el.scrollTop + el.clientHeight >= el.scrollHeight;
+        if (!atTop && !atBottom) {
+          scrollable = true;
+          break;
+        }
+      }
       el = el.parentElement;
     }
-    e.preventDefault();
-  }, { passive: false });
-
-  // Bloquear también el overscroll de la página raíz
-  document.body.addEventListener('touchstart', function(e) {
-    if (e.touches.length > 1) e.preventDefault();
+    if (!scrollable) e.preventDefault();
   }, { passive: false });
 })();
 
