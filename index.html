@@ -141,24 +141,24 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 }
 .hs-btn-circle svg{width:36px;height:36px;fill:var(--muted);transition:fill .35s;}
 
-/* Activo: armado total — rojo */
+/* Activo: armado total — ROJO */
 .hs-btn-circle.sel-armed{
   background:linear-gradient(145deg,#ff3b52,#e8192c);
   box-shadow:0 6px 18px rgba(232,25,44,.35);
 }
 .hs-btn-circle.sel-armed svg{fill:#fff;}
 
-/* Activo: modo noche — naranja/amarillo como imagen */
+/* Activo: modo noche — AZUL */
 .hs-btn-circle.sel-home{
-  background:linear-gradient(145deg,#ffd03a,#f5a800);
-  box-shadow:0 6px 18px rgba(245,168,0,.38);
+  background:linear-gradient(145deg,#3b8bff,#1a6fe8);
+  box-shadow:0 6px 18px rgba(26,111,232,.38);
 }
 .hs-btn-circle.sel-home svg{fill:#fff;}
 
-/* Activo: desconectada — amarillo dorado como imagen */
+/* Activo: desconectada — VERDE */
 .hs-btn-circle.sel-disarmed{
-  background:linear-gradient(145deg,#ffd03a,#f5a800);
-  box-shadow:0 6px 18px rgba(245,168,0,.38);
+  background:linear-gradient(145deg,#2ecc71,#00b562);
+  box-shadow:0 6px 18px rgba(0,181,98,.35);
 }
 .hs-btn-circle.sel-disarmed svg{fill:#fff;}
 
@@ -2227,9 +2227,9 @@ async function authFetch(url, options = {}) {
 }
 
 const STATUS_CFG = {
-  disarmed: {label:'No conectada',          hsLabel:'Alarma no conectada',         sub:'Sin protección activa',       activeBtn:'disarmed', color:'var(--orange)'},
+  disarmed: {label:'No conectada',          hsLabel:'Alarma no conectada',         sub:'Sin protección activa',       activeBtn:'disarmed', color:'var(--green)'},
   armed:    {label:'Conectada totalmente',  hsLabel:'Alarma conectada totalmente', sub:'Protección total activada',   activeBtn:'armed',    color:'var(--red)'},
-  arm_home: {label:'Conectada en casa',     hsLabel:'Alarma conectada en casa',    sub:'Protección parcial activada', activeBtn:'home',     color:'var(--orange)'},
+  arm_home: {label:'Conectada en casa',     hsLabel:'Alarma conectada en casa',    sub:'Protección parcial activada', activeBtn:'home',     color:'#1a6fe8'},
 };
 const ACTION_NAMES = {arm_away:'Conectar total', arm_home:'Conectar parcialmente', disarm:'Desconectar alarma', sos:'PÁNICO / SOS'};
 
