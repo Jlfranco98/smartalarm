@@ -114,142 +114,84 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 /* ══════════════════════════════════════════════════════════
    PAGE: INICIO
 ══════════════════════════════════════════════════════════ */
-/* ── HOME STATUS CARD — Nuevo diseño ───────────────────────── */
+/* ── HOME STATUS CARD — Selector circular estilo imagen ───── */
 .home-status-card{
-  margin:16px 16px 0;
-  background:var(--white);
-  border-radius:24px;
-  padding:24px 20px 20px;
-  text-align:center;
-  box-shadow:0 4px 24px rgba(0,0,0,.07);
+  margin:16px 16px 0;background:var(--white);border-radius:24px;
+  padding:22px 20px 18px;box-shadow:0 4px 24px rgba(0,0,0,.07);
 }
-.hs-greeting{
-  font-size:13px;color:var(--muted);font-weight:600;margin-bottom:2px;text-align:left;
-}
-.hs-label{
-  font-size:19px;color:var(--text);font-weight:900;
-  margin-bottom:20px;text-align:left;letter-spacing:-.3px;
-}
+.hs-greeting{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:2px;}
+.hs-label{font-size:19px;color:var(--text);font-weight:900;margin-bottom:22px;letter-spacing:-.3px;line-height:1.25;}
 
-/* Escudo SVG circular */
-.hs-circle{
-  width:110px;height:110px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  margin:0 auto 18px;position:relative;
-  transition:all .45s cubic-bezier(.4,0,.2,1);
-}
-.hs-circle-disarmed{
-  background:linear-gradient(145deg,#00d472,#00b562);
-  box-shadow:0 8px 28px rgba(0,181,98,.38);
-}
-.hs-circle-armed{
-  background:linear-gradient(145deg,#ff3b52,#e8192c);
-  box-shadow:0 8px 28px rgba(232,25,44,.38);
-}
-.hs-circle-home{
-  background:linear-gradient(145deg,#ffab30,#ff8c00);
-  box-shadow:0 8px 28px rgba(255,140,0,.38);
-}
-/* Anillo exterior pulsante */
-.hs-circle::before{
-  content:'';position:absolute;inset:-8px;border-radius:50%;
-  border:2px solid currentColor;opacity:.18;
-  animation:shield-ring 2.5s ease-in-out infinite;
-}
-.hs-circle-disarmed{color:#00b562}
-.hs-circle-armed{color:#e8192c}
-.hs-circle-home{color:#ff8c00}
-@keyframes shield-ring{
-  0%,100%{transform:scale(1);opacity:.18}
-  50%{transform:scale(1.06);opacity:.08}
-}
-/* Icono dentro del escudo */
-.hs-icon{
-  font-size:0;line-height:1;
-  display:flex;align-items:center;justify-content:center;
-}
-.hs-icon svg{width:48px;height:48px;fill:#fff;filter:drop-shadow(0 2px 4px rgba(0,0,0,.15))}
-
-.hs-status{
-  font-size:20px;font-weight:900;margin-bottom:3px;
-  transition:color .35s;letter-spacing:-.3px;
-}
-.hs-sub{
-  font-size:13px;color:var(--muted);font-weight:600;margin-bottom:20px;
-}
-
-/* Botones principales — fila horizontal */
-.hs-actions{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:10px;
-  margin-bottom:10px;
-}
+/* Fila de 3 selectores circulares */
+.hs-actions{display:flex;justify-content:space-around;align-items:flex-start;gap:6px;margin-bottom:16px;}
 .hs-btn{
-  padding:14px 8px 12px;
-  border-radius:18px;border:none;
-  font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;
-  cursor:pointer;
-  transition:transform .12s,box-shadow .12s,opacity .12s;
-  display:flex;flex-direction:column;align-items:center;gap:7px;
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;
+  background:none;border:none;cursor:pointer;padding:0;
+  font-family:'Nunito',sans-serif;transition:transform .12s;
 }
-.hs-btn:active{transform:scale(0.94);opacity:.85}
-.hs-btn svg{width:26px;height:26px}
+.hs-btn:active{transform:scale(0.92);}
 
-/* Armado Total */
-.hs-btn-red{
+/* Círculo de cada opción */
+.hs-btn-circle{
+  width:68px;height:68px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);transition:background .35s,box-shadow .35s;
+}
+.hs-btn-circle svg{width:32px;height:32px;fill:var(--muted);transition:fill .35s;}
+
+/* Activo: armado total — rojo */
+.hs-btn-circle.sel-armed{
   background:linear-gradient(145deg,#ff3b52,#e8192c);
-  color:#fff;
-  box-shadow:0 4px 16px rgba(232,25,44,.3);
+  box-shadow:0 6px 18px rgba(232,25,44,.35);
 }
-.hs-btn-red svg{fill:#fff}
+.hs-btn-circle.sel-armed svg{fill:#fff;}
 
-/* Modo Noche */
-.hs-btn-orange{
-  background:linear-gradient(145deg,#ffab30,#ff8c00);
-  color:#fff;
-  box-shadow:0 4px 16px rgba(255,140,0,.3);
+/* Activo: modo noche — naranja/amarillo como imagen */
+.hs-btn-circle.sel-home{
+  background:linear-gradient(145deg,#ffd03a,#f5a800);
+  box-shadow:0 6px 18px rgba(245,168,0,.38);
 }
-.hs-btn-orange svg{fill:#fff}
+.hs-btn-circle.sel-home svg{fill:#fff;}
 
-/* Desconectar */
-.hs-btn-green{
-  background:linear-gradient(145deg,#00d472,#00b562);
-  color:#fff;
-  box-shadow:0 4px 16px rgba(0,181,98,.3);
+/* Activo: desconectada — amarillo dorado como imagen */
+.hs-btn-circle.sel-disarmed{
+  background:linear-gradient(145deg,#ffd03a,#f5a800);
+  box-shadow:0 6px 18px rgba(245,168,0,.38);
 }
-.hs-btn-green svg{fill:#fff}
+.hs-btn-circle.sel-disarmed svg{fill:#fff;}
 
-/* Botón outline (inactivo/outline) */
-.hs-btn-outline{
-  background:transparent;
-  border:1.5px solid var(--border);
-  color:var(--muted);
-  box-shadow:none;
+/* Etiqueta bajo el círculo */
+.hs-btn-label{
+  font-size:11px;font-weight:800;color:var(--muted);
+  text-align:center;line-height:1.3;max-width:72px;
 }
-.hs-btn-outline svg{fill:var(--muted)}
+.hs-btn.btn-active .hs-btn-label{color:var(--text);font-weight:900;}
 
-/* SOS — fila completa ancho */
+/* Tiempo de refresco */
+.hs-refresh-time{font-size:11px;color:var(--muted);margin-bottom:12px;}
+
+/* Ocultar elementos viejos que ya no se muestran */
+.hs-status{display:none;}
+.hs-sub{display:none;}
+.hs-circle{display:none;}
+
+/* Divisor antes del SOS */
+.hs-sos-divider{height:1px;background:var(--border);margin:0 0 12px;}
+
+/* Botón SOS — discreto, fila completa */
 .hs-btn-sos{
-  width:100%;
-  flex-direction:row;
-  justify-content:center;
-  gap:10px;
-  padding:14px 20px;
-  border-radius:18px;border:none;
-  background:linear-gradient(135deg,#9b0000,#7d0000);
-  color:#fff;
-  font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;
-  cursor:pointer;letter-spacing:.04em;
-  box-shadow:0 4px 20px rgba(125,0,0,.4);
-  animation:sos-pulse 1.5s infinite;
-  transition:transform .12s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:11px 16px;border-radius:14px;border:none;
+  background:rgba(125,0,0,.08);color:#8b0000;
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;
+  cursor:pointer;letter-spacing:.03em;transition:background .15s,transform .1s;
+  animation:sos-soft 2s ease-in-out infinite;
 }
-.hs-btn-sos:active{transform:scale(0.97)}
-.hs-btn-sos svg{width:22px;height:22px;fill:#fff;flex-shrink:0}
-@keyframes sos-pulse{
-  0%,100%{box-shadow:0 4px 20px rgba(125,0,0,.4)}
-  50%{box-shadow:0 4px 30px rgba(125,0,0,.7)}
+.hs-btn-sos:active{transform:scale(0.97);}
+.hs-btn-sos svg{width:17px;height:17px;fill:#8b0000;flex-shrink:0;}
+@keyframes sos-soft{
+  0%,100%{background:rgba(125,0,0,.07);}
+  50%{background:rgba(125,0,0,.14);}
 }
 
 /* Selection header */
@@ -950,32 +892,37 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       <div class="home-status-card">
         <div class="hs-greeting" id="hs-greeting">Hola,</div>
         <div class="hs-label" id="hs-label">Alarma desconectada</div>
-        <div class="hs-circle hs-circle-disarmed" id="hs-circle">
-          <div class="hs-icon" id="hs-icon">
-            <!-- Escudo abierto (desconectada) -->
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12V11c0 4.54-3.08 8.76-7 10.06C8.08 19.76 5 15.54 5 11V6.3l7-3.12z"/><path d="M10.09 13.5L7.5 10.91l-1.41 1.41 3.99 4 7.07-7.07-1.41-1.41-5.65 5.66z" opacity="0"/></svg>
-          </div>
-        </div>
-        <div class="hs-status" id="hs-status">Desconectada</div>
-        <div class="hs-sub" id="hs-sub">Sin protección activa</div>
-        <div class="hs-refresh-time" id="hs-refresh-time" style="font-size:11px;color:var(--muted);margin-bottom:16px"></div>
+        <!-- compatibilidad JS -->
+        <div class="hs-status" id="hs-status" style="display:none"></div>
+        <div class="hs-sub" id="hs-sub" style="display:none"></div>
+        <div class="hs-refresh-time" id="hs-refresh-time"></div>
         <div class="hs-actions" id="hs-actions">
-          <button class="hs-btn hs-btn-red" onclick="openPin('arm_away')">
-            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-            <span>Armado total</span>
+          <!-- Armado total -->
+          <button class="hs-btn" id="btn-armed" onclick="openPin('arm_away')">
+            <div class="hs-btn-circle" id="circle-armed">
+              <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+            </div>
+            <span class="hs-btn-label">Conectada<br>totalmente</span>
           </button>
-          <button class="hs-btn hs-btn-orange" onclick="openPin('arm_home')">
-            <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
-            <span>Modo noche</span>
+          <!-- Modo en casa -->
+          <button class="hs-btn" id="btn-home" onclick="openPin('arm_home')">
+            <div class="hs-btn-circle" id="circle-home">
+              <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            </div>
+            <span class="hs-btn-label">Conectada<br>en casa</span>
           </button>
-          <button class="hs-btn hs-btn-green" onclick="openPin('disarm')">
-            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12V11c0 4.54-3.08 8.76-7 10.06C8.08 19.76 5 15.54 5 11V6.3l7-3.12zm-1.5 9.32l-2.59-2.59L6.5 11.32l3.99 4 6.01-6.01-1.41-1.41-5.59 5.59z"/></svg>
-            <span>Desconectar</span>
+          <!-- No conectada -->
+          <button class="hs-btn" id="btn-disarmed" onclick="openPin('disarm')">
+            <div class="hs-btn-circle" id="circle-disarmed">
+              <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12V11c0 4.54-3.08 8.76-7 10.06C8.08 19.76 5 15.54 5 11V6.3l7-3.12z"/></svg>
+            </div>
+            <span class="hs-btn-label">No<br>conectada</span>
           </button>
         </div>
-        <button class="hs-btn hs-btn-sos" onclick="openSos()">
+        <div class="hs-sos-divider"></div>
+        <button class="hs-btn-sos" onclick="openSos()">
           <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-          <span>PÁNICO / SOS</span>
+          PÁNICO / SOS
         </button>
       </div>
 
@@ -1863,13 +1810,10 @@ async function authFetch(url, options = {}) {
   return response;
 }
 
-const _SVG_SHIELD_OPEN  = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12V11c0 4.54-3.08 8.76-7 10.06C8.08 19.76 5 15.54 5 11V6.3l7-3.12z"/></svg>`;
-const _SVG_SHIELD_FULL  = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>`;
-const _SVG_MOON         = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>`;
 const STATUS_CFG = {
-  disarmed: {label:'Desconectada',         sub:'Sin protección activa',       icon:_SVG_SHIELD_OPEN, hsLabel:'Alarma desconectada',       cirCls:'hs-circle-disarmed', color:'var(--green)'},
-  armed:    {label:'Conectada totalmente', sub:'Protección total activada',   icon:_SVG_SHIELD_FULL, hsLabel:'Alarma conectada totalmente',cirCls:'hs-circle-armed',    color:'var(--red)'},
-  arm_home: {label:'Modo noche',           sub:'Protección parcial activada', icon:_SVG_MOON,        hsLabel:'Alarma conectada parcialmente',cirCls:'hs-circle-home',   color:'var(--orange)'},
+  disarmed: {label:'No conectada',          hsLabel:'Alarma no conectada',         sub:'Sin protección activa',       activeBtn:'disarmed', color:'var(--orange)'},
+  armed:    {label:'Conectada totalmente',  hsLabel:'Alarma conectada totalmente', sub:'Protección total activada',   activeBtn:'armed',    color:'var(--red)'},
+  arm_home: {label:'Conectada en casa',     hsLabel:'Alarma conectada en casa',    sub:'Protección parcial activada', activeBtn:'home',     color:'var(--orange)'},
 };
 const ACTION_NAMES = {arm_away:'Conectar total', arm_home:'Conectar parcialmente', disarm:'Desconectar alarma', sos:'PÁNICO / SOS'};
 
@@ -2505,21 +2449,38 @@ async function fetchHistorialGlobal() {
 
 function updateStatusUI() {
   const cfg = STATUS_CFG[S.alarmStatus] || STATUS_CFG.disarmed;
-  const circle = document.getElementById('hs-circle');
-  if (circle) {
-    circle.className = 'hs-circle ' + cfg.cirCls;
-    document.getElementById('hs-icon').innerHTML = cfg.icon;
-    document.getElementById('hs-status').textContent = cfg.label;
-    document.getElementById('hs-sub').textContent = cfg.sub;
-    const lbl = document.getElementById('hs-label');
-    if (lbl) lbl.textContent = cfg.hsLabel;
-  }
-  // Actualizar saludo con nombre del usuario
+
+  // Actualizar título principal
+  const lbl = document.getElementById('hs-label');
+  if (lbl) lbl.textContent = cfg.hsLabel;
+
+  // Quitar clase activa de todos los círculos
+  ['armed','home','disarmed'].forEach(k => {
+    const btn = document.getElementById('btn-' + k);
+    const circ = document.getElementById('circle-' + k);
+    if (btn) btn.classList.remove('btn-active');
+    if (circ) circ.className = 'hs-btn-circle';
+  });
+
+  // Activar el que corresponde
+  const activeKey = cfg.activeBtn;
+  const activeBtn  = document.getElementById('btn-' + activeKey);
+  const activeCirc = document.getElementById('circle-' + activeKey);
+  if (activeBtn)  activeBtn.classList.add('btn-active');
+  if (activeCirc) activeCirc.classList.add('sel-' + activeKey);
+
+  // Saludo con nombre
   const greetEl = document.getElementById('hs-greeting');
   if (greetEl && S.currentUser) {
     const name = (S.currentUser.name || '').split(' ')[0];
     greetEl.textContent = 'Hola, ' + name;
   }
+
+  // Compatibilidad con otros sitios que lean hs-status
+  const stEl = document.getElementById('hs-status');
+  if (stEl) stEl.textContent = cfg.label;
+  const subEl = document.getElementById('hs-sub');
+  if (subEl) subEl.textContent = cfg.sub;
 }
 
 let sosTimer = null;
