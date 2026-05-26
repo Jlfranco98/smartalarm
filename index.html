@@ -979,6 +979,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 }
 .npc-btn:active{background:var(--red-dark);transform:scale(0.96);}
 .npc-btn.granted{background:var(--green);cursor:default;pointer-events:none;}
+.npc-btn-reset{
+  padding:7px 12px;background:var(--bg);color:var(--muted);border:1.5px solid var(--border);
+  border-radius:10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;
+  cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;
+}
+.npc-btn-reset:active{background:var(--border);}
 
 .notif-prefs-wrap{padding:16px 16px 32px;}
 .notif-prefs-label{
@@ -1683,7 +1689,10 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
             <div class="npc-sub" id="notif-perm-sub">Actívalas para recibir alertas al instante</div>
           </div>
         </div>
-        <button class="npc-btn" id="notif-perm-btn" onclick="requestPushPermission()">Activar</button>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <button class="npc-btn" id="notif-perm-btn" onclick="requestPushPermission()">Activar</button>
+          <button class="npc-btn-reset" id="notif-reset-btn" onclick="resetPushSubscription()" style="display:none">🔄 Resetear</button>
+        </div>
       </div>
 
       <!-- Preferencias -->
@@ -4557,6 +4566,34 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
+// ── Resetear suscripción push (cuando el token fue borrado de MongoDB) ────────
+async function resetPushSubscription() {
+  const permSub = document.getElementById('notif-perm-sub');
+  const resetBtn = document.getElementById('notif-reset-btn');
+  if (resetBtn) { resetBtn.textContent = 'Reseteando...'; resetBtn.disabled = true; }
+  try {
+    // 1. Cancelar suscripción local del Service Worker
+    const reg = await navigator.serviceWorker.ready;
+    const oldSub = await reg.pushManager.getSubscription();
+    if (oldSub) await oldSub.unsubscribe();
+
+    // 2. Borrar también en el servidor (por si quedó algo)
+    if (S.currentUser) {
+      await authFetch('/api/push/unsubscribe', {
+        method: 'POST',
+        body: JSON.stringify({ username: S.currentUser.username })
+      }).catch(() => {});
+    }
+
+    // 3. Actualizar la tarjeta — ahora mostrará "Activar"
+    await updateNotifPermCard();
+    toast2('🔔 Suscripción reseteada — pulsa Activar para volver a registrarte');
+  } catch(e) {
+    if (permSub) permSub.textContent = 'Error al resetear: ' + e.message;
+    if (resetBtn) { resetBtn.textContent = '🔄 Resetear'; resetBtn.disabled = false; }
+  }
+}
+
 // ── Dispositivos ───────────────────────────────────────────────────────────
 async function renderDispositivos() {
   const el = document.getElementById('dispositivos-list');
@@ -5435,10 +5472,11 @@ function notifToggleChanged(checkbox, sourceId, targetId, label) {
 
 // ── Actualizar estado del permiso push en pg-notificaciones ─────────────────
 async function updateNotifPermCard() {
-  const icon  = document.getElementById('notif-perm-icon');
-  const label = document.getElementById('notif-perm-label');
-  const sub   = document.getElementById('notif-perm-sub');
-  const btn   = document.getElementById('notif-perm-btn');
+  const icon     = document.getElementById('notif-perm-icon');
+  const label    = document.getElementById('notif-perm-label');
+  const sub      = document.getElementById('notif-perm-sub');
+  const btn      = document.getElementById('notif-perm-btn');
+  const resetBtn = document.getElementById('notif-reset-btn');
   if (!icon) return;
 
   const perm = Notification?.permission;
@@ -5446,10 +5484,11 @@ async function updateNotifPermCard() {
   if (perm === 'denied') {
     icon.textContent  = '🔕';
     label.textContent = 'Notificaciones bloqueadas';
-    sub.textContent   = 'Actívalas en los ajustes del navegador';
+    sub.textContent   = 'Ve a ajustes del navegador y activa los permisos';
     btn.textContent   = 'Bloqueado';
     btn.classList.add('granted');
     btn.onclick = null;
+    if (resetBtn) resetBtn.style.display = 'none';
     return;
   }
 
@@ -5465,18 +5504,21 @@ async function updateNotifPermCard() {
         btn.textContent   = 'Activado';
         btn.classList.add('granted');
         btn.onclick = null;
+        // Mostrar botón resetear por si token fue borrado de MongoDB
+        if (resetBtn) resetBtn.style.display = 'block';
         return;
       }
     } catch(e) {}
   }
 
-  // Sin permiso O permiso granted pero sin suscripción activa (ej: token borrado de MongoDB)
+  // Sin permiso O permiso granted pero sin suscripción activa en SW
   icon.textContent  = '📵';
   label.textContent = 'Notificaciones desactivadas';
   sub.textContent   = 'Actívalas para recibir alertas al instante';
   btn.textContent   = 'Activar';
   btn.classList.remove('granted');
   btn.onclick = requestPushPermission;
+  if (resetBtn) resetBtn.style.display = 'none';
 }
 
 // Sincronizar toggles de notificaciones al cargar página notificaciones
