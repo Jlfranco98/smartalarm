@@ -2854,6 +2854,11 @@ function navTo(page){
   if (newPage) { newPage.classList.add('active'); newPage.scrollTop = 0; }
   const nb=document.getElementById('nav-'+page); if(nb)nb.classList.add('active');
 
+  // Sincronizar ítem activo del drawer con la página actual
+  document.querySelectorAll('.drawer-item[id^="ditem-"]').forEach(el => el.classList.remove('active'));
+  const ditem = document.getElementById('ditem-' + page);
+  if (ditem) ditem.classList.add('active');
+
   if(page==='historial'){ populateUsuarioFilter(); renderLog(); renderLogFiltrado(); }
   if(page==='admin'){ renderUsersAdmin(); cargarLlamadas(); }
   if(page==='cuenta'){ loadConfigForm(); updateThemeUI(localStorage.getItem('theme') || 'system'); cargarEstadoMovil(); }
