@@ -2315,6 +2315,13 @@ function doLogout() {
   // main-nav reemplazado por drawer
   save();
   gestionarVisibilidadAdmin();
+
+  // Limpiar inputs de notificaciones para que no queden datos del usuario anterior
+  ['notif-arm-away','notif-arm-home','notif-disarm',
+   'notif-arm-away2','notif-arm-home2','notif-disarm2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = true; // reset a true (valor por defecto)
+  });
   
   // 2. Limpiamos los campos del formulario de login por seguridad
   document.getElementById('li-user').value = '';
@@ -2765,7 +2772,11 @@ initTheme();
   // 4. RELLENAR FORMULARIO
   loadConfigForm();
 
-  // 5. INICIAR POLLING: Para que siga sincronizado si dejas la app abierta
+  // 5. CARGAR PREFS DE NOTIFICACIONES desde MongoDB al iniciar sesión
+  // Esto garantiza que los inputs ocultos siempre tengan los valores reales
+  loadNotifPrefs().catch(() => {});
+
+  // 6. INICIAR POLLING: Para que siga sincronizado si dejas la app abierta
   startPolling(); 
 }
 
@@ -4479,37 +4490,54 @@ async function loadNotifPrefs() {
   if (!S.currentUser) return;
   try {
     const res = await authFetch('/api/push/prefs/' + S.currentUser.username);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const prefs = await res.json();
-    // Inputs ocultos (usados por saveNotifPrefs)
-    document.getElementById('notif-arm-away').checked = prefs.arm_away !== false;
-    document.getElementById('notif-arm-home').checked = prefs.arm_home !== false;
-    document.getElementById('notif-disarm').checked   = prefs.disarm  !== false;
-    // Toggles visibles en pg-notificaciones
-    const a2 = document.getElementById('notif-arm-away2');
-    const h2 = document.getElementById('notif-arm-home2');
-    const d2 = document.getElementById('notif-disarm2');
-    if (a2) a2.checked = prefs.arm_away !== false;
-    if (h2) h2.checked = prefs.arm_home !== false;
-    if (d2) d2.checked = prefs.disarm  !== false;
-  } catch(e) {}
+
+    const arm_away = prefs.arm_away !== false;
+    const arm_home = prefs.arm_home !== false;
+    const disarm   = prefs.disarm   !== false;
+
+    // ── Inputs ocultos (fuente de verdad para saveNotifPrefs) ──
+    const hidAA = document.getElementById('notif-arm-away');
+    const hidAH = document.getElementById('notif-arm-home');
+    const hidD  = document.getElementById('notif-disarm');
+    if (hidAA) hidAA.checked = arm_away;
+    if (hidAH) hidAH.checked = arm_home;
+    if (hidD)  hidD.checked  = disarm;
+
+    // ── Toggles visibles en pg-notificaciones ──
+    const visAA = document.getElementById('notif-arm-away2');
+    const visAH = document.getElementById('notif-arm-home2');
+    const visD  = document.getElementById('notif-disarm2');
+    if (visAA) visAA.checked = arm_away;
+    if (visAH) visAH.checked = arm_home;
+    if (visD)  visD.checked  = disarm;
+
+  } catch(e) {
+    console.warn('loadNotifPrefs: no se pudo cargar desde servidor, se mantienen valores actuales.', e);
+  }
 }
 
 async function saveNotifPrefs() {
   if (!S.currentUser) return;
   try {
+    // Lee de los inputs ocultos (siempre sincronizados con los toggles visibles)
+    const arm_away = document.getElementById('notif-arm-away')?.checked ?? true;
+    const arm_home = document.getElementById('notif-arm-home')?.checked ?? true;
+    const disarm   = document.getElementById('notif-disarm')?.checked   ?? true;
+
     await authFetch('/api/push/prefs', {
       method: 'POST',
-      body: JSON.stringify({
-        username: S.currentUser.username,
-        arm_away: document.getElementById('notif-arm-away').checked,
-        arm_home: document.getElementById('notif-arm-home').checked,
-        disarm:   document.getElementById('notif-disarm').checked
-      })
+      body: JSON.stringify({ username: S.currentUser.username, arm_away, arm_home, disarm })
     });
+
+    // Feedback en pg-notificaciones si está visible
+    const ok2 = document.getElementById('notif-ok2');
+    if (ok2) { ok2.textContent = 'Preferencias guardadas ✓'; setTimeout(() => ok2.textContent = '', 2000); }
+    // Feedback en panel legacy de Mi Cuenta si existe
     const ok = document.getElementById('notif-ok');
-    ok.textContent = 'Preferencias guardadas ✓';
-    setTimeout(() => ok.textContent = '', 2000);
-  } catch(e) {}
+    if (ok) { ok.textContent = 'Preferencias guardadas ✓'; setTimeout(() => ok.textContent = '', 2000); }
+  } catch(e) { console.error('Error guardando prefs notif:', e); }
 }
 
 async function checkNotifStatus() {
@@ -5475,16 +5503,20 @@ function closeLogoutConfirm() {
 }
 
 // ── Sincronizar toggles de notificaciones entre pg-cuenta y pg-notificaciones
-function syncNotifPref(sourceId, targetId) {
-  const src = document.getElementById(sourceId);
-  const tgt = document.getElementById(targetId);
-  if (src && tgt) src.checked = tgt.checked;
+// Sincroniza el valor de un toggle visible (pg-notif) hacia el input oculto
+// Dirección: targetId (visible) → sourceId (oculto)
+function syncNotifPref(hiddenId, visibleId) {
+  const hidden  = document.getElementById(hiddenId);
+  const visible = document.getElementById(visibleId);
+  if (hidden && visible) hidden.checked = visible.checked;
 }
 
 // ── Toggle con toast de confirmación en pg-notificaciones ────────────────────
 let _notifToastTimer = null;
-function notifToggleChanged(checkbox, sourceId, targetId, label) {
-  syncNotifPref(sourceId, targetId);
+function notifToggleChanged(checkbox, hiddenId, visibleId, label) {
+  // 1. Copiar valor del toggle visible al input oculto (fuente de verdad)
+  syncNotifPref(hiddenId, visibleId);
+  // 2. Guardar en MongoDB
   saveNotifPrefs();
 
   const on = checkbox.checked;
