@@ -1601,7 +1601,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
         <!-- GRUPO: SESIÓN -->
         <div class="sl-section-label">Sesión</div>
         <div class="sl-group" style="margin-bottom:32px">
-          <div class="sl-item danger" onclick="doLogout()">
+          <div class="sl-item danger" onclick="openLogoutConfirm()">
             <div class="sl-icon ic-red">🚪</div>
             <div class="sl-text">
               <div class="sl-label">Cerrar sesión</div>
@@ -5488,6 +5488,50 @@ function drawerNav(page) {
   if (active) active.classList.add('active');
 }
 
+
+// ── Gesto deslizar para abrir/cerrar drawer ──────────────────────────────────
+(function drawerSwipeGesture() {
+  let startX = 0, startY = 0, isDragging = false;
+  const OPEN_THRESHOLD  = 60;  // px mínimos deslizando derecha desde el borde para abrir
+  const CLOSE_THRESHOLD = 80;  // px mínimos deslizando izquierda para cerrar
+  const EDGE_ZONE = 30;        // px desde el borde izquierdo que activan el gesto de apertura
+
+  document.addEventListener('touchstart', function(e) {
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    isDragging = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!e.touches.length) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    // Solo activar si el movimiento es más horizontal que vertical
+    if (Math.abs(dx) > Math.abs(dy) + 10) isDragging = true;
+  }, { passive: true });
+
+  document.addEventListener('touchend', function(e) {
+    if (!isDragging) return;
+    const endX = e.changedTouches[0].clientX;
+    const dx   = endX - startX;
+    const dy   = Math.abs(e.changedTouches[0].clientY - startY);
+    const drawer = document.getElementById('drawer');
+    const isOpen = drawer && drawer.classList.contains('open');
+
+    // Abrir: deslizar derecha desde el borde izquierdo
+    if (!isOpen && dx > OPEN_THRESHOLD && startX <= EDGE_ZONE && dy < 80) {
+      openDrawer();
+    }
+
+    // Cerrar: deslizar izquierda con el drawer abierto
+    if (isOpen && dx < -CLOSE_THRESHOLD && dy < 80) {
+      closeDrawer();
+    }
+
+    isDragging = false;
+  }, { passive: true });
+})();
 // Cerrar drawer con tecla Escape
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeLogoutConfirm(); } });
 
