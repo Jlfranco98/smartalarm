@@ -5656,33 +5656,40 @@ function showArmConfirm(status) {
 // ══════════════════════════════════════════════════════════
 //  DRAWER LATERAL
 // ══════════════════════════════════════════════════════════
-function openDrawer() {
+async function openDrawer() {
   document.getElementById('drawer').classList.add('open');
   document.getElementById('drawer-overlay').classList.add('open');
-  // Actualizar datos del perfil en el drawer
-  if (S.currentUser) {
-    const u = S.currentUser;
-    const initials = (u.name || 'U').slice(0,2).toUpperCase();
-    document.getElementById('drawer-av-initials').textContent = initials;
-    document.getElementById('drawer-name').textContent = u.name || u.username;
-    const isAdmin = u.role === 'admin';
-    document.getElementById('drawer-role').textContent = isAdmin ? 'Administrador' : 'Usuario';
-    // Teléfono — solo si existe
-    const phoneEl  = document.getElementById('drawer-phone');
-    const phoneText = document.getElementById('drawer-phone-text');
-    if (u.telefono && phoneEl && phoneText) {
-      phoneText.textContent = u.telefono.replace(/^\+34/, '');
-      phoneEl.style.display = 'flex';
-    } else if (phoneEl) {
-      phoneEl.style.display = 'none';
+  if (!S.currentUser) return;
+
+  const u = S.currentUser;
+  const isAdmin = u.role === 'admin';
+
+  // Datos básicos que ya tenemos
+  document.getElementById('drawer-av-initials').textContent = (u.name || 'U').slice(0,2).toUpperCase();
+  document.getElementById('drawer-name').textContent = u.name || u.username;
+  document.getElementById('drawer-role').textContent = isAdmin ? 'Administrador' : 'Usuario';
+  const img = document.getElementById('drawer-av-img');
+  if (u.avatar) { img.src = u.avatar; img.style.display = 'block'; }
+  else { img.style.display = 'none'; }
+  const ditemAdmin = document.getElementById('ditem-admin');
+  if (ditemAdmin) ditemAdmin.style.display = isAdmin ? 'flex' : 'none';
+
+  // Teléfono — obtener siempre fresco desde la API (no depende del token de login)
+  const phoneEl   = document.getElementById('drawer-phone');
+  const phoneText = document.getElementById('drawer-phone-text');
+  try {
+    const res = await authFetch('/api/movil/estado');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.telefono && data.verificado && phoneEl && phoneText) {
+        phoneText.textContent = data.telefono.replace(/^\+34/, '');
+        phoneEl.style.display = 'flex';
+      } else if (phoneEl) {
+        phoneEl.style.display = 'none';
+      }
     }
-    // Avatar foto si existe
-    const img = document.getElementById('drawer-av-img');
-    if (u.avatar) { img.src = u.avatar; img.style.display = 'block'; }
-    else { img.style.display = 'none'; }
-    // Mostrar/ocultar ítem admin
-    const ditemAdmin = document.getElementById('ditem-admin');
-    if (ditemAdmin) ditemAdmin.style.display = isAdmin ? 'flex' : 'none';
+  } catch(e) {
+    if (phoneEl) phoneEl.style.display = 'none';
   }
 }
 
