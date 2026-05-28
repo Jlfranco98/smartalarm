@@ -186,14 +186,32 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
   width:100%;padding:11px 16px;border-radius:14px;border:none;
   background:rgba(125,0,0,.08);color:#8b0000;
   font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;
-  cursor:pointer;letter-spacing:.03em;transition:background .15s,transform .1s;
+  cursor:pointer;letter-spacing:.03em;
+  position:relative;overflow:hidden;
+  transition:background .15s;
   animation:sos-soft 2s ease-in-out infinite;
+  -webkit-user-select:none;user-select:none;
 }
-.hs-btn-sos:active{transform:scale(0.97);}
 .hs-btn-sos svg{width:17px;height:17px;fill:#8b0000;flex-shrink:0;}
 @keyframes sos-soft{
   0%,100%{background:rgba(125,0,0,.07);}
   50%{background:rgba(125,0,0,.14);}
+}
+/* Barra de progreso del hold */
+.sos-progress{
+  position:absolute;bottom:0;left:0;height:3px;
+  background:#8b0000;border-radius:0 2px 2px 0;
+  width:0%;transition:none;
+}
+.sos-progress.filling{
+  transition:width 2s linear;
+  width:100%;
+}
+/* Hint "mantén pulsado 2s" */
+.sos-hint{
+  font-size:10px;color:var(--muted);font-weight:600;
+  text-align:center;margin-top:5px;margin-bottom:2px;
+  letter-spacing:.02em;
 }
 
 /* Selection header */
@@ -1335,10 +1353,14 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           </button>
         </div>
         <div class="hs-sos-divider"></div>
-        <button class="hs-btn-sos" onclick="openSos()">
+        <button class="hs-btn-sos" id="sos-btn"
+          onmousedown="startSosHold()" onmouseup="cancelSosHold()" onmouseleave="cancelSosHold()"
+          ontouchstart="startSosHold(event)" ontouchend="cancelSosHold()" ontouchcancel="cancelSosHold()">
           <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
           PÁNICO / SOS
+          <div class="sos-progress" id="sos-progress"></div>
         </button>
+        <div class="sos-hint">mantén pulsado 2s</div>
         <div class="hs-refresh-time" id="hs-refresh-time" style="margin-top:6px;margin-bottom:0;text-align:center"></div>
       </div>
 
@@ -5760,6 +5782,40 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+
+// ── SOS botón press-and-hold 2 segundos ─────────────────────────────────────
+let _sosTimer = null;
+
+function startSosHold(e) {
+  if (e) e.preventDefault(); // evitar doble disparo touch+mouse
+  const btn      = document.getElementById('sos-btn');
+  const progress = document.getElementById('sos-progress');
+  if (!btn || !progress) return;
+
+  // Iniciar animación de barra
+  progress.classList.remove('filling');
+  // Forzar reflow para reiniciar la transición
+  void progress.offsetWidth;
+  progress.classList.add('filling');
+
+  // Feedback visual en el botón
+  btn.style.background = 'rgba(125,0,0,.18)';
+
+  // Timer de 2 segundos
+  _sosTimer = setTimeout(() => {
+    cancelSosHold();
+    openSos();
+  }, 2000);
+}
+
+function cancelSosHold() {
+  if (_sosTimer) { clearTimeout(_sosTimer); _sosTimer = null; }
+  const btn      = document.getElementById('sos-btn');
+  const progress = document.getElementById('sos-progress');
+  if (progress) { progress.classList.remove('filling'); progress.style.transition='none'; progress.style.width='0%'; }
+  if (btn)      { btn.style.background = ''; }
+}
 
 </script>
 
