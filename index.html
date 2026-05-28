@@ -1060,6 +1060,59 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 .notif-toast.show{
   opacity:1;transform:translateX(-50%) translateY(0);
 }
+
+/* ── Mi Alarma — menú admin ──────────────────────────────── */
+.mialarma-header{
+  text-align:center;padding:28px 20px 16px;
+}
+.mialarma-icon{
+  width:64px;height:64px;border-radius:20px;
+  background:linear-gradient(135deg,var(--red),#b01020);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 12px;
+  box-shadow:0 6px 20px rgba(232,25,44,.3);
+}
+.mialarma-icon svg{width:34px;height:34px;fill:#fff;}
+.mialarma-title{font-size:22px;font-weight:900;color:var(--text);letter-spacing:-.3px;}
+.mialarma-sub{font-size:13px;color:var(--muted);font-weight:600;margin-top:3px;}
+
+.mialarma-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:12px;padding:8px 16px 24px;
+}
+.mialarma-card{
+  background:var(--white);border-radius:20px;
+  padding:18px 14px 16px;
+  box-shadow:0 2px 14px rgba(0,0,0,.06);
+  cursor:pointer;
+  transition:transform .12s,box-shadow .12s;
+  display:flex;flex-direction:column;gap:10px;
+}
+.mialarma-card:active{transform:scale(.96);box-shadow:0 1px 6px rgba(0,0,0,.08);}
+.mac-icon{
+  width:44px;height:44px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+}
+.mac-icon svg{width:24px;height:24px;}
+.mac-label{font-size:13px;font-weight:900;color:var(--text);line-height:1.3;}
+.mac-sub{font-size:11px;color:var(--muted);font-weight:600;}
+
+/* ── Subpáginas: cabecera con botón volver ───────────────── */
+.subpage-hdr{
+  display:flex;align-items:center;gap:8px;
+  padding:calc(var(--safe-top) + 14px) 16px 14px;
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  position:sticky;top:0;z-index:5;
+}
+.subpage-back{
+  font-size:26px;font-weight:300;color:var(--red);line-height:1;
+  padding-right:2px;
+}
+.subpage-title{
+  font-size:17px;font-weight:900;color:var(--text);letter-spacing:-.2px;
+}
 </style>
 </head>
 <body>
@@ -1142,9 +1195,9 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 
     <button class="drawer-item admin-only" id="ditem-admin" onclick="drawerNav('admin')" style="display:none">
       <div class="drawer-item-icon">
-        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1.5 13.5l-3-3 1.41-1.41 1.59 1.58 4.59-4.58 1.41 1.41-6 6z"/></svg>
       </div>
-      <span class="drawer-item-label">Usuarios</span>
+      <span class="drawer-item-label">Mi Alarma</span>
       <span class="drawer-admin-star">★</span>
     </button>
 
@@ -1544,59 +1597,14 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           </div>
         </div>
 
-        <!-- GRUPO: NOTIFICACIONES -->
-        <div class="sl-section-label">Notificaciones</div>
-        <div class="sl-group">
-          <div class="sl-item" onclick="drawerNav('notificaciones')">
-            <div class="sl-icon ic-green">🔔</div>
-            <div class="sl-text">
-              <div class="sl-label">Preferencias de avisos</div>
-              <div class="sl-sublabel">Gestiona qué notificaciones recibes</div>
-            </div>
-            <div class="sl-arrow">›</div>
-          </div>
-          <!-- Inputs ocultos para sincronización con pg-notificaciones -->
-          <div style="display:none">
-            <input type="checkbox" id="notif-arm-away">
-            <input type="checkbox" id="notif-arm-home">
-            <input type="checkbox" id="notif-disarm">
-          </div>
+        <!-- Inputs ocultos para sincronización con pg-notificaciones -->
+        <div style="display:none">
+          <input type="checkbox" id="notif-arm-away">
+          <input type="checkbox" id="notif-arm-home">
+          <input type="checkbox" id="notif-disarm">
         </div>
 
-        <!-- GRUPO: ADMIN (solo admin) -->
-        <div class="sl-section-label admin-only" style="display:none">Administración <span class="admin-star-badge">★ Admin</span></div>
-        <div class="sl-group admin-only" style="display:none">
-          <div class="sl-item" onclick="toggleSessionsPanel()">
-            <div class="sl-icon ic-blue">📱</div>
-            <div class="sl-text">
-              <div class="sl-label">Sesiones activas<span class="admin-star-badge">★ Admin</span></div>
-              <div class="sl-sublabel">Ver y revocar accesos por dispositivo</div>
-            </div>
-            <div class="sl-arrow">›</div>
-          </div>
-          <div id="sessions-panel" style="display:none" class="sl-panel">
-            <div id="sessions-list" style="font-size:13px;color:var(--muted);text-align:center;padding:8px">Cargando...</div>
-          </div>
 
-          <div class="sl-item" onclick="toggleCfgPanel()">
-            <div class="sl-icon ic-gray">🔗</div>
-            <div class="sl-text">
-              <div class="sl-label">Configurar servidor<span class="admin-star-badge">★ Admin</span></div>
-              <div class="sl-sublabel">Backend, dispositivo y región Tuya</div>
-            </div>
-            <div class="sl-arrow">›</div>
-          </div>
-          <div id="cfg-panel" style="display:none" class="sl-panel">
-            <div class="form-field"><label>URL Backend</label><input id="cfg-backend" placeholder="https://tu-backend.railway.app"></div>
-            <div class="form-field"><label>App Secret</label><input id="cfg-secret" type="password" placeholder="••••••••"></div>
-            <div class="form-field"><label>Device ID</label><input id="cfg-device" placeholder="ID del dispositivo"></div>
-            <div class="form-field"><label>Región</label>
-              <select id="cfg-region"><option value="eu">Europa (España)</option><option value="us">América</option><option value="cn">China</option></select>
-            </div>
-            <button class="btn-add" onclick="saveConfig()" style="width:100%">Guardar configuración</button>
-            <div class="cfg-saved" id="cfg-ok" style="margin-top:6px"></div>
-          </div>
-        </div>
 
         <!-- GRUPO: SESIÓN -->
         <div class="sl-section-label">Sesión</div>
@@ -1614,16 +1622,58 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       </div>
     </div>
 
-    <!-- ── ADMIN ── -->
+    <!-- ── MI ALARMA (menú principal admin) ── -->
     <div class="page" id="pg-admin">
-      <div class="sec-hdr">
-        <span class="sec-title">Gestión de usuarios</span>
+      <div class="mialarma-header">
+        <div class="mialarma-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1.5 13.5l-3-3 1.41-1.41 1.59 1.58 4.59-4.58 1.41 1.41-6 6z"/></svg>
+        </div>
+        <div class="mialarma-title">Mi Alarma</div>
+        <div class="mialarma-sub">Panel de administración</div>
+      </div>
+      <div class="mialarma-grid">
+        <div class="mialarma-card" onclick="navTo('admin-usuarios')">
+          <div class="mac-icon" style="background:#fff0f1">
+            <svg viewBox="0 0 24 24" fill="#e8192c"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          </div>
+          <div class="mac-label">Gestión de usuarios</div>
+          <div class="mac-sub">Usuarios registrados</div>
+        </div>
+        <div class="mialarma-card" onclick="navTo('admin-contactos')">
+          <div class="mac-icon" style="background:#e8f5e9">
+            <svg viewBox="0 0 24 24" fill="#2e7d32"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+          </div>
+          <div class="mac-label">Contactos de emergencia</div>
+          <div class="mac-sub">Llamadas de verificación</div>
+        </div>
+        <div class="mialarma-card" onclick="navTo('admin-sesiones')">
+          <div class="mac-icon" style="background:#e8f0fe">
+            <svg viewBox="0 0 24 24" fill="#1a73e8"><path d="M17 1H7C5.9 1 5 1.9 5 3v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14zm-4 1h-2v-1h2v1z"/></svg>
+          </div>
+          <div class="mac-label">Sesiones activas</div>
+          <div class="mac-sub">Ver y revocar accesos</div>
+        </div>
+        <div class="mialarma-card" onclick="navTo('admin-servidor')">
+          <div class="mac-icon" style="background:#f3e8ff">
+            <svg viewBox="0 0 24 24" fill="#7b1fa2"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
+          </div>
+          <div class="mac-label">Configurar servidor</div>
+          <div class="mac-sub">Backend y dispositivo</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN: GESTIÓN USUARIOS ── -->
+    <div class="page" id="pg-admin-usuarios">
+      <div class="subpage-hdr" onclick="navTo('admin')">
+        <span class="subpage-back">‹</span>
+        <span class="subpage-title">Gestión de usuarios</span>
       </div>
       <div class="admin-section">
         <div class="admin-card">
           <div class="ac-title" style="display:flex;align-items:center;justify-content:space-between">
             <span>Usuarios registrados</span>
-            <span class="sec-more admin-only" id="add-user-btn" style="display:none;font-size:13px;font-weight:700;color:var(--red);cursor:pointer" onclick="openAddUserModal()">＋ Nuevo usuario <span class="admin-star-badge">★</span></span>
+            <span class="sec-more admin-only" id="add-user-btn" style="display:none;font-size:13px;font-weight:700;color:var(--red);cursor:pointer" onclick="openAddUserModal()">＋ Nuevo usuario</span>
           </div>
           <div id="users-admin-list"></div>
         </div>
@@ -1633,19 +1683,60 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- LLAMADAS DE VERIFICACIÓN -->
-      <div class="admin-section" style="margin-top:0">
+    <!-- ── ADMIN: CONTACTOS EMERGENCIA ── -->
+    <div class="page" id="pg-admin-contactos">
+      <div class="subpage-hdr" onclick="navTo('admin')">
+        <span class="subpage-back">‹</span>
+        <span class="subpage-title">Contactos de emergencia</span>
+      </div>
+      <div class="admin-section">
         <div class="admin-card">
           <div class="ac-title" style="display:flex;align-items:center;justify-content:space-between">
             <span>📞 Llamadas de verificación</span>
-            <span class="admin-only" id="llamadas-add-btn-header" style="font-size:12px;font-weight:800;color:var(--red);cursor:pointer" onclick="openAddLlamadaModal()">＋ Añadir nuevo número</span>
+            <span class="admin-only" id="llamadas-add-btn-header" style="font-size:12px;font-weight:800;color:var(--red);cursor:pointer" onclick="openAddLlamadaModal()">＋ Añadir número</span>
           </div>
           <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:14px">
             Orden en que se llama cuando salta la alarma.
           </div>
           <div id="llamadas-list" style="margin-bottom:8px"></div>
           <div class="cfg-saved" id="llamadas-ok" style="margin-top:6px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN: SESIONES ACTIVAS ── -->
+    <div class="page" id="pg-admin-sesiones">
+      <div class="subpage-hdr" onclick="navTo('admin')">
+        <span class="subpage-back">‹</span>
+        <span class="subpage-title">Sesiones activas</span>
+      </div>
+      <div class="admin-section">
+        <div class="admin-card">
+          <div class="ac-title">Dispositivos con sesión activa</div>
+          <div id="sessions-list" style="font-size:13px;color:var(--muted);text-align:center;padding:8px">Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN: CONFIGURAR SERVIDOR ── -->
+    <div class="page" id="pg-admin-servidor">
+      <div class="subpage-hdr" onclick="navTo('admin')">
+        <span class="subpage-back">‹</span>
+        <span class="subpage-title">Configurar servidor</span>
+      </div>
+      <div class="admin-section">
+        <div class="admin-card">
+          <div class="ac-title">Configuración del backend</div>
+          <div class="form-field"><label>URL Backend</label><input id="cfg-backend" placeholder="https://tu-backend.railway.app"></div>
+          <div class="form-field"><label>App Secret</label><input id="cfg-secret" type="password" placeholder="••••••••"></div>
+          <div class="form-field"><label>Device ID</label><input id="cfg-device" placeholder="ID del dispositivo"></div>
+          <div class="form-field"><label>Región</label>
+            <select id="cfg-region"><option value="eu">Europa (España)</option><option value="us">América</option><option value="cn">China</option></select>
+          </div>
+          <button class="btn-add" onclick="saveConfig()" style="width:100%;margin-top:4px">Guardar configuración</button>
+          <div class="cfg-saved" id="cfg-ok" style="margin-top:6px"></div>
         </div>
       </div>
     </div>
@@ -2355,9 +2446,12 @@ function gestionarVisibilidadAdmin() {
         // El botón de borrado historial es inline, corregir display
         const histDelBtn = document.getElementById('hist-delete-btn');
         if (histDelBtn) histDelBtn.style.display = 'inline-flex';
-        // Mostrar ítem admin en drawer
+        // Mostrar ítem Mi Alarma en drawer (solo admins)
         const ditemAdmin = document.getElementById('ditem-admin');
         if (ditemAdmin) ditemAdmin.style.display = 'flex';
+        // Mostrar add-user-btn en subpágina usuarios
+        const addUserBtn = document.getElementById('add-user-btn');
+        if (addUserBtn) addUserBtn.style.display = 'inline-flex';
     } else {
         console.log("Login correcto por un usuario");
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
@@ -2823,6 +2917,11 @@ function navTo(page){
 
     const cid = currentPage.id;
 
+    // Si salimos de una subpágina de admin, limpiar scroll
+    if (cid && cid.startsWith('pg-admin-')) {
+      currentPage.scrollTop = 0;
+    }
+
     // Cerrar paneles expandidos en "Mi cuenta"
     if (cid === 'pg-cuenta') {
       ['cfg-panel','sessions-panel','movil-panel','change-pin-panel','name-panel','pass-panel'].forEach(id => {
@@ -2860,7 +2959,11 @@ function navTo(page){
   if (ditem) ditem.classList.add('active');
 
   if(page==='historial'){ populateUsuarioFilter(); renderLog(); renderLogFiltrado(); }
-  if(page==='admin'){ renderUsersAdmin(); cargarLlamadas(); }
+  if(page==='admin'){ /* menú Mi Alarma — sin carga extra */ }
+  if(page==='admin-usuarios'){ renderUsersAdmin(); }
+  if(page==='admin-contactos'){ cargarLlamadas(); }
+  if(page==='admin-sesiones'){ renderSessions(); }
+  if(page==='admin-servidor'){ loadConfigForm(); }
   if(page==='cuenta'){ loadConfigForm(); updateThemeUI(localStorage.getItem('theme') || 'system'); cargarEstadoMovil(); }
   if(page==='dispositivos')renderDispositivos();
   if(page==='automatizaciones')renderAutomatizaciones();
