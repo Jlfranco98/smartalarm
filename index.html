@@ -2955,7 +2955,9 @@ function navTo(page){
 
   // Sincronizar ítem activo del drawer con la página actual
   document.querySelectorAll('.drawer-item[id^="ditem-"]').forEach(el => el.classList.remove('active'));
-  const ditem = document.getElementById('ditem-' + page);
+  // Las subpáginas de admin (admin-usuarios, admin-contactos...) apuntan a ditem-admin
+  const drawerKey = page.startsWith('admin-') ? 'admin' : page;
+  const ditem = document.getElementById('ditem-' + drawerKey);
   if (ditem) ditem.classList.add('active');
 
   if(page==='historial'){ populateUsuarioFilter(); renderLog(); renderLogFiltrado(); }
