@@ -206,11 +206,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
   0%,100%{background:rgba(125,0,0,.07);}
   50%{background:rgba(125,0,0,.14);}
 }
-/* Barra de progreso del hold */
+/* Relleno de fondo del hold */
 .sos-progress{
-  position:absolute;bottom:0;left:0;height:3px;
-  background:#8b0000;border-radius:0 2px 2px 0;
+  position:absolute;inset:0;
+  background:rgba(139,0,0,.15);
   width:0%;transition:none;
+  border-radius:14px;
 }
 .sos-progress.filling{
   transition:width 2s linear;
