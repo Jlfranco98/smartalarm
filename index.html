@@ -1492,7 +1492,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           <!-- Fila 3: Usuario -->
           <div class="hf-section-label" style="padding:10px 0 4px">Usuario</div>
           <div class="hf-row" id="hf-usuarios" style="flex-wrap:wrap;gap:6px">
-            <button class="hf-chip active" id="fu-todo" onclick="setFiltroUsuario('todo')">👥 Todos</button>
+            <button class="hf-chip active" id="fu-todo-static" onclick="setFiltroUsuario('todo')">👥 Todos</button>
           </div>
 
           <!-- Fila 3: Fecha y hora -->
@@ -1929,7 +1929,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           </div>
         </div>
 
-        <div class="cfg-saved" id="notif-page-ok" style="margin-top:6px;text-align:center"></div>
+        <div class="cfg-saved" id="notif-ok-pg" style="margin-top:6px;text-align:center"></div>
       </div>
     </div>
 
@@ -3015,7 +3015,7 @@ function navTo(page){
 
     // Cerrar paneles expandidos en "Mi cuenta"
     if (cid === 'pg-cuenta') {
-      ['cfg-panel','sessions-panel','movil-panel','change-pin-panel','name-panel','pass-panel'].forEach(id => {
+      ['movil-panel','change-pin-panel','name-panel','pass-panel'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -3801,14 +3801,9 @@ async function saveConfig() {
   }
 }
   
-function toggleCfgPanel(){const p=document.getElementById('cfg-panel');p.style.display=p.style.display==='none'?'block':'none';}
+function toggleCfgPanel(){ navTo('admin-servidor'); } // panel movido a página propia
 
-function toggleSessionsPanel() {
-  const p = document.getElementById('sessions-panel');
-  const open = p.style.display === 'none';
-  p.style.display = open ? 'block' : 'none';
-  if (open) renderSessions();
-}
+function toggleSessionsPanel(){ navTo('admin-sesiones'); } // panel movido a página propia
 
 // ── LLAMADAS DE VERIFICACIÓN ───────────────────────────────────────────────
 let llamadasData = [];
@@ -4679,15 +4674,7 @@ function forceUpdate() {
 
 
 // ── Notificaciones Push ────────────────────────────────────────────────────
-function toggleNotifPanel(){
-  const p = document.getElementById('notif-panel');
-  const isOpen = p.style.display !== 'none';
-  p.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) {
-    loadNotifPrefs();
-    checkNotifStatus();
-  }
-}
+function toggleNotifPanel(){ navTo('notificaciones'); } // panel movido a página propia
 
 async function loadNotifPrefs() {
   if (!S.currentUser) return;
@@ -4734,18 +4721,16 @@ async function saveNotifPrefs() {
       body: JSON.stringify({ username: S.currentUser.username, arm_away, arm_home, disarm })
     });
 
-    // Feedback en pg-notificaciones si está visible
-    const ok2 = document.getElementById('notif-ok2');
+    // Feedback en pg-notificaciones
+    const ok2 = document.getElementById('notif-ok-pg');
     if (ok2) { ok2.textContent = 'Preferencias guardadas ✓'; setTimeout(() => ok2.textContent = '', 2000); }
-    // Feedback en panel legacy de Mi Cuenta si existe
-    const ok = document.getElementById('notif-ok');
-    if (ok) { ok.textContent = 'Preferencias guardadas ✓'; setTimeout(() => ok.textContent = '', 2000); }
   } catch(e) { console.error('Error guardando prefs notif:', e); }
 }
 
 async function checkNotifStatus() {
-  const btn = document.getElementById('notif-btn');
-  const ok  = document.getElementById('notif-ok');
+  // IDs de pg-notificaciones
+  const btn = document.getElementById('notif-perm-btn');
+  const ok  = document.getElementById('notif-ok-pg');
   if (!('Notification' in window)) return;
   
   if (Notification.permission === 'granted') {
@@ -4774,8 +4759,8 @@ async function requestPushPermission() {
   const permBtn = document.getElementById('notif-perm-btn');
   const permSub = document.getElementById('notif-perm-sub');
   // Elementos del panel legacy (pueden no existir)
-  const ok  = document.getElementById('notif-ok');
-  const btn = document.getElementById('notif-btn');
+  const ok  = document.getElementById('notif-ok-pg');
+  const btn = document.getElementById('notif-perm-btn');
 
   if (ok) ok.style.color = 'var(--red)';
 
