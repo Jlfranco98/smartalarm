@@ -5678,7 +5678,7 @@ async function openDrawer() {
   const phoneEl   = document.getElementById('drawer-phone');
   const phoneText = document.getElementById('drawer-phone-text');
   try {
-    const res = await authFetch('/api/movil/estado');
+    const res = await authFetch('/api/usuarios/mi-movil');
     if (res.ok) {
       const data = await res.json();
       if (data.telefono && data.verificado && phoneEl && phoneText) {
