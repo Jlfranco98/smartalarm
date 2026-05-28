@@ -503,7 +503,7 @@ app.post('/api/login', async (req, res) => {
       const token = generateToken();
       const ua = req.headers['user-agent'] || '';
       await Session.create({ token, username: user.username, userAgent: ua, deviceName: (deviceName || '').trim().slice(0, 60) });
-      res.json({ success: true, token, user: { name: user.name, username: user.username, role: user.role, isNew: user.isNew, avatar: user.avatar || null } });
+      res.json({ success: true, token, user: { name: user.name, username: user.username, role: user.role, isNew: user.isNew, avatar: user.avatar || null, telefono: user.telefono || null, telefonoVerificado: user.telefonoVerificado || false } });
     }
     else res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
   } catch (e) { res.status(500).json({ success: false }); }
