@@ -206,16 +206,19 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
   0%,100%{background:rgba(125,0,0,.07);}
   50%{background:rgba(125,0,0,.14);}
 }
-/* Relleno de fondo del hold */
+/* Relleno de fondo del hold — animación keyframe */
 .sos-progress{
-  position:absolute;inset:0;
-  background:rgba(139,0,0,.15);
-  width:0%;transition:none;
+  position:absolute;top:0;left:0;bottom:0;right:100%;
+  background:rgba(139,0,0,.2);
   border-radius:14px;
+  pointer-events:none;
+}
+@keyframes sos-fill{
+  from{ right:100%; }
+  to{ right:0%; }
 }
 .sos-progress.filling{
-  transition:width 2s linear;
-  width:100%;
+  animation:sos-fill 2s linear forwards;
 }
 /* Hint "mantén pulsado 2s" */
 .sos-hint{
@@ -5797,29 +5800,28 @@ document.addEventListener('DOMContentLoaded', () => {
 let _sosTimer = null;
 
 function startSosHold(e) {
-  if (e) e.preventDefault(); // evitar doble disparo touch+mouse
-  if (_sosTimer) return;     // ya en progreso
+  if (e) e.preventDefault();
+  if (_sosTimer) return;
 
-  const btn      = document.getElementById('sos-btn');
-  const progress = document.getElementById('sos-progress');
-  const hint     = document.getElementById('sos-hint');
-  if (!btn || !progress) return;
+  const btn  = document.getElementById('sos-btn');
+  const hint = document.getElementById('sos-hint');
+  if (!btn) return;
 
-  // Cambiar hint mientras se mantiene pulsado
   if (hint) hint.textContent = 'suelta para cancelar';
+  btn.style.background = 'rgba(125,0,0,.12)';
 
-  // Asegurarse que la barra empieza limpia
-  progress.classList.remove('filling');
-  progress.style.width = '0%';
-  void progress.offsetWidth; // forzar reflow
+  // Recrear el elemento progress para garantizar animación limpia
+  const oldP = document.getElementById('sos-progress');
+  if (oldP) oldP.remove();
+  const progress = document.createElement('div');
+  progress.className = 'sos-progress';
+  progress.id = 'sos-progress';
+  btn.appendChild(progress);
 
-  // Iniciar animación de barra
+  // Forzar reflow ANTES de añadir la clase animada
+  void progress.getBoundingClientRect();
   progress.classList.add('filling');
 
-  // Feedback visual
-  btn.style.background = 'rgba(125,0,0,.18)';
-
-  // Timer 2 segundos
   _sosTimer = setTimeout(() => {
     cancelSosHold();
     openSos();
@@ -5828,19 +5830,14 @@ function startSosHold(e) {
 
 function cancelSosHold() {
   if (_sosTimer) { clearTimeout(_sosTimer); _sosTimer = null; }
+
   const btn = document.getElementById('sos-btn');
   if (btn) btn.style.background = '';
 
-  // Reset barra: clonar el elemento elimina cualquier estado de transición
+  // Eliminar el elemento progress — se recreará en el próximo startSosHold
   const progress = document.getElementById('sos-progress');
-  if (progress) {
-    const fresh = progress.cloneNode(false);
-    fresh.id = 'sos-progress';
-    fresh.style.width = '0%';
-    progress.parentNode.replaceChild(fresh, progress);
-  }
+  if (progress) progress.remove();
 
-  // Restaurar hint
   const hint = document.getElementById('sos-hint');
   if (hint) hint.textContent = 'mantén pulsado 2s';
 }
