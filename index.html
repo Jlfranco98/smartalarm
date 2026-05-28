@@ -182,15 +182,24 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 
 /* Botón SOS — discreto, fila completa */
 .hs-btn-sos{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  width:100%;padding:11px 16px;border-radius:14px;border:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  width:100%;padding:12px 16px;border-radius:14px;border:none;
   background:rgba(125,0,0,.08);color:#8b0000;
-  font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;
+  font-family:'Nunito',sans-serif;
   cursor:pointer;letter-spacing:.03em;
   position:relative;overflow:hidden;
   transition:background .15s;
   animation:sos-soft 2s ease-in-out infinite;
   -webkit-user-select:none;user-select:none;
+}
+.sos-label-main{
+  display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:900;line-height:1;
+}
+.sos-label-hint{
+  font-size:10px;font-weight:600;color:rgba(139,0,0,.55);
+  letter-spacing:.02em;line-height:1;
+  transition:opacity .2s;
 }
 .hs-btn-sos svg{width:17px;height:17px;fill:#8b0000;flex-shrink:0;}
 @keyframes sos-soft{
@@ -1356,11 +1365,10 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
         <button class="hs-btn-sos" id="sos-btn"
           onmousedown="startSosHold()" onmouseup="cancelSosHold()" onmouseleave="cancelSosHold()"
           ontouchstart="startSosHold(event)" ontouchend="cancelSosHold()" ontouchcancel="cancelSosHold()">
-          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-          PÁNICO / SOS
+          <span class="sos-label-main"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>PÁNICO / SOS</span>
+          <span class="sos-label-hint" id="sos-hint">mantén pulsado 2s</span>
           <div class="sos-progress" id="sos-progress"></div>
         </button>
-        <div class="sos-hint">mantén pulsado 2s</div>
         <div class="hs-refresh-time" id="hs-refresh-time" style="margin-top:6px;margin-bottom:0;text-align:center"></div>
       </div>
 
@@ -5789,20 +5797,28 @@ let _sosTimer = null;
 
 function startSosHold(e) {
   if (e) e.preventDefault(); // evitar doble disparo touch+mouse
+  if (_sosTimer) return;     // ya en progreso
+
   const btn      = document.getElementById('sos-btn');
   const progress = document.getElementById('sos-progress');
+  const hint     = document.getElementById('sos-hint');
   if (!btn || !progress) return;
 
-  // Iniciar animación de barra
+  // Cambiar hint mientras se mantiene pulsado
+  if (hint) hint.textContent = 'suelta para cancelar';
+
+  // Asegurarse que la barra empieza limpia
   progress.classList.remove('filling');
-  // Forzar reflow para reiniciar la transición
-  void progress.offsetWidth;
+  progress.style.width = '0%';
+  void progress.offsetWidth; // forzar reflow
+
+  // Iniciar animación de barra
   progress.classList.add('filling');
 
-  // Feedback visual en el botón
+  // Feedback visual
   btn.style.background = 'rgba(125,0,0,.18)';
 
-  // Timer de 2 segundos
+  // Timer 2 segundos
   _sosTimer = setTimeout(() => {
     cancelSosHold();
     openSos();
@@ -5811,10 +5827,21 @@ function startSosHold(e) {
 
 function cancelSosHold() {
   if (_sosTimer) { clearTimeout(_sosTimer); _sosTimer = null; }
-  const btn      = document.getElementById('sos-btn');
+  const btn = document.getElementById('sos-btn');
+  if (btn) btn.style.background = '';
+
+  // Reset barra: clonar el elemento elimina cualquier estado de transición
   const progress = document.getElementById('sos-progress');
-  if (progress) { progress.classList.remove('filling'); progress.style.transition='none'; progress.style.width='0%'; }
-  if (btn)      { btn.style.background = ''; }
+  if (progress) {
+    const fresh = progress.cloneNode(false);
+    fresh.id = 'sos-progress';
+    fresh.style.width = '0%';
+    progress.parentNode.replaceChild(fresh, progress);
+  }
+
+  // Restaurar hint
+  const hint = document.getElementById('sos-hint');
+  if (hint) hint.textContent = 'mantén pulsado 2s';
 }
 
 </script>
