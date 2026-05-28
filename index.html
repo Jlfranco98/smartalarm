@@ -883,37 +883,46 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 /* Cabecera del drawer — perfil */
 .drawer-header{
   background:linear-gradient(135deg,var(--red) 0%,#b01020 100%);
-  padding:calc(var(--safe-top) + 28px) 20px 24px;
+  padding:calc(var(--safe-top) + 20px) 16px 20px;
   position:relative;flex-shrink:0;
+  display:flex;align-items:center;gap:14px;
 }
 .drawer-close{
-  position:absolute;top:calc(var(--safe-top) + 12px);right:12px;
-  width:32px;height:32px;border-radius:50%;
+  position:absolute;top:calc(var(--safe-top) + 10px);right:10px;
+  width:30px;height:30px;border-radius:50%;
   background:rgba(255,255,255,.2);border:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  color:#fff;font-size:18px;font-weight:300;line-height:1;
+  color:#fff;font-size:16px;font-weight:300;line-height:1;
   transition:background .15s;
 }
 .drawer-close:active{background:rgba(255,255,255,.35);}
 .drawer-avatar{
-  width:56px;height:56px;border-radius:50%;
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
   background:rgba(255,255,255,.22);
   border:2px solid rgba(255,255,255,.5);
   display:flex;align-items:center;justify-content:center;
-  font-size:20px;font-weight:900;color:#fff;
-  margin-bottom:12px;overflow:hidden;position:relative;
+  font-size:18px;font-weight:900;color:#fff;
+  overflow:hidden;position:relative;
 }
 .drawer-avatar-img{
   position:absolute;inset:0;width:100%;height:100%;
   object-fit:cover;border-radius:50%;display:none;
 }
-.drawer-name{font-size:17px;font-weight:900;color:#fff;letter-spacing:-.2px;}
+.drawer-info{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;padding-right:28px;}
+.drawer-name{font-size:16px;font-weight:900;color:#fff;letter-spacing:-.2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .drawer-role{
-  display:inline-block;margin-top:5px;
-  padding:3px 10px;border-radius:20px;
+  display:inline-block;align-self:flex-start;
+  padding:2px 9px;border-radius:20px;
   background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
   font-size:10px;font-weight:800;color:#fff;
   text-transform:uppercase;letter-spacing:.08em;
+}
+.drawer-phone{
+  font-size:12px;font-weight:600;
+  color:rgba(255,255,255,.75);
+  display:flex;align-items:center;gap:4px;
+  margin-top:1px;
 }
 
 /* Cuerpo del drawer — ítems */
@@ -1246,8 +1255,14 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       <img class="drawer-avatar-img" id="drawer-av-img" src="" alt="">
       <span id="drawer-av-initials">JL</span>
     </div>
-    <div class="drawer-name" id="drawer-name">Usuario</div>
-    <div class="drawer-role" id="drawer-role">Usuario</div>
+    <div class="drawer-info">
+      <div class="drawer-name" id="drawer-name">Usuario</div>
+      <div class="drawer-role" id="drawer-role">Usuario</div>
+      <div class="drawer-phone" id="drawer-phone" style="display:none">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="rgba(255,255,255,.75)"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+        <span id="drawer-phone-text"></span>
+      </div>
+    </div>
   </div>
 
   <!-- Ítems de navegación -->
@@ -5652,6 +5667,15 @@ function openDrawer() {
     document.getElementById('drawer-name').textContent = u.name || u.username;
     const isAdmin = u.role === 'admin';
     document.getElementById('drawer-role').textContent = isAdmin ? 'Administrador' : 'Usuario';
+    // Teléfono — solo si existe
+    const phoneEl  = document.getElementById('drawer-phone');
+    const phoneText = document.getElementById('drawer-phone-text');
+    if (u.telefono && phoneEl && phoneText) {
+      phoneText.textContent = u.telefono.replace(/^\+34/, '');
+      phoneEl.style.display = 'flex';
+    } else if (phoneEl) {
+      phoneEl.style.display = 'none';
+    }
     // Avatar foto si existe
     const img = document.getElementById('drawer-av-img');
     if (u.avatar) { img.src = u.avatar; img.style.display = 'block'; }
