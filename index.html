@@ -1303,13 +1303,6 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       <span class="drawer-item-label">Mi Alarma</span>
     </button>
 
-    <button class="drawer-item" id="ditem-dispositivos" onclick="drawerNav('dispositivos')">
-      <div class="drawer-item-icon">
-        <svg viewBox="0 0 24 24"><path d="M17 1H7C5.9 1 5 1.9 5 3v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14zm-4 1h-2v-1h2v1z"/></svg>
-      </div>
-      <span class="drawer-item-label">Dispositivos</span>
-    </button>
-
     <button class="drawer-item" id="ditem-automatizaciones" onclick="drawerNav('automatizaciones')">
       <div class="drawer-item-icon">
         <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
@@ -1861,7 +1854,11 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 
     <!-- ── DISPOSITIVOS ── -->
     <div class="page" id="pg-dispositivos">
-      <div class="sec-hdr"><span class="sec-title">Mis dispositivos</span><span class="sec-more" onclick="renderDispositivos()">↻ Actualizar</span></div>
+      <div class="subpage-hdr" onclick="navTo('admin')">
+        <span class="subpage-back">‹</span>
+        <span class="subpage-title">Dispositivos</span>
+        <span style="margin-left:auto;font-size:13px;font-weight:700;color:var(--red);cursor:pointer" onclick="event.stopPropagation();renderDispositivos()">↻ Actualizar</span>
+      </div>
       <div id="dispositivos-list" style="padding:0 16px"></div>
     </div>
 
@@ -3081,8 +3078,8 @@ function navTo(page){
 
   // Sincronizar ítem activo del drawer con la página actual
   document.querySelectorAll('.drawer-item[id^="ditem-"]').forEach(el => el.classList.remove('active'));
-  // Las subpáginas de admin (admin-usuarios, admin-contactos...) apuntan a ditem-admin
-  const drawerKey = page.startsWith('admin-') ? 'admin' : page;
+  // Subpáginas de admin y dispositivos apuntan a ditem-admin (Mi Alarma)
+  const drawerKey = (page.startsWith('admin-') || page === 'dispositivos') ? 'admin' : page;
   const ditem = document.getElementById('ditem-' + drawerKey);
   if (ditem) ditem.classList.add('active');
 
