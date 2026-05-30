@@ -2576,7 +2576,9 @@ function gestionarVisibilidadAdmin() {
     } else {
         console.log("Login correcto por un usuario");
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
-        // ditem-admin visible para todos — Mi Alarma accesible a todos los usuarios
+        // Mi Alarma visible para todos los usuarios
+        const ditemAdmin = document.getElementById('ditem-admin');
+        if (ditemAdmin) ditemAdmin.style.display = 'flex';
     }
 }
   
