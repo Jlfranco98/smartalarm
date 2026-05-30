@@ -5694,7 +5694,7 @@ async function openDrawer() {
   if (u.avatar) { img.src = u.avatar; img.style.display = 'block'; }
   else { img.style.display = 'none'; }
   const ditemAdmin = document.getElementById('ditem-admin');
-  if (ditemAdmin) ditemAdmin.style.display = isAdmin ? 'flex' : 'none';
+  if (ditemAdmin) ditemAdmin.style.display = 'flex'; // Mi Alarma visible para todos
 
   // Teléfono — obtener siempre fresco desde la API (no depende del token de login)
   const phoneEl   = document.getElementById('drawer-phone');
