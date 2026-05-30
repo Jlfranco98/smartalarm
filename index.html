@@ -2922,6 +2922,9 @@ async function removeUser(username) {
 async function renderApp(){
   const u = S.currentUser; if (!u) return;
 
+  // Garantizar visibilidad de Mi Alarma con DOM ya listo
+  gestionarVisibilidadAdmin();
+
   // 1. CARGA CONFIG GLOBAL: Pedimos al servidor la configuración guardada
   try {
     const res = await authFetch('/api/config');
