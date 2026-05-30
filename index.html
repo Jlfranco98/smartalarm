@@ -2554,31 +2554,20 @@ function doLogout() {
 
   // MOSTRAR SOLO BOTON CONFIGURACION URL SI ERES ADMIN
 function gestionarVisibilidadAdmin() {
-    const itemTuya = document.querySelector('.admin-only');
-    
-    console.log("--- COMPROBANDO ADMIN ---");
-    
-    if (!itemTuya) return;
+    const isAdmin = S.currentUser && S.currentUser.role === 'admin';
 
-    // Aquí forzamos la comprobación y vemos qué falla
-    if (S.currentUser && S.currentUser.role === 'admin') {
-        console.log("Login correcto por un administrador");
+    // Mi Alarma siempre visible para todos
+    const ditemAdmin = document.getElementById('ditem-admin');
+    if (ditemAdmin) ditemAdmin.style.display = 'flex';
+
+    if (isAdmin) {
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
-        // El botón de borrado historial es inline, corregir display
         const histDelBtn = document.getElementById('hist-delete-btn');
         if (histDelBtn) histDelBtn.style.display = 'inline-flex';
-        // Mostrar ítem Mi Alarma en drawer (solo admins)
-        const ditemAdmin = document.getElementById('ditem-admin');
-        if (ditemAdmin) ditemAdmin.style.display = 'flex';
-        // Mostrar add-user-btn en subpágina usuarios
         const addUserBtn = document.getElementById('add-user-btn');
         if (addUserBtn) addUserBtn.style.display = 'inline-flex';
     } else {
-        console.log("Login correcto por un usuario");
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
-        // Mi Alarma visible para todos los usuarios
-        const ditemAdmin = document.getElementById('ditem-admin');
-        if (ditemAdmin) ditemAdmin.style.display = 'flex';
     }
 }
   
