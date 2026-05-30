@@ -1197,6 +1197,19 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 @keyframes dot-pulse{
   0%,100%{opacity:1;}50%{opacity:.35;}
 }
+
+/* ── Mi Alarma: tarjetas bloqueadas para no-admins ──────── */
+.mac-locked{
+  opacity:.55;
+  cursor:pointer;
+  position:relative;
+}
+.mac-locked .mac-icon svg{ filter:grayscale(1); }
+.mac-lock-badge{
+  display:flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:800;color:var(--muted);
+  margin-top:2px;
+}
 </style>
 </head>
 <body>
@@ -1283,12 +1296,11 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       <span class="drawer-item-label">Historial</span>
     </button>
 
-    <button class="drawer-item admin-only" id="ditem-admin" onclick="drawerNav('admin')" style="display:none">
+    <button class="drawer-item" id="ditem-admin" onclick="drawerNav('admin')">
       <div class="drawer-item-icon">
         <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1.5 13.5l-3-3 1.41-1.41 1.59 1.58 4.59-4.58 1.41 1.41-6 6z"/></svg>
       </div>
       <span class="drawer-item-label">Mi Alarma</span>
-      <span class="drawer-admin-star">★</span>
     </button>
 
     <button class="drawer-item" id="ditem-dispositivos" onclick="drawerNav('dispositivos')">
@@ -1726,7 +1738,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1.5 13.5l-3-3 1.41-1.41 1.59 1.58 4.59-4.58 1.41 1.41-6 6z"/></svg>
         </div>
         <div class="mialarma-title">Mi Alarma</div>
-        <div class="mialarma-sub">Panel de administración</div>
+        <div class="mialarma-sub" id="mialarma-sub">Panel de administración</div>
       </div>
       <div class="mialarma-grid">
         <div class="mialarma-card" onclick="navTo('admin-usuarios')">
@@ -1743,19 +1755,28 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           <div class="mac-label">Contactos de emergencia</div>
           <div class="mac-sub">Llamadas de verificación</div>
         </div>
-        <div class="mialarma-card" onclick="navTo('admin-sesiones')">
+        <div class="mialarma-card" onclick="navTo('dispositivos')">
+          <div class="mac-icon" style="background:#e8f4fd">
+            <svg viewBox="0 0 24 24" fill="#0277bd"><path d="M7 2h10c1.1 0 2 .9 2 2v16c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2zm0 2v16h10V4H7zm5 13c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"/></svg>
+          </div>
+          <div class="mac-label">Dispositivos</div>
+          <div class="mac-sub">Estado de sensores</div>
+        </div>
+        <div class="mialarma-card mac-locked" id="mac-card-sesiones" onclick="openAdminOnlyModal()">
           <div class="mac-icon" style="background:#e8f0fe">
             <svg viewBox="0 0 24 24" fill="#1a73e8"><path d="M17 1H7C5.9 1 5 1.9 5 3v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14zm-4 1h-2v-1h2v1z"/></svg>
           </div>
           <div class="mac-label">Sesiones activas</div>
           <div class="mac-sub">Ver y revocar accesos</div>
+          <div class="mac-lock-badge"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Solo admin</div>
         </div>
-        <div class="mialarma-card" onclick="navTo('admin-servidor')">
+        <div class="mialarma-card mac-locked" id="mac-card-servidor" onclick="openAdminOnlyModal()">
           <div class="mac-icon" style="background:#f3e8ff">
             <svg viewBox="0 0 24 24" fill="#7b1fa2"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
           </div>
           <div class="mac-label">Configurar servidor</div>
           <div class="mac-sub">Backend y dispositivo</div>
+          <div class="mac-lock-badge"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Solo admin</div>
         </div>
       </div>
     </div>
@@ -2558,8 +2579,7 @@ function gestionarVisibilidadAdmin() {
     } else {
         console.log("Login correcto por un usuario");
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
-        const ditemAdminHide = document.getElementById('ditem-admin');
-        if (ditemAdminHide) ditemAdminHide.style.display = 'none';
+        // ditem-admin visible para todos — Mi Alarma accesible a todos los usuarios
     }
 }
   
@@ -3067,7 +3087,7 @@ function navTo(page){
   if (ditem) ditem.classList.add('active');
 
   if(page==='historial'){ populateUsuarioFilter(); renderLog(); renderLogFiltrado(); }
-  if(page==='admin'){ /* menú Mi Alarma — sin carga extra */ }
+  if(page==='admin'){ renderMiAlarma(); }
   if(page==='admin-usuarios'){ renderUsersAdmin(); }
   if(page==='admin-contactos'){ cargarLlamadas(); }
   if(page==='admin-sesiones'){ renderSessions(); }
@@ -3879,9 +3899,14 @@ function renderLlamadas() {
           <button onclick="eliminarLlamada(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--red)">🗑️</button>
         </div>`;
       } else {
-        // Solo lectura para usuarios normales
+        // Usuario normal: puede reordenar y toggle solo en su propio número
+        const esSuyo = userMatch && userMatch.username === S.currentUser?.username;
         html += `
         <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <button onclick="moverLlamada(${i},-1)" ${i===0?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===0?0.3:1}">▲</button>
+            <button onclick="moverLlamada(${i},1)" ${i===llamadasData.length-1?'disabled':''} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${i===llamadasData.length-1?0.3:1}">▼</button>
+          </div>
           <div style="width:36px;height:36px;border-radius:50%;background:${verificado?'#e8f5e9':'#f5f5f5'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
             ${verificado?'✅':'📵'}
           </div>
@@ -3889,9 +3914,15 @@ function renderLlamadas() {
             <div style="font-size:14px;font-weight:800;color:var(--text)">${i+1}. ${escapeHtml(n.nombre)}</div>
             <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono.replace(/^\+34/,''))}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
           </div>
-          <span style="font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;background:${n.activo?'var(--green-light)':'var(--bg)'};color:${n.activo?'var(--green)':'var(--muted)'}">
-            ${n.activo?'Activo':'Inactivo'}
-          </span>
+          ${esSuyo
+            ? `<label class="toggle-switch" title="${n.activo?'Activo':'Inactivo'}">
+                <input type="checkbox" ${n.activo?'checked':''} onchange="toggleActivoLlamada(${i},this.checked)">
+                <span class="toggle-slider"></span>
+               </label>`
+            : `<span style="font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;background:${n.activo?'var(--green-light)':'var(--bg)'};color:${n.activo?'var(--green)':'var(--muted)'}">
+                ${n.activo?'Activo':'Inactivo'}
+               </span>`
+          }
         </div>`;
       }
     });
@@ -5966,6 +5997,36 @@ async function checkDeviceStatus() {
   }
 }
 
+
+// ── Modal "Solo administradores" ─────────────────────────────────────────────
+function openAdminOnlyModal() {
+  document.getElementById('admin-only-modal-bg').classList.add('open');
+}
+function closeAdminOnlyModal() {
+  document.getElementById('admin-only-modal-bg').classList.remove('open');
+}
+
+// ── Adaptar página Mi Alarma según rol del usuario ───────────────────────────
+function renderMiAlarma() {
+  const isAdmin = S.currentUser && S.currentUser.role === 'admin';
+
+  // Subtítulo
+  const sub = document.getElementById('mialarma-sub');
+  if (sub) sub.textContent = isAdmin ? 'Panel de administración' : 'Estado de tu instalación';
+
+  // Tarjetas bloqueadas: admins navegan, otros ven modal
+  const sesCard = document.getElementById('mac-card-sesiones');
+  const srvCard = document.getElementById('mac-card-servidor');
+
+  if (isAdmin) {
+    if (sesCard) { sesCard.onclick = () => navTo('admin-sesiones'); sesCard.classList.remove('mac-locked'); const b = sesCard.querySelector('.mac-lock-badge'); if(b) b.style.display='none'; }
+    if (srvCard) { srvCard.onclick = () => navTo('admin-servidor'); srvCard.classList.remove('mac-locked'); const b = srvCard.querySelector('.mac-lock-badge'); if(b) b.style.display='none'; }
+  } else {
+    if (sesCard) { sesCard.onclick = openAdminOnlyModal; sesCard.classList.add('mac-locked'); }
+    if (srvCard) { srvCard.onclick = openAdminOnlyModal; srvCard.classList.add('mac-locked'); }
+  }
+}
+
 </script>
 
 <!-- ════════════════ MODAL BORRAR REGISTRO INDIVIDUAL (admin long-press) ════════════════ -->
@@ -6011,5 +6072,15 @@ async function checkDeviceStatus() {
   </div>
 </div>
 
+
+<!-- ════ MODAL SOLO ADMIN ════ -->
+<div class="confirm-modal-bg" id="admin-only-modal-bg" onclick="if(event.target===this)closeAdminOnlyModal()">
+  <div class="confirm-modal">
+    <div class="confirm-modal-icon">🔒</div>
+    <div class="confirm-modal-title">Acceso restringido</div>
+    <div class="confirm-modal-sub">Esta sección es exclusiva para administradores.<br>Si necesitas acceso, contacta con el administrador de tu instalación.</div>
+    <button class="confirm-modal-btn-cancel" onclick="closeAdminOnlyModal()">Entendido</button>
+  </div>
+</div>
 </body>
 </html>
