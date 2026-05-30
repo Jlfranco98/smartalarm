@@ -1210,6 +1210,47 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
   font-size:10px;font-weight:800;color:var(--muted);
   margin-top:2px;
 }
+
+/* ── Modal admin-only ────────────────────────────────────── */
+.confirm-modal-bg{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.5);
+  z-index:500;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .25s;
+}
+.confirm-modal-bg.open{opacity:1;pointer-events:all;}
+.confirm-modal{
+  background:var(--white);
+  border-radius:24px;
+  padding:28px 24px 20px;
+  width:calc(100% - 48px);max-width:320px;
+  text-align:center;
+  transform:scale(.92);
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+}
+.confirm-modal-bg.open .confirm-modal{transform:scale(1);}
+.confirm-modal-icon{font-size:44px;margin-bottom:12px;}
+.confirm-modal-title{font-size:18px;font-weight:900;color:var(--text);margin-bottom:6px;letter-spacing:-.2px;}
+.confirm-modal-sub{font-size:13px;color:var(--muted);font-weight:600;line-height:1.5;margin-bottom:22px;}
+.confirm-modal-btn-ok{
+  width:100%;padding:14px;
+  background:var(--red);color:#fff;border:none;border-radius:14px;
+  font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;
+  cursor:pointer;margin-bottom:10px;
+  transition:background .15s,transform .1s;
+}
+.confirm-modal-btn-ok:active{transform:scale(.97);}
+.confirm-modal-btn-cancel{
+  width:100%;padding:13px;
+  background:transparent;border:1.5px solid var(--border);border-radius:14px;
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+  color:var(--muted);cursor:pointer;
+  transition:background .12s;
+}
+.confirm-modal-btn-cancel:active{background:var(--bg);}
 </style>
 </head>
 <body>
@@ -3922,17 +3963,22 @@ function renderLlamadas() {
   }
 
   // Sección: usuarios verificados no añadidos (solo admin)
-  if (isAdmin && pendientes.length) {
+  // Admin ve todos los pendientes; usuario normal solo ve el suyo propio
+  const pendientesVisibles = isAdmin
+    ? pendientes
+    : pendientes.filter(u => u.username === S.currentUser?.username);
+
+  if (pendientesVisibles.length) {
     html += `<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 8px">
-      Usuarios con móvil verificado — pulsa para añadir
+      ${isAdmin ? 'Usuarios con móvil verificado — pulsa para añadir' : 'Tu número verificado — pulsa para añadirte'}
     </div>`;
-    pendientes.forEach(u => {
+    pendientesVisibles.forEach(u => {
       html += `
       <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
         <div style="width:36px;height:36px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">✅</div>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:800;color:var(--text)">${escapeHtml(u.name)}</div>
-          <div style="font-size:12px;color:#34c759;font-weight:700">${escapeHtml(u.telefono)}</div>
+          <div style="font-size:12px;color:#34c759;font-weight:700">${escapeHtml(u.telefono.replace(/^\+34/,''))}</div>
         </div>
         <button onclick="añadirUsuarioALlamadas('${escapeHtml(u.telefono)}','${escapeHtml(u.name)}')"
           style="padding:7px 14px;background:#34c759;color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
