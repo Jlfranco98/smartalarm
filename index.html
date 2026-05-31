@@ -3909,7 +3909,7 @@ function renderLlamadas() {
   if (llamadasData.length) {
     llamadasData.forEach((n, i) => {
       // Buscar si corresponde a un usuario verificado
-      const userMatch = llamadasUsuarios.find(u => u.telefono === n.telefono);
+      const normTelMatch = t => (t||'').replace(/\s/g,'').replace(/^\+34/,''); const userMatch = llamadasUsuarios.find(u => normTelMatch(u.telefono) === normTelMatch(n.telefono));
       const verificado = userMatch?.telefonoVerificado;
       if (isAdmin) {
         html += `
