@@ -3896,11 +3896,7 @@ function renderLlamadas() {
   if (!el) return;
   const isAdmin = S.currentUser && S.currentUser.role === 'admin';
   
-  // DEBUG temporal
-  console.log('=== renderLlamadas ===');
-  console.log('llamadasData:', JSON.stringify(llamadasData));
-  console.log('llamadasUsuarios:', JSON.stringify(llamadasUsuarios));
-  console.log('currentUser username:', S.currentUser?.username);
+
 
   // Teléfonos ya en la lista configurada — normalizar formato para comparar
   const normTel = t => (t || '').replace(/\s/g, '').replace(/^\+34/, '');
@@ -3954,13 +3950,13 @@ function renderLlamadas() {
             <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono.replace(/^\+34/,''))}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
           </div>
           ${esSuyo
-            ? `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            ? `<div style="display:flex;align-items:center;gap:8px">
                 <label class="toggle-switch" title="${n.activo?'Activo':'Inactivo'}">
                   <input type="checkbox" ${n.activo?'checked':''} onchange="toggleActivoLlamada(${i},this.checked)">
                   <span class="toggle-slider"></span>
                 </label>
                 <button onclick="eliminarLlamada(${i})" title="Quitarme de la lista"
-                  style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--red)">🗑️</button>
+                  style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--red)">🗑️</button>
                </div>`
             : `<span style="font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;background:${n.activo?'var(--green-light)':'var(--bg)'};color:${n.activo?'var(--green)':'var(--muted)'}">
                 ${n.activo?'Activo':'Inactivo'}
@@ -4504,15 +4500,26 @@ async function refreshStatus(event) {
     await fetchHistorialGlobal();
     renderLogFiltrado();
   } else if (pageId === 'pg-admin') {
+    renderMiAlarma();
+  } else if (pageId === 'pg-admin-usuarios') {
     await renderUsersAdmin();
+  } else if (pageId === 'pg-admin-contactos') {
     await cargarLlamadas();
+  } else if (pageId === 'pg-admin-sesiones') {
+    await renderSessions();
+  } else if (pageId === 'pg-admin-servidor') {
+    loadConfigForm();
   } else if (pageId === 'pg-dispositivos') {
     await renderDispositivos();
   } else if (pageId === 'pg-automatizaciones') {
     await renderAutomatizaciones();
+  } else if (pageId === 'pg-cuenta') {
+    loadConfigForm();
+    cargarEstadoMovil();
   } else {
     await fetchStatus();
     await fetchHistorialGlobal();
+    await checkDeviceStatus();
   }
 }
 
