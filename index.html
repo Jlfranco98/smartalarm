@@ -6142,9 +6142,9 @@ function getPinLockSecs() {
 }
 
 function startPinLockout() {
-  pinBlockCount++;
   pinFailCount = 0;
-  const secs = getPinLockSecs();
+  const secs = getPinLockSecs(); // Calcular ANTES de incrementar
+  pinBlockCount++;
   pinLockEnd  = Date.now() + secs * 1000;
 
   // Mostrar lockout, ocultar teclado y error
