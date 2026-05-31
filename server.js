@@ -1622,8 +1622,34 @@ app.get('/api/llamadas-config', requireAuth, async (req, res) => {
 app.post('/api/llamadas-config', requireAuth, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.sessionUser });
-    if (user?.role !== 'admin') return res.status(403).json({ success: false });
     const { numeros } = req.body;
+
+    if (user?.role === 'admin') {
+      // Admin puede guardar la lista completa
+      await LlamadaConfig.findOneAndUpdate(
+        { id: 'llamadas_config' },
+        { $set: { numeros } },
+        { upsert: true, new: true }
+      );
+      return res.json({ success: true });
+    }
+
+    // Usuario normal: solo puede modificar su propio número (activo/orden/añadirse)
+    const userTel = user?.telefono;
+    if (!userTel || !user?.telefonoVerificado) {
+      return res.status(403).json({ success: false, message: 'Sin número verificado' });
+    }
+
+    // Verificar que no ha alterado números de otros usuarios
+    const currentCfg = await LlamadaConfig.findOne({ id: 'llamadas_config' });
+    const currentNumeros = currentCfg?.numeros || [];
+    const originalesOtros = currentNumeros.filter(n => n.telefono !== userTel);
+    const nuevosOtros = numeros.filter(n => n.telefono !== userTel);
+
+    if (JSON.stringify(originalesOtros) !== JSON.stringify(nuevosOtros)) {
+      return res.status(403).json({ success: false, message: 'No puedes modificar números de otros usuarios' });
+    }
+
     await LlamadaConfig.findOneAndUpdate(
       { id: 'llamadas_config' },
       { $set: { numeros } },

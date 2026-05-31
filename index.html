@@ -3886,7 +3886,7 @@ async function cargarLlamadas() {
     ]);
     llamadasData   = await resCfg.json();
     const allUsers = await resUsers.json();
-    llamadasUsuarios = allUsers.filter(u => u.telefono);
+    llamadasUsuarios = allUsers.filter(u => u.telefono && u.telefonoVerificado);
     renderLlamadas();
   } catch(e) { console.error('Error cargando llamadas:', e); }
 }
