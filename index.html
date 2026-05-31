@@ -3895,6 +3895,12 @@ function renderLlamadas() {
   const el = document.getElementById('llamadas-list');
   if (!el) return;
   const isAdmin = S.currentUser && S.currentUser.role === 'admin';
+  
+  // DEBUG temporal
+  console.log('=== renderLlamadas ===');
+  console.log('llamadasData:', JSON.stringify(llamadasData));
+  console.log('llamadasUsuarios:', JSON.stringify(llamadasUsuarios));
+  console.log('currentUser username:', S.currentUser?.username);
 
   // Teléfonos ya en la lista configurada — normalizar formato para comparar
   const normTel = t => (t || '').replace(/\s/g, '').replace(/^\+34/, '');
