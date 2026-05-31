@@ -3948,10 +3948,14 @@ function renderLlamadas() {
             <div style="font-size:12px;color:var(--muted)">${escapeHtml(n.telefono.replace(/^\+34/,''))}${verificado?' · <span style="color:#34c759;font-weight:700">Verificado</span>':''}</div>
           </div>
           ${esSuyo
-            ? `<label class="toggle-switch" title="${n.activo?'Activo':'Inactivo'}">
-                <input type="checkbox" ${n.activo?'checked':''} onchange="toggleActivoLlamada(${i},this.checked)">
-                <span class="toggle-slider"></span>
-               </label>`
+            ? `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+                <label class="toggle-switch" title="${n.activo?'Activo':'Inactivo'}">
+                  <input type="checkbox" ${n.activo?'checked':''} onchange="toggleActivoLlamada(${i},this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+                <button onclick="eliminarLlamada(${i})" title="Quitarme de la lista"
+                  style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--red)">🗑️</button>
+               </div>`
             : `<span style="font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;background:${n.activo?'var(--green-light)':'var(--bg)'};color:${n.activo?'var(--green)':'var(--muted)'}">
                 ${n.activo?'Activo':'Inactivo'}
                </span>`
@@ -4066,10 +4070,9 @@ async function guardarLlamadas() {
       body: JSON.stringify({ numeros: llamadasData })
     });
     if (res.ok) {
-      renderLlamadas();
+      await cargarLlamadas(); // Recarga llamadasUsuarios + renderLlamadas
       const ok = document.getElementById('llamadas-ok');
-      ok.textContent = '✅ Guardado';
-      setTimeout(() => ok.textContent = '', 2000);
+      if (ok) { ok.textContent = '✅ Guardado'; setTimeout(() => ok.textContent = '', 2000); }
     }
   } catch(e) { toast2('Error al guardar'); }
 }
