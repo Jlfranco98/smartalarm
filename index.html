@@ -3896,11 +3896,12 @@ function renderLlamadas() {
   if (!el) return;
   const isAdmin = S.currentUser && S.currentUser.role === 'admin';
 
-  // Teléfonos ya en la lista configurada
-  const yaEnLista = new Set(llamadasData.map(n => n.telefono));
+  // Teléfonos ya en la lista configurada — normalizar formato para comparar
+  const normTel = t => (t || '').replace(/\s/g, '').replace(/^\+34/, '');
+  const yaEnLista = new Set(llamadasData.map(n => normTel(n.telefono)));
 
   // Usuarios con móvil NO añadidos aún
-  const pendientes = llamadasUsuarios.filter(u => !yaEnLista.has(u.telefono));
+  const pendientes = llamadasUsuarios.filter(u => !yaEnLista.has(normTel(u.telefono)));
 
   let html = '';
 
