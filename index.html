@@ -2589,8 +2589,8 @@ function doLogout() {
   const dot = document.getElementById('tb-status-dot');
   if (dot) { dot.className = 'tb-status-dot ok'; }
 
-  // Resetear bloqueo PIN al cerrar sesión
-  resetPinLockout();
+  // Resetear bloqueo PIN completamente al cerrar sesión
+  clearPinLockFully();
 
   // Limpiar inputs de notificaciones para que no queden datos del usuario anterior
   ['notif-arm-away','notif-arm-home','notif-disarm',
@@ -3324,8 +3324,8 @@ function openPin(action){
   document.getElementById('pm-title').textContent=ACTION_NAMES[action]||action;
   document.getElementById('pm-err').textContent='';
   document.getElementById('pm-dots').innerHTML='<div class="pm-dot"></div>'.repeat(4);
-  // Resetear lockout si no hay bloqueo activo
-  if (pinLockEnd <= Date.now()) resetPinLockout();
+  // Restaurar bloqueo si sigue activo (persiste al reabrir la app)
+  if (!restorePinLockIfNeeded()) resetPinLockout();
   const num=document.getElementById('pm-numpad'); num.innerHTML='';
   [1,2,3,4,5,6,7,8,9,'',0,'⌫'].forEach(v=>{
     const b=document.createElement('button'); b.className='pm-key'+(v===''?' empty':v==='⌫'?' del':'');
@@ -3344,7 +3344,7 @@ function openPin(action){
 
 async function checkPin(){
   // Si está bloqueado, ignorar
-  if (pinLockEnd > Date.now()) return;
+  if (isPinLocked()) return;
 
   try {
     const res = await authFetch('/api/verify-pin', {
@@ -3369,9 +3369,8 @@ async function checkPin(){
       return;
     }
 
-    // PIN correcto — resetear contadores
-    pinFailCount  = 0;
-    pinBlockCount = 0;
+    // PIN correcto — resetear contadores completamente
+    clearPinLockFully();
     document.getElementById('pin-modal-bg').classList.remove('open');
     applyAction(pinAction, S.currentUser.name);
 
@@ -6128,37 +6127,59 @@ function renderMiAlarma() {
 }
 
 
-// ── PIN: bloqueo progresivo con cuenta atrás ─────────────────────────────────
-const PIN_FAIL_MAX   = 3;      // fallos antes de bloquear
-const PIN_BASE_SECS  = 5 * 60; // 5 minutos base
-let pinFailCount     = 0;
-let pinBlockCount    = 0;      // cuántas veces se ha bloqueado (para triplicar)
-let pinLockTimer     = null;
-let pinLockEnd       = 0;
+// ── PIN: bloqueo progresivo con cuenta atrás (persiste en localStorage) ────────
+const PIN_FAIL_MAX  = 3;
+const PIN_BASE_SECS = 5 * 60;
+let pinFailCount    = 0;
+let pinLockTimer    = null;
+
+function _pinLockKey() {
+  return 'pinLock_' + (S.currentUser?.username || 'unknown');
+}
+function _pinLockData() {
+  try { return JSON.parse(localStorage.getItem(_pinLockKey()) || '{}'); } catch(e) { return {}; }
+}
+function _savePinLock(data) {
+  localStorage.setItem(_pinLockKey(), JSON.stringify(data));
+}
 
 function getPinLockSecs() {
-  // 5 min → 15 min → 45 min (máximo)
-  return PIN_BASE_SECS * Math.min(Math.pow(3, pinBlockCount), 9); // 1x, 3x, 9x
+  const d = _pinLockData();
+  const blockCount = d.blockCount || 0;
+  return PIN_BASE_SECS * Math.min(Math.pow(3, blockCount), 9);
+}
+
+function isPinLocked() {
+  const d = _pinLockData();
+  return d.lockEnd && Date.now() < d.lockEnd;
 }
 
 function startPinLockout() {
   pinFailCount = 0;
-  const secs = getPinLockSecs(); // Calcular ANTES de incrementar
-  pinBlockCount++;
-  pinLockEnd  = Date.now() + secs * 1000;
+  const d = _pinLockData();
+  const secs = getPinLockSecs(); // Calcular ANTES de incrementar blockCount
+  _savePinLock({ blockCount: (d.blockCount || 0) + 1, lockEnd: Date.now() + secs * 1000 });
 
-  // Mostrar lockout, ocultar teclado y error
-  document.getElementById('pm-lockout').classList.add('visible');
-  document.getElementById('pm-numpad').style.display  = 'none';
-  document.getElementById('pm-dots').style.visibility = 'hidden';
-  document.getElementById('pm-err').textContent = '';
-
+  showPinLockoutUI();
   updatePinLockTimer();
+  if (pinLockTimer) clearInterval(pinLockTimer);
   pinLockTimer = setInterval(updatePinLockTimer, 1000);
 }
 
+function showPinLockoutUI() {
+  const lockEl = document.getElementById('pm-lockout');
+  const numpad = document.getElementById('pm-numpad');
+  const dots   = document.getElementById('pm-dots');
+  const err    = document.getElementById('pm-err');
+  if (lockEl) lockEl.classList.add('visible');
+  if (numpad) numpad.style.display  = 'none';
+  if (dots)   dots.style.visibility = 'hidden';
+  if (err)    err.textContent = '';
+}
+
 function updatePinLockTimer() {
-  const remaining = Math.max(0, Math.ceil((pinLockEnd - Date.now()) / 1000));
+  const d = _pinLockData();
+  const remaining = Math.max(0, Math.ceil(((d.lockEnd || 0) - Date.now()) / 1000));
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
   const el = document.getElementById('pm-lockout-timer');
@@ -6167,7 +6188,6 @@ function updatePinLockTimer() {
   if (remaining <= 0) {
     clearInterval(pinLockTimer);
     pinLockTimer = null;
-    // Desbloquear
     document.getElementById('pm-lockout').classList.remove('visible');
     document.getElementById('pm-numpad').style.display  = '';
     document.getElementById('pm-dots').style.visibility = '';
@@ -6176,12 +6196,35 @@ function updatePinLockTimer() {
   }
 }
 
+function restorePinLockIfNeeded() {
+  // Llamar al abrir el modal — restaura la cuenta atrás si aún está activa
+  if (!isPinLocked()) return false;
+  showPinLockoutUI();
+  updatePinLockTimer();
+  if (pinLockTimer) clearInterval(pinLockTimer);
+  pinLockTimer = setInterval(updatePinLockTimer, 1000);
+  return true;
+}
+
 function resetPinLockout() {
-  // Resetear al abrir el modal o al cerrar sesión
-  pinFailCount  = 0;
-  pinBlockCount = 0;
-  pinLockEnd    = 0;
+  pinFailCount = 0;
   if (pinLockTimer) { clearInterval(pinLockTimer); pinLockTimer = null; }
+  // Solo borramos el bloqueo activo, mantenemos blockCount para la progresión
+  const d = _pinLockData();
+  _savePinLock({ blockCount: d.blockCount || 0, lockEnd: 0 });
+  const lockEl = document.getElementById('pm-lockout');
+  if (lockEl) lockEl.classList.remove('visible');
+  const numpad = document.getElementById('pm-numpad');
+  if (numpad) numpad.style.display = '';
+  const dots = document.getElementById('pm-dots');
+  if (dots) dots.style.visibility = '';
+}
+
+function clearPinLockFully() {
+  // Reseteo completo (logout o PIN correcto)
+  pinFailCount = 0;
+  if (pinLockTimer) { clearInterval(pinLockTimer); pinLockTimer = null; }
+  localStorage.removeItem(_pinLockKey());
   const lockEl = document.getElementById('pm-lockout');
   if (lockEl) lockEl.classList.remove('visible');
   const numpad = document.getElementById('pm-numpad');
