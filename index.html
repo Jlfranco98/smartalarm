@@ -1765,7 +1765,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           </div>
           <div id="bio-panel" style="display:none" class="sl-panel">
             <div id="bio-credentials-list" style="margin-bottom:12px;font-size:13px;color:var(--muted)"></div>
-            <button onclick="registerBiometric()" class="btn-add" style="width:100%;margin-bottom:8px">
+            <button id="bio-register-btn" onclick="registerBiometric()" class="btn-add" style="width:100%;margin-bottom:8px">
               + Registrar este dispositivo
             </button>
             <div class="cfg-saved" id="bio-ok" style="margin-top:4px"></div>
@@ -6328,6 +6328,15 @@ async function loadBiometricStatus() {
     // Mostrar botón biométrico en modal PIN si hay credenciales
     const bioBtn = document.getElementById('pm-bio-btn');
     if (bioBtn) bioBtn.classList.toggle('visible', creds.length > 0);
+    // Bloquear botón de registro si ya hay dispositivo registrado
+    const regBtn = document.getElementById('bio-register-btn');
+    if (regBtn) {
+      const yaRegistrado = creds.length > 0;
+      regBtn.disabled = yaRegistrado;
+      regBtn.style.opacity = yaRegistrado ? '0.4' : '1';
+      regBtn.style.cursor  = yaRegistrado ? 'not-allowed' : 'pointer';
+      regBtn.title = yaRegistrado ? 'Ya tienes un dispositivo registrado. Elimínalo primero para registrar otro.' : '';
+    }
   } catch(e) {
     if (label) label.textContent = 'Error al cargar';
   }
