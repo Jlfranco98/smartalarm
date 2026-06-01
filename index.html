@@ -6447,9 +6447,11 @@ async function tryBiometricAuth() {
 
 // ── Helpers base64url ─────────────────────────────────────────────
 function base64urlToBuffer(base64url) {
-  const base64 = base64url.replace(/-/g,'+').replace(/_/g,'/');
-  const bin    = atob(base64);
-  const buf    = new Uint8Array(bin.length);
+  // base64url → base64 estándar con padding correcto
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4 !== 0) base64 += '=';
+  const bin = atob(base64);
+  const buf = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
   return buf.buffer;
 }
@@ -6460,15 +6462,22 @@ function bufferToBase64url(buffer) {
   return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 }
 // Convierte lo que devuelve SimpleWebAuthn v8 (string base64url) o v9
-// ({type:'Buffer',data:[...]}) a ArrayBuffer — blindado para ambas versiones
+// ({type:'Buffer',data:[...]}, {'0':105,'1':233,...} o Uint8Array) a ArrayBuffer
 function coerceToBuffer(val) {
-  if (typeof val === 'string')          return base64urlToBuffer(val);
-  if (val instanceof ArrayBuffer)       return val;
-  if (val?.buffer instanceof ArrayBuffer) return val.buffer; // Uint8Array / Buffer view
-  if (val?.type === 'Buffer' && Array.isArray(val.data)) {
-    return new Uint8Array(val.data).buffer;
+  if (val instanceof ArrayBuffer)           return val;
+  if (val?.buffer instanceof ArrayBuffer)   return val.buffer; // Uint8Array / Buffer view
+  if (val?.type === 'Buffer' && Array.isArray(val.data)) return new Uint8Array(val.data).buffer;
+  // SimpleWebAuthn v9 serializa user.id como objeto con claves numéricas {'0':105,'1':233,...}
+  if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+    const keys = Object.keys(val);
+    if (keys.length > 0 && keys.every(k => /^\d+$/.test(k))) {
+      const arr = new Uint8Array(keys.length);
+      keys.forEach(k => arr[parseInt(k)] = val[k]);
+      return arr.buffer;
+    }
   }
-  return base64urlToBuffer(String(val)); // último recurso
+  // string base64url (caso normal)
+  return base64urlToBuffer(String(val));
 }
 
 </script>
