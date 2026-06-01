@@ -1752,7 +1752,7 @@ app.post('/api/webauthn/register-options', requireAuth, async (req, res) => {
     const options = await webauthn.generateRegistrationOptions({
       rpName: RP_NAME,
       rpID: RP_ID,
-      userID: Buffer.from(user._id.toString()),
+      userID: Buffer.from(user._id.toHexString(), 'hex'),
       userName: user.username,
       userDisplayName: user.name || user.username,
       attestationType: 'none',
