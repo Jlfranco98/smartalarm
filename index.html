@@ -6352,10 +6352,10 @@ async function registerBiometric() {
     const options = await optRes.json();
 
     // 2. Convertir base64url a ArrayBuffer
-    options.challenge = base64urlToBuffer(options.challenge);
-    options.user.id   = base64urlToBuffer(options.user.id);
+    options.challenge = base64urlToBuffer(String(options.challenge));
+    options.user.id   = base64urlToBuffer(String(options.user.id));
     if (options.excludeCredentials) {
-      options.excludeCredentials = options.excludeCredentials.map(c => ({ ...c, id: base64urlToBuffer(c.id) }));
+      options.excludeCredentials = options.excludeCredentials.map(c => ({ ...c, id: base64urlToBuffer(String(c.id)) }));
     }
 
     // 3. Pedir biometría al usuario
@@ -6407,9 +6407,9 @@ async function tryBiometricAuth() {
     if (!optRes.ok) return;
     const options = await optRes.json();
 
-    options.challenge = base64urlToBuffer(options.challenge);
+    options.challenge = base64urlToBuffer(String(options.challenge));
     if (options.allowCredentials) {
-      options.allowCredentials = options.allowCredentials.map(c => ({ ...c, id: base64urlToBuffer(c.id) }));
+      options.allowCredentials = options.allowCredentials.map(c => ({ ...c, id: base64urlToBuffer(String(c.id)) }));
     }
 
     // 2. Pedir biometría
