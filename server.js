@@ -2,6 +2,13 @@ const express  = require('express');
 const cors     = require('cors');
 const path     = require('path');
 const mongoose = require('mongoose');
+
+// ── WebAuthn (biometría) ───────────────────────────────────────────────────
+let webauthn = null;
+try { webauthn = require('@simplewebauthn/server'); } catch(e) { console.log('⚠️  @simplewebauthn/server no instalado'); }
+const RP_NAME = 'Smart Alarm';
+const RP_ID   = (process.env.RP_ID   || 'localhost');
+const ORIGIN  = (process.env.ORIGIN  || 'http://localhost:3000');
 const bcrypt   = require('bcryptjs');
 const webpush  = require('web-push');
 const { TuyaContext } = require('@tuya/tuya-connector-nodejs');
@@ -170,7 +177,12 @@ const userSchema = new mongoose.Schema({
   isNew: { type: Boolean, default: true },
   avatar: { type: String, default: null },
   telefono: { type: String, default: null },
-  telefonoVerificado: { type: Boolean, default: false }
+  telefonoVerificado: { type: Boolean, default: false },
+  pinFailCount:  { type: Number, default: 0 },
+  pinBlockCount: { type: Number, default: 0 },
+  pinLockEnd:    { type: Number, default: 0 },
+  webauthnCredentials: { type: Array,  default: [] },
+  webauthnChallenge:   { type: String, default: null }
 }, { collection: 'users', timestamps: true, suppressReservedKeysWarning: true });
 
 const logSchema = new mongoose.Schema({
@@ -1725,6 +1737,156 @@ app.get('/api/usuarios/mi-movil', requireAuth, async (req, res) => {
 
 // --- 15. ARRANQUE ---
 const PORT = process.env.PORT || 8080;
+
+// ══════════════════════════════════════════════════════════════════
+//  WEBAUTHN — BIOMETRÍA (Face ID / Huella)
+// ══════════════════════════════════════════════════════════════════
+
+// Paso 1: Generar opciones de registro
+app.post('/api/webauthn/register-options', requireAuth, async (req, res) => {
+  if (!webauthn) return res.status(501).json({ error: 'WebAuthn no disponible' });
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const options = await webauthn.generateRegistrationOptions({
+      rpName: RP_NAME,
+      rpID: RP_ID,
+      userID: Buffer.from(user._id.toString()),
+      userName: user.username,
+      userDisplayName: user.name || user.username,
+      attestationType: 'none',
+      excludeCredentials: (user.webauthnCredentials || []).map(c => ({
+        id: Buffer.from(c.credentialID, 'base64url'),
+        type: 'public-key',
+      })),
+      authenticatorSelection: {
+        residentKey: 'preferred',
+        userVerification: 'required',
+      },
+    });
+
+    await User.updateOne({ username: req.sessionUser }, { $set: { webauthnChallenge: options.challenge } });
+    res.json(options);
+  } catch(e) { console.error('WebAuthn register-options error:', e); res.status(500).json({ error: e.message }); }
+});
+
+// Paso 2: Verificar y guardar credencial registrada
+app.post('/api/webauthn/register-verify', requireAuth, async (req, res) => {
+  if (!webauthn) return res.status(501).json({ error: 'WebAuthn no disponible' });
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || !user.webauthnChallenge) return res.status(400).json({ verified: false });
+
+    const verification = await webauthn.verifyRegistrationResponse({
+      response: req.body,
+      expectedChallenge: user.webauthnChallenge,
+      expectedOrigin: ORIGIN,
+      expectedRPID: RP_ID,
+      requireUserVerification: true,
+    });
+
+    if (verification.verified && verification.registrationInfo) {
+      const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
+      const newCred = {
+        credentialID: Buffer.from(credentialID).toString('base64url'),
+        credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64url'),
+        counter,
+        deviceName: req.body.deviceName || 'Dispositivo',
+        createdAt: new Date(),
+      };
+      await User.updateOne(
+        { username: req.sessionUser },
+        { $push: { webauthnCredentials: newCred }, $set: { webauthnChallenge: null } }
+      );
+      return res.json({ verified: true });
+    }
+    res.json({ verified: false });
+  } catch(e) { console.error('WebAuthn register-verify error:', e); res.status(500).json({ verified: false, error: e.message }); }
+});
+
+// Paso 3: Generar opciones de autenticación
+app.post('/api/webauthn/auth-options', requireAuth, async (req, res) => {
+  if (!webauthn) return res.status(501).json({ error: 'WebAuthn no disponible' });
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || !user.webauthnCredentials?.length)
+      return res.status(404).json({ error: 'Sin credenciales registradas' });
+
+    const options = await webauthn.generateAuthenticationOptions({
+      rpID: RP_ID,
+      userVerification: 'required',
+      allowCredentials: user.webauthnCredentials.map(c => ({
+        id: Buffer.from(c.credentialID, 'base64url'),
+        type: 'public-key',
+      })),
+    });
+
+    await User.updateOne({ username: req.sessionUser }, { $set: { webauthnChallenge: options.challenge } });
+    res.json(options);
+  } catch(e) { console.error('WebAuthn auth-options error:', e); res.status(500).json({ error: e.message }); }
+});
+
+// Paso 4: Verificar autenticación biométrica → devuelve valid:true como verify-pin
+app.post('/api/webauthn/auth-verify', requireAuth, async (req, res) => {
+  if (!webauthn) return res.status(501).json({ valid: false });
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || !user.webauthnChallenge) return res.status(400).json({ valid: false });
+
+    const cred = user.webauthnCredentials.find(
+      c => c.credentialID === req.body.id
+    );
+    if (!cred) return res.status(404).json({ valid: false });
+
+    const verification = await webauthn.verifyAuthenticationResponse({
+      response: req.body,
+      expectedChallenge: user.webauthnChallenge,
+      expectedOrigin: ORIGIN,
+      expectedRPID: RP_ID,
+      requireUserVerification: true,
+      authenticator: {
+        credentialID: Buffer.from(cred.credentialID, 'base64url'),
+        credentialPublicKey: Buffer.from(cred.credentialPublicKey, 'base64url'),
+        counter: cred.counter,
+      },
+    });
+
+    if (verification.verified) {
+      // Actualizar counter
+      await User.updateOne(
+        { username: req.sessionUser, 'webauthnCredentials.credentialID': cred.credentialID },
+        { $set: { 'webauthnCredentials.$.counter': verification.authenticationInfo.newCounter, webauthnChallenge: null } }
+      );
+      return res.json({ valid: true });
+    }
+    res.json({ valid: false });
+  } catch(e) { console.error('WebAuthn auth-verify error:', e); res.status(500).json({ valid: false }); }
+});
+
+// Eliminar credencial biométrica
+app.delete('/api/webauthn/credential/:credId', requireAuth, async (req, res) => {
+  try {
+    await User.updateOne(
+      { username: req.sessionUser },
+      { $pull: { webauthnCredentials: { credentialID: req.params.credId } } }
+    );
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
+});
+
+// Listar credenciales del usuario
+app.get('/api/webauthn/credentials', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser }, 'webauthnCredentials');
+    res.json((user?.webauthnCredentials || []).map(c => ({
+      credentialID: c.credentialID,
+      deviceName: c.deviceName,
+      createdAt: c.createdAt,
+    })));
+  } catch(e) { res.status(500).json([]); }
+});
+
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor activo en puerto ${PORT}`);
   console.log(`⚡ Cuenta A (alarma): polling cada ${POLL_ALARMA_MS / 60000} min`);

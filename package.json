@@ -12,7 +12,8 @@
     "bcryptjs": "^2.4.3",
     "web-push": "^3.6.7",
     "@tuya/tuya-connector-nodejs": "^2.1.2",
-    "twilio": "^5.0.0"
+    "twilio": "^5.0.0",
+    "@simplewebauthn/server": "^9.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
