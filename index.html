@@ -3187,6 +3187,8 @@ function navTo(page){
   if(page==='admin-contactos'){ cargarLlamadas(); }
   if(page==='admin-sesiones'){ renderSessions(); }
   if(page==='admin-servidor'){ loadConfigForm(); }
+  // Cerrar panel biométrico al salir de cuenta
+  const _bp = document.getElementById('bio-panel'); if(_bp && page !== 'cuenta') _bp.style.display = 'none';
   if(page==='cuenta'){ loadConfigForm(); updateThemeUI(localStorage.getItem('theme') || 'system'); cargarEstadoMovil(); loadBiometricStatus(); }
   if(page==='dispositivos')renderDispositivos();
   if(page==='automatizaciones')renderAutomatizaciones();
@@ -6339,11 +6341,36 @@ function openBiometricSetup() {
   if (!isOpen) loadBiometricStatus();
 }
 
-// Registrar biometría de este dispositivo
-async function registerBiometric() {
+// Registrar biometría — paso 1: pedir nombre del dispositivo
+function registerBiometric() {
   if (!isBiometricSupported()) {
     return toast2('Tu navegador no soporta biometría');
   }
+  // Sugerir nombre por defecto basado en el dispositivo
+  const defaultName = (() => {
+    const ua = navigator.userAgent;
+    if (/iPhone/.test(ua))  return 'iPhone';
+    if (/iPad/.test(ua))    return 'iPad';
+    if (/Android/.test(ua)) return 'Android';
+    if (/Mac/.test(ua))     return 'Mac';
+    if (/Windows/.test(ua)) return 'PC Windows';
+    return 'Dispositivo';
+  })();
+  const input = document.getElementById('bio-name-input');
+  if (input) input.value = defaultName;
+  const modal = document.getElementById('bio-name-modal-bg');
+  if (modal) { modal.classList.add('open'); setTimeout(() => input && input.focus(), 300); }
+}
+function closeBioNameModal() {
+  const modal = document.getElementById('bio-name-modal-bg');
+  if (modal) modal.classList.remove('open');
+}
+
+// Registrar biometría — paso 2: ejecutar WebAuthn con el nombre elegido
+async function doRegisterBiometric() {
+  const input      = document.getElementById('bio-name-input');
+  const deviceName = (input?.value.trim()) || 'Dispositivo';
+  closeBioNameModal();
   const okEl = document.getElementById('bio-ok');
   try {
     // 1. Obtener opciones del servidor
@@ -6362,7 +6389,6 @@ async function registerBiometric() {
     const credential = await navigator.credentials.create({ publicKey: options });
 
     // 4. Preparar respuesta para el servidor
-    const deviceName = `${navigator.platform || 'Dispositivo'} — ${new Date().toLocaleDateString('es-ES')}`;
     const body = {
       id: credential.id,
       rawId: bufferToBase64url(credential.rawId),
@@ -6390,12 +6416,27 @@ async function registerBiometric() {
   }
 }
 
-// Eliminar credencial
-async function deleteBiometric(credId) {
+// Eliminar credencial — abre modal de confirmación
+function deleteBiometric(credId) {
+  const modal = document.getElementById('bio-del-modal-bg');
+  if (!modal) return;
+  // Guardar credId en el botón confirmar
+  document.getElementById('bio-del-confirm-btn').dataset.credId = credId;
+  modal.classList.add('open');
+}
+async function confirmDeleteBiometric() {
+  const btn   = document.getElementById('bio-del-confirm-btn');
+  const credId = btn.dataset.credId;
+  closeBioDelModal();
   try {
     await authFetch('/api/webauthn/credential/' + encodeURIComponent(credId), { method: 'DELETE' });
     await loadBiometricStatus();
+    toast2('Dispositivo eliminado');
   } catch(e) { toast2('Error al eliminar'); }
+}
+function closeBioDelModal() {
+  const modal = document.getElementById('bio-del-modal-bg');
+  if (modal) modal.classList.remove('open');
 }
 
 // Autenticar con biometría desde el modal PIN
@@ -6525,6 +6566,35 @@ function coerceToBuffer(val) {
   </div>
 </div>
 
+
+<!-- ════ MODAL NOMBRE DISPOSITIVO BIOMÉTRICO ════ -->
+<div class="confirm-modal-bg" id="bio-name-modal-bg" onclick="if(event.target===this)closeBioNameModal()">
+  <div class="confirm-modal">
+    <div class="confirm-modal-icon">🔐</div>
+    <div class="confirm-modal-title">Nombre del dispositivo</div>
+    <div class="confirm-modal-sub">Ponle un nombre para identificarlo fácilmente.</div>
+    <input id="bio-name-input" type="text" maxlength="40"
+      placeholder="Ej: iPhone de Jose"
+      onkeydown="if(event.key==='Enter')doRegisterBiometric()"
+      style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;
+             font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--text);
+             background:var(--bg);outline:none;margin-bottom:16px;
+             transition:border-color .2s;box-sizing:border-box">
+    <button class="confirm-modal-btn-ok" onclick="doRegisterBiometric()">Continuar →</button>
+    <button class="confirm-modal-btn-cancel" onclick="closeBioNameModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ════ MODAL CONFIRMAR BORRAR BIOMETRÍA ════ -->
+<div class="confirm-modal-bg" id="bio-del-modal-bg" onclick="if(event.target===this)closeBioDelModal()">
+  <div class="confirm-modal">
+    <div class="confirm-modal-icon">🗑️</div>
+    <div class="confirm-modal-title">Eliminar dispositivo</div>
+    <div class="confirm-modal-sub">¿Seguro que quieres eliminar este dispositivo biométrico? Tendrás que volver a registrarlo para usar huella o Face ID.</div>
+    <button class="confirm-modal-btn-ok" id="bio-del-confirm-btn" onclick="confirmDeleteBiometric()" style="background:var(--red)">Eliminar</button>
+    <button class="confirm-modal-btn-cancel" onclick="closeBioDelModal()">Cancelar</button>
+  </div>
+</div>
 
 <!-- ════ MODAL SOLO ADMIN ════ -->
 <div class="confirm-modal-bg" id="admin-only-modal-bg" onclick="if(event.target===this)closeAdminOnlyModal()">
