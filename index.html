@@ -3090,6 +3090,7 @@ async function iniciarApp() {
   try {
     await fetchStatus();          // Trae el color del círculo (Armado/Desarmado)
     await fetchHistorialGlobal(); // <--- USA ESTE NOMBRE (trae los logs de todos)
+    checkMantHomeBanner();        // Banner mantenimiento próximo en home
   } catch(e) {
     console.log("Error en sincronización inicial", e);
   }
