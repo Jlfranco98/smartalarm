@@ -255,6 +255,17 @@ const llamadaConfigSchema = new mongoose.Schema({
 }, { collection: 'llamadas_config' });
 const LlamadaConfig = mongoose.model('LlamadaConfig', llamadaConfigSchema);
 
+// ── Mantenimientos ─────────────────────────────────────────────────────────
+const mantenimientoSchema = new mongoose.Schema({
+  fecha:        { type: Date, required: true },
+  tipo:         { type: String, required: true },
+  descripcion:  { type: String, default: '' },
+  proximaFecha: { type: Date, default: null },
+  tecnico:      { type: String, default: '' },
+  creadoPor:    { type: String, default: '' },
+}, { timestamps: true });
+const Mantenimiento = mongoose.model('Mantenimiento', mantenimientoSchema);
+
 // Mapa temporal de códigos SMS: username -> { codigo, expira }
 const smsVerifCodes = new Map();
 
@@ -1876,6 +1887,71 @@ app.delete('/api/webauthn/credential/:credId', requireAuth, async (req, res) => 
 });
 
 // Listar credenciales del usuario
+// ── MANTENIMIENTOS ──────────────────────────────────────────────────────────
+// GET todos
+app.get('/api/mantenimientos', requireAuth, async (req, res) => {
+  try {
+    const items = await Mantenimiento.find().sort({ fecha: -1 });
+    res.json(items);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST nuevo (solo admin)
+app.post('/api/mantenimientos', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Solo admin' });
+  try {
+    const { fecha, tipo, descripcion, proximaFecha, tecnico } = req.body;
+    if (!fecha || !tipo) return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    const m = await Mantenimiento.create({
+      fecha: new Date(fecha),
+      tipo,
+      descripcion: descripcion || '',
+      proximaFecha: proximaFecha ? new Date(proximaFecha) : null,
+      tecnico: tecnico || '',
+      creadoPor: req.user.username,
+    });
+    res.json({ ok: true, mantenimiento: m });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT editar (solo admin)
+app.put('/api/mantenimientos/:id', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Solo admin' });
+  try {
+    const { fecha, tipo, descripcion, proximaFecha, tecnico } = req.body;
+    const m = await Mantenimiento.findByIdAndUpdate(req.params.id, {
+      fecha: new Date(fecha),
+      tipo,
+      descripcion: descripcion || '',
+      proximaFecha: proximaFecha ? new Date(proximaFecha) : null,
+      tecnico: tecnico || '',
+    }, { new: true });
+    if (!m) return res.status(404).json({ error: 'No encontrado' });
+    res.json({ ok: true, mantenimiento: m });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE (solo admin)
+app.delete('/api/mantenimientos/:id', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Solo admin' });
+  try {
+    await Mantenimiento.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET próximo mantenimiento (para el aviso del home)
+app.get('/api/mantenimientos/proximo', requireAuth, async (req, res) => {
+  try {
+    const hoy = new Date();
+    const en30 = new Date(hoy.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const proximo = await Mantenimiento.findOne({
+      proximaFecha: { $gte: hoy, $lte: en30 }
+    }).sort({ proximaFecha: 1 });
+    res.json({ proximo: proximo || null });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/webauthn/credentials', requireAuth, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.sessionUser }, 'webauthnCredentials');

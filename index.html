@@ -1512,6 +1512,17 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 
       <!-- Banner de estado dispositivos -->
       <div id="status-banner" style="display:none"></div>
+      <!-- Banner mantenimiento próximo -->
+      <div id="mant-home-banner" style="display:none;margin:0 16px 12px;background:#fff8e1;border:1.5px solid #ffe082;border-radius:14px;padding:12px 16px;cursor:pointer" onclick="navTo('admin-mantenimientos')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">🔧</span>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#f57f17" id="mant-banner-title">Mantenimiento próximo</div>
+            <div style="font-size:12px;color:#795548;font-weight:600" id="mant-banner-sub"></div>
+          </div>
+          <span style="margin-left:auto;color:#f57f17;font-size:18px">›</span>
+        </div>
+      </div>
 
       <div class="sec-hdr">
         <span class="sec-title">Acciones rápidas</span>
@@ -1854,6 +1865,13 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           <div class="mac-sub">Ver y revocar accesos</div>
           <div class="mac-lock-badge"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Solo admin</div>
         </div>
+        <div class="mialarma-card" id="mac-card-mantenimientos" onclick="navTo('admin-mantenimientos')">
+          <div class="mac-icon" style="background:#fff8e1">
+            <svg viewBox="0 0 24 24" fill="#f57f17"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
+          </div>
+          <div class="mac-label">Mantenimientos</div>
+          <div class="mac-sub">Historial de revisiones</div>
+        </div>
         <div class="mialarma-card mac-locked" id="mac-card-servidor" onclick="openAdminOnlyModal()">
           <div class="mac-icon" style="background:#f3e8ff">
             <svg viewBox="0 0 24 24" fill="#7b1fa2"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
@@ -1939,6 +1957,26 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           </div>
           <button class="btn-add" onclick="saveConfig()" style="width:100%;margin-top:4px">Guardar configuración</button>
           <div class="cfg-saved" id="cfg-ok" style="margin-top:6px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN: MANTENIMIENTOS ── -->
+    <div class="page" id="pg-admin-mantenimientos">
+      <div class="subpage-hdr" onclick="navTo('admin')">
+        <span class="subpage-back">‹</span>
+        <span class="subpage-title">Mantenimientos</span>
+        <span class="admin-only" id="mant-add-btn-hdr" style="display:none;margin-left:auto;font-size:13px;font-weight:800;color:var(--red);cursor:pointer" onclick="event.stopPropagation();openMantModal()">＋ Añadir</span>
+      </div>
+      <div class="admin-section">
+        <!-- Aviso próximo -->
+        <div id="mant-aviso-page" style="display:none;margin-bottom:12px"></div>
+        <!-- Lista -->
+        <div class="admin-card">
+          <div class="ac-title">Historial de mantenimientos</div>
+          <div id="mant-list">
+            <div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Cargando...</div>
+          </div>
         </div>
       </div>
     </div>
@@ -3187,9 +3225,11 @@ function navTo(page){
   if(page==='admin-contactos'){ cargarLlamadas(); }
   if(page==='admin-sesiones'){ renderSessions(); }
   if(page==='admin-servidor'){ loadConfigForm(); }
+  if(page==='admin-mantenimientos'){ renderMantenimientos(); }
   // Cerrar panel biométrico al salir de cuenta
   const _bp = document.getElementById('bio-panel'); if(_bp && page !== 'cuenta') _bp.style.display = 'none';
   if(page==='cuenta'){ loadConfigForm(); updateThemeUI(localStorage.getItem('theme') || 'system'); cargarEstadoMovil(); loadBiometricStatus(); }
+  if(page==='inicio'){ checkMantHomeBanner(); }
   if(page==='dispositivos')renderDispositivos();
   if(page==='automatizaciones')renderAutomatizaciones();
   if(page==='notificaciones'){
@@ -6164,6 +6204,10 @@ function renderMiAlarma() {
   const sesCard = document.getElementById('mac-card-sesiones');
   const srvCard = document.getElementById('mac-card-servidor');
 
+  // Botón añadir en subpágina mantenimientos
+  const mantAddBtn = document.getElementById('mant-add-btn-hdr');
+  if (mantAddBtn) mantAddBtn.style.display = isAdmin ? 'block' : 'none';
+
   if (isAdmin) {
     if (sesCard) { sesCard.onclick = () => navTo('admin-sesiones'); sesCard.classList.remove('mac-locked'); const b = sesCard.querySelector('.mac-lock-badge'); if(b) b.style.display='none'; }
     if (srvCard) { srvCard.onclick = () => navTo('admin-servidor'); srvCard.classList.remove('mac-locked'); const b = srvCard.querySelector('.mac-lock-badge'); if(b) b.style.display='none'; }
@@ -6173,6 +6217,154 @@ function renderMiAlarma() {
   }
 }
 
+
+// ── MANTENIMIENTOS ─────────────────────────────────────────────────────────
+async function renderMantenimientos() {
+  const list    = document.getElementById('mant-list');
+  const aviso   = document.getElementById('mant-aviso-page');
+  const isAdmin = S.currentUser && S.currentUser.role === 'admin';
+  // Mostrar botón añadir
+  const addBtn = document.getElementById('mant-add-btn-hdr');
+  if (addBtn) addBtn.style.display = isAdmin ? 'block' : 'none';
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Cargando...</div>';
+  try {
+    const res   = await authFetch('/api/mantenimientos');
+    const items = await res.json();
+    // Aviso próximo en la propia página
+    const hoy   = new Date();
+    const en30  = new Date(hoy.getTime() + 30*24*60*60*1000);
+    const prox  = items.find(m => m.proximaFecha && new Date(m.proximaFecha) >= hoy && new Date(m.proximaFecha) <= en30);
+    if (aviso) {
+      if (prox) {
+        const dias = Math.ceil((new Date(prox.proximaFecha) - hoy) / (1000*60*60*24));
+        aviso.style.display = 'block';
+        aviso.innerHTML = `<div style="background:#fff8e1;border:1.5px solid #ffe082;border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">🔧</span>
+          <div><div style="font-size:13px;font-weight:800;color:#f57f17">Próximo mantenimiento en ${dias} día${dias===1?'':'s'}</div>
+          <div style="font-size:12px;color:#795548;font-weight:600">${prox.tipo} · ${new Date(prox.proximaFecha).toLocaleDateString('es-ES')}</div></div>
+        </div>`;
+      } else {
+        aviso.style.display = 'none';
+      }
+    }
+    if (!items.length) {
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Sin registros de mantenimiento</div>';
+      return;
+    }
+    list.innerHTML = items.map(m => {
+      const fecha  = new Date(m.fecha).toLocaleDateString('es-ES');
+      const proxFecha = m.proximaFecha ? new Date(m.proximaFecha).toLocaleDateString('es-ES') : null;
+      const vence  = m.proximaFecha ? new Date(m.proximaFecha) : null;
+      const enBreve = vence && vence >= hoy && vence <= en30;
+      return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="font-size:20px;margin-top:2px">🔧</span>
+          <div style="flex:1">
+            <div style="font-weight:800;font-size:14px;color:var(--text)">${escapeHtml(m.tipo)}</div>
+            <div style="font-size:12px;color:var(--muted);font-weight:600;margin-top:2px">📅 ${fecha}${m.tecnico ? ' · 👤 '+escapeHtml(m.tecnico) : ''}</div>
+            ${m.descripcion ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${escapeHtml(m.descripcion)}</div>` : ''}
+            ${proxFecha ? `<div style="font-size:12px;font-weight:700;color:${enBreve?'#f57f17':'var(--muted)'};margin-top:4px">🔁 Próxima: ${proxFecha}${enBreve?' ⚠️':''}</div>` : ''}
+          </div>
+          ${isAdmin ? `<div style="display:flex;gap:6px;flex-shrink:0">
+            <button onclick="openMantModal('${m._id}')" style="background:none;border:none;cursor:pointer;font-size:16px">✏️</button>
+            <button onclick="deleteMant('${m._id}')" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--red)">🗑️</button>
+          </div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    if (list) list.innerHTML = '<div style="text-align:center;color:var(--red);font-size:13px;padding:20px">Error al cargar</div>';
+  }
+}
+
+// Cargar aviso en el home
+async function checkMantHomeBanner() {
+  const banner   = document.getElementById('mant-home-banner');
+  const titleEl  = document.getElementById('mant-banner-title');
+  const subEl    = document.getElementById('mant-banner-sub');
+  if (!banner) return;
+  try {
+    const res  = await authFetch('/api/mantenimientos/proximo');
+    const data = await res.json();
+    if (data.proximo) {
+      const dias = Math.ceil((new Date(data.proximo.proximaFecha) - new Date()) / (1000*60*60*24));
+      titleEl.textContent = `Mantenimiento en ${dias} día${dias===1?'':'s'}`;
+      subEl.textContent   = `${data.proximo.tipo}  ·  ${new Date(data.proximo.proximaFecha).toLocaleDateString('es-ES')}`;
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch(e) { banner.style.display = 'none'; }
+}
+
+// Modal nuevo/editar
+let _mantItems = [];
+async function openMantModal(id) {
+  document.getElementById('mant-edit-id').value = id || '';
+  document.getElementById('mant-modal-title').textContent = id ? 'Editar mantenimiento' : 'Nuevo mantenimiento';
+  document.getElementById('mant-tipo').value    = '';
+  document.getElementById('mant-fecha').value   = new Date().toISOString().split('T')[0];
+  document.getElementById('mant-proxima').value = '';
+  document.getElementById('mant-tecnico').value = '';
+  document.getElementById('mant-desc').value    = '';
+  if (id) {
+    try {
+      const res   = await authFetch('/api/mantenimientos');
+      const items = await res.json();
+      const m     = items.find(x => x._id === id);
+      if (m) {
+        document.getElementById('mant-tipo').value    = m.tipo || '';
+        document.getElementById('mant-fecha').value   = m.fecha ? m.fecha.split('T')[0] : '';
+        document.getElementById('mant-proxima').value = m.proximaFecha ? m.proximaFecha.split('T')[0] : '';
+        document.getElementById('mant-tecnico').value = m.tecnico || '';
+        document.getElementById('mant-desc').value    = m.descripcion || '';
+      }
+    } catch(e) {}
+  }
+  document.getElementById('mant-modal-bg').classList.add('open');
+}
+function closeMantModal() {
+  document.getElementById('mant-modal-bg').classList.remove('open');
+}
+async function saveMant() {
+  const id      = document.getElementById('mant-edit-id').value;
+  const tipo    = document.getElementById('mant-tipo').value.trim();
+  const fecha   = document.getElementById('mant-fecha').value;
+  const proxima = document.getElementById('mant-proxima').value;
+  const tecnico = document.getElementById('mant-tecnico').value.trim();
+  const desc    = document.getElementById('mant-desc').value.trim();
+  if (!tipo || !fecha) return toast2('Tipo y fecha son obligatorios');
+  const body = { tipo, fecha, descripcion: desc, proximaFecha: proxima || null, tecnico };
+  try {
+    const res = await authFetch(id ? `/api/mantenimientos/${id}` : '/api/mantenimientos', {
+      method: id ? 'PUT' : 'POST', body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!data.ok) return toast2('Error al guardar');
+    closeMantModal();
+    toast2(id ? '✅ Mantenimiento actualizado' : '✅ Mantenimiento registrado');
+    renderMantenimientos();
+    checkMantHomeBanner();
+  } catch(e) { toast2('Error al guardar'); }
+}
+function deleteMant(id) {
+  document.getElementById('mant-del-confirm-btn').dataset.mantId = id;
+  document.getElementById('mant-del-modal-bg').classList.add('open');
+}
+function closeMantDelModal() {
+  document.getElementById('mant-del-modal-bg').classList.remove('open');
+}
+async function confirmDeleteMant() {
+  const id = document.getElementById('mant-del-confirm-btn').dataset.mantId;
+  closeMantDelModal();
+  try {
+    await authFetch(`/api/mantenimientos/${id}`, { method: 'DELETE' });
+    toast2('Registro eliminado');
+    renderMantenimientos();
+    checkMantHomeBanner();
+  } catch(e) { toast2('Error al eliminar'); }
+}
 
 // ── PIN: bloqueo progresivo con cuenta atrás (persiste en localStorage) ────────
 const PIN_FAIL_MAX  = 3;
@@ -6575,6 +6767,56 @@ function coerceToBuffer(val) {
   </div>
 </div>
 
+
+<!-- ════ MODAL MANTENIMIENTO ════ -->
+<div class="confirm-modal-bg" id="mant-modal-bg" onclick="if(event.target===this)closeMantModal()">
+  <div class="confirm-modal" style="max-width:420px">
+    <div class="confirm-modal-icon">🔧</div>
+    <div class="confirm-modal-title" id="mant-modal-title">Nuevo mantenimiento</div>
+    <input type="hidden" id="mant-edit-id">
+    <div style="width:100%;text-align:left;margin-bottom:8px">
+      <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Tipo de mantenimiento *</label>
+      <select id="mant-tipo" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--text);background:var(--bg);outline:none;box-sizing:border-box">
+        <option value="">Seleccionar tipo...</option>
+        <option value="Revisión general">Revisión general</option>
+        <option value="Batería">Batería</option>
+        <option value="Sensores">Sensores</option>
+        <option value="Cámaras">Cámaras</option>
+        <option value="Software/Firmware">Software / Firmware</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
+    <div style="width:100%;text-align:left;margin-bottom:8px">
+      <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Fecha de realización *</label>
+      <input type="date" id="mant-fecha" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--text);background:var(--bg);outline:none;box-sizing:border-box">
+    </div>
+    <div style="width:100%;text-align:left;margin-bottom:8px">
+      <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Próxima revisión prevista</label>
+      <input type="date" id="mant-proxima" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--text);background:var(--bg);outline:none;box-sizing:border-box">
+    </div>
+    <div style="width:100%;text-align:left;margin-bottom:8px">
+      <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Técnico / Empresa</label>
+      <input type="text" id="mant-tecnico" maxlength="80" placeholder="Nombre del técnico o empresa" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--text);background:var(--bg);outline:none;box-sizing:border-box">
+    </div>
+    <div style="width:100%;text-align:left;margin-bottom:16px">
+      <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Descripción / Notas</label>
+      <textarea id="mant-desc" maxlength="500" placeholder="Detalles del mantenimiento..." rows="3" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--text);background:var(--bg);outline:none;resize:none;box-sizing:border-box"></textarea>
+    </div>
+    <button class="confirm-modal-btn-ok" onclick="saveMant()">Guardar</button>
+    <button class="confirm-modal-btn-cancel" onclick="closeMantModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ════ MODAL CONFIRMAR BORRAR MANTENIMIENTO ════ -->
+<div class="confirm-modal-bg" id="mant-del-modal-bg" onclick="if(event.target===this)closeMantDelModal()">
+  <div class="confirm-modal">
+    <div class="confirm-modal-icon">🗑️</div>
+    <div class="confirm-modal-title">Eliminar mantenimiento</div>
+    <div class="confirm-modal-sub">¿Seguro que quieres eliminar este registro?</div>
+    <button class="confirm-modal-btn-ok" id="mant-del-confirm-btn" onclick="confirmDeleteMant()" style="background:var(--red)">Eliminar</button>
+    <button class="confirm-modal-btn-cancel" onclick="closeMantDelModal()">Cancelar</button>
+  </div>
+</div>
 
 <!-- ════ MODAL NOMBRE DISPOSITIVO BIOMÉTRICO ════ -->
 <div class="confirm-modal-bg" id="bio-name-modal-bg" onclick="if(event.target===this)closeBioNameModal()">
