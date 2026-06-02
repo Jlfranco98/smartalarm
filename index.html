@@ -1969,14 +1969,19 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
         <span class="admin-only" id="mant-add-btn-hdr" style="display:none;margin-left:auto;font-size:13px;font-weight:800;color:var(--red);cursor:pointer" onclick="event.stopPropagation();openMantModal()">＋ Añadir</span>
       </div>
       <div class="admin-section">
-        <!-- Aviso próximo -->
-        <div id="mant-aviso-page" style="display:none;margin-bottom:12px"></div>
-        <!-- Lista -->
-        <div class="admin-card">
-          <div class="ac-title">Historial de mantenimientos</div>
-          <div id="mant-list">
-            <div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Cargando...</div>
-          </div>
+        <!-- Pendientes -->
+        <div id="mant-section-pendientes" style="display:none;margin-bottom:16px">
+          <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;padding:0 2px">Pendientes</div>
+          <div id="mant-list-pendientes"></div>
+        </div>
+        <!-- Realizados -->
+        <div id="mant-section-realizados" style="display:none">
+          <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;padding:0 2px">Historial</div>
+          <div id="mant-list-realizados"></div>
+        </div>
+        <!-- Vacío -->
+        <div id="mant-empty" style="display:none;text-align:center;color:var(--muted);font-size:13px;padding:40px 0">
+          Sin registros de mantenimiento
         </div>
       </div>
     </div>
@@ -6220,65 +6225,106 @@ function renderMiAlarma() {
 
 // ── MANTENIMIENTOS ─────────────────────────────────────────────────────────
 async function renderMantenimientos() {
-  const list    = document.getElementById('mant-list');
-  const aviso   = document.getElementById('mant-aviso-page');
   const isAdmin = S.currentUser && S.currentUser.role === 'admin';
-  // Mostrar botón añadir
-  const addBtn = document.getElementById('mant-add-btn-hdr');
+  const addBtn  = document.getElementById('mant-add-btn-hdr');
   if (addBtn) addBtn.style.display = isAdmin ? 'block' : 'none';
-  if (!list) return;
-  list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Cargando...</div>';
+
+  const secPend = document.getElementById('mant-section-pendientes');
+  const secReal = document.getElementById('mant-section-realizados');
+  const empty   = document.getElementById('mant-empty');
+  const listP   = document.getElementById('mant-list-pendientes');
+  const listR   = document.getElementById('mant-list-realizados');
+  if (!listP) return;
+
+  // Estado cargando
+  if (secPend) secPend.style.display = 'none';
+  if (secReal) secReal.style.display = 'none';
+  if (empty)   empty.style.display   = 'none';
+  listP.innerHTML = '';
+  listR.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Cargando...</div>';
+  if (secReal) secReal.style.display = 'block';
+
   try {
     const res   = await authFetch('/api/mantenimientos');
     const items = await res.json();
-    // Aviso próximo en la propia página
-    const hoy   = new Date();
+    const hoy   = new Date(); hoy.setHours(0,0,0,0);
     const en30  = new Date(hoy.getTime() + 30*24*60*60*1000);
-    const prox  = items.find(m => m.proximaFecha && new Date(m.proximaFecha) >= hoy && new Date(m.proximaFecha) <= en30);
-    if (aviso) {
-      if (prox) {
-        const dias = Math.ceil((new Date(prox.proximaFecha) - hoy) / (1000*60*60*24));
-        aviso.style.display = 'block';
-        aviso.innerHTML = `<div style="background:#fff8e1;border:1.5px solid #ffe082;border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:20px">🔧</span>
-          <div><div style="font-size:13px;font-weight:800;color:#f57f17">Próximo mantenimiento en ${dias} día${dias===1?'':'s'}</div>
-          <div style="font-size:12px;color:#795548;font-weight:600">${prox.tipo} · ${new Date(prox.proximaFecha).toLocaleDateString('es-ES')}</div></div>
-        </div>`;
+
+    // Separar pendientes (tienen proximaFecha) y realizados (sin proximaFecha)
+    const pendientes = items.filter(m => m.proximaFecha);
+    const realizados = items.filter(m => !m.proximaFecha);
+
+    // ── Función que genera una card ───────────────────────────────
+    const makeCard = (m, esPendiente) => {
+      const fechaReal = new Date(m.fecha).toLocaleDateString('es-ES');
+      const vence     = m.proximaFecha ? new Date(m.proximaFecha) : null;
+      const diasRestantes = vence ? Math.ceil((vence - hoy) / (1000*60*60*24)) : null;
+      const vencido   = vence && vence < hoy;
+      const enBreve   = vence && !vencido && vence <= en30;
+
+      // Color y badge de estado
+      let badgeColor, badgeBg, badgeText;
+      if (vencido) {
+        badgeColor = '#c62828'; badgeBg = '#ffebee'; badgeText = '⚠️ Vencido';
+      } else if (enBreve) {
+        badgeColor = '#e65100'; badgeBg = '#fff3e0';
+        badgeText  = diasRestantes === 0 ? '⚠️ Hoy' : diasRestantes === 1 ? '⚠️ Mañana' : `⚠️ ${diasRestantes} días`;
+      } else if (vence) {
+        badgeColor = '#2e7d32'; badgeBg = '#e8f5e9';
+        badgeText  = `✓ ${new Date(vence).toLocaleDateString('es-ES')}`;
       } else {
-        aviso.style.display = 'none';
+        badgeColor = '#546e7a'; badgeBg = '#eceff1'; badgeText = '✓ Realizado';
       }
-    }
-    if (!items.length) {
-      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Sin registros de mantenimiento</div>';
-      return;
-    }
-    list.innerHTML = items.map(m => {
-      const fecha  = new Date(m.fecha).toLocaleDateString('es-ES');
-      const proxFecha = m.proximaFecha ? new Date(m.proximaFecha).toLocaleDateString('es-ES') : null;
-      const vence  = m.proximaFecha ? new Date(m.proximaFecha) : null;
-      const enBreve = vence && vence >= hoy && vence <= en30;
-      return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:flex-start;gap:8px">
-          <span style="font-size:20px;margin-top:2px">🔧</span>
-          <div style="flex:1">
-            <div style="font-weight:800;font-size:14px;color:var(--text)">${escapeHtml(m.tipo)}</div>
-            <div style="font-size:12px;color:var(--muted);font-weight:600;margin-top:2px">📅 ${fecha}${m.tecnico ? ' · 👤 '+escapeHtml(m.tecnico) : ''}</div>
-            ${m.descripcion ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${escapeHtml(m.descripcion)}</div>` : ''}
-            ${proxFecha ? `<div style="font-size:12px;font-weight:700;color:${enBreve?'#f57f17':'var(--muted)'};margin-top:4px">🔁 Próxima: ${proxFecha}${enBreve?' ⚠️':''}</div>` : ''}
-          </div>
-          ${isAdmin ? `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-            <div style="display:flex;gap:6px">
-              <button onclick="openMantModal('${m._id}')" style="background:none;border:none;cursor:pointer;font-size:16px">✏️</button>
-              <button onclick="deleteMant('${m._id}')" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--red)">🗑️</button>
+
+      return `<div style="background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:14px 14px 12px;margin-bottom:10px${vencido?' border-color:#ef9a9a!important':''}">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:36px;height:36px;border-radius:10px;background:${esPendiente?(vencido?'#ffebee':enBreve?'#fff3e0':'#e8f5e9'):'#f5f5f5'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔧</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-weight:800;font-size:14px;color:var(--text)">${escapeHtml(m.tipo)}</span>
+              <span style="font-size:11px;font-weight:700;color:${badgeColor};background:${badgeBg};padding:2px 8px;border-radius:20px;white-space:nowrap">${badgeText}</span>
             </div>
-            ${m.proximaFecha ? `<button onclick="abrirRealizadoModal('${m._id}','${escapeHtml(m.tipo)}','${m.tecnico ? escapeHtml(m.tecnico) : ''}')"
-              style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:#2e7d32;cursor:pointer;white-space:nowrap">✅ Realizado</button>` : ''}
-          </div>` : ''}
+            <div style="font-size:12px;color:var(--muted);font-weight:600;margin-top:4px">
+              📅 Realizado: ${fechaReal}${m.tecnico ? ' &nbsp;·&nbsp; 👤 '+escapeHtml(m.tecnico) : ''}
+            </div>
+            ${m.descripcion ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4">${escapeHtml(m.descripcion)}</div>` : ''}
+            ${vence ? `<div style="font-size:12px;font-weight:700;color:${vencido?'#c62828':enBreve?'#e65100':'var(--muted)'};margin-top:6px">🔁 Próxima revisión: ${new Date(vence).toLocaleDateString('es-ES')}</div>` : ''}
+          </div>
         </div>
+        ${isAdmin ? `<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          ${esPendiente ? `<button onclick="abrirRealizadoModal('${m._id}','${escapeHtml(m.tipo)}','${m.tecnico ? escapeHtml(m.tecnico) : ''}')"
+            style="flex:1;padding:8px 0;background:var(--red);border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#fff;cursor:pointer">
+            ✅ Marcar como realizado
+          </button>` : ''}
+          <button onclick="openMantModal('${m._id}')" style="width:36px;height:36px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:16px">✏️</button>
+          <button onclick="deleteMant('${m._id}')" style="width:36px;height:36px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:16px">🗑️</button>
+        </div>` : ''}
       </div>`;
-    }).join('');
+    };
+
+    // ── Renderizar pendientes ─────────────────────────────────────
+    if (pendientes.length) {
+      listP.innerHTML = pendientes.map(m => makeCard(m, true)).join('');
+      if (secPend) secPend.style.display = 'block';
+    }
+
+    // ── Renderizar realizados ─────────────────────────────────────
+    if (realizados.length) {
+      listR.innerHTML = realizados.map(m => makeCard(m, false)).join('');
+      if (secReal) secReal.style.display = 'block';
+    } else {
+      if (secReal) secReal.style.display = 'none';
+    }
+
+    // ── Vacío total ───────────────────────────────────────────────
+    if (!pendientes.length && !realizados.length) {
+      if (empty) empty.style.display = 'block';
+      if (secReal) secReal.style.display = 'none';
+    }
+
   } catch(e) {
-    if (list) list.innerHTML = '<div style="text-align:center;color:var(--red);font-size:13px;padding:20px">Error al cargar</div>';
+    if (listR) listR.innerHTML = '<div style="text-align:center;color:var(--red);font-size:13px;padding:20px">Error al cargar</div>';
+    if (secReal) secReal.style.display = 'block';
   }
 }
 
