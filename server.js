@@ -1888,6 +1888,18 @@ app.delete('/api/webauthn/credential/:credId', requireAuth, async (req, res) => 
 
 // Listar credenciales del usuario
 // ── MANTENIMIENTOS ──────────────────────────────────────────────────────────
+// GET próximo (debe ir ANTES de /:id para que Express no lo confunda)
+app.get('/api/mantenimientos/proximo', requireAuth, async (req, res) => {
+  try {
+    const hoy  = new Date();
+    const en30 = new Date(hoy.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const proximo = await Mantenimiento.findOne({
+      proximaFecha: { $gte: hoy, $lte: en30 }
+    }).sort({ proximaFecha: 1 });
+    res.json({ proximo: proximo || null });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET todos
 app.get('/api/mantenimientos', requireAuth, async (req, res) => {
   try {
@@ -1898,17 +1910,18 @@ app.get('/api/mantenimientos', requireAuth, async (req, res) => {
 
 // POST nuevo (solo admin)
 app.post('/api/mantenimientos', requireAuth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Solo admin' });
   try {
+    const requestingUser = await User.findOne({ username: req.sessionUser });
+    if (!requestingUser || requestingUser.role !== 'admin') return res.status(403).json({ error: 'Solo admin' });
     const { fecha, tipo, descripcion, proximaFecha, tecnico } = req.body;
     if (!fecha || !tipo) return res.status(400).json({ error: 'Faltan campos obligatorios' });
     const m = await Mantenimiento.create({
-      fecha: new Date(fecha),
+      fecha:        new Date(fecha),
       tipo,
-      descripcion: descripcion || '',
+      descripcion:  descripcion || '',
       proximaFecha: proximaFecha ? new Date(proximaFecha) : null,
-      tecnico: tecnico || '',
-      creadoPor: req.user.username,
+      tecnico:      tecnico || '',
+      creadoPor:    req.sessionUser,
     });
     res.json({ ok: true, mantenimiento: m });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -1916,15 +1929,16 @@ app.post('/api/mantenimientos', requireAuth, async (req, res) => {
 
 // PUT editar (solo admin)
 app.put('/api/mantenimientos/:id', requireAuth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Solo admin' });
   try {
+    const requestingUser = await User.findOne({ username: req.sessionUser });
+    if (!requestingUser || requestingUser.role !== 'admin') return res.status(403).json({ error: 'Solo admin' });
     const { fecha, tipo, descripcion, proximaFecha, tecnico } = req.body;
     const m = await Mantenimiento.findByIdAndUpdate(req.params.id, {
-      fecha: new Date(fecha),
+      fecha:        new Date(fecha),
       tipo,
-      descripcion: descripcion || '',
+      descripcion:  descripcion || '',
       proximaFecha: proximaFecha ? new Date(proximaFecha) : null,
-      tecnico: tecnico || '',
+      tecnico:      tecnico || '',
     }, { new: true });
     if (!m) return res.status(404).json({ error: 'No encontrado' });
     res.json({ ok: true, mantenimiento: m });
@@ -1933,22 +1947,11 @@ app.put('/api/mantenimientos/:id', requireAuth, async (req, res) => {
 
 // DELETE (solo admin)
 app.delete('/api/mantenimientos/:id', requireAuth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Solo admin' });
   try {
+    const requestingUser = await User.findOne({ username: req.sessionUser });
+    if (!requestingUser || requestingUser.role !== 'admin') return res.status(403).json({ error: 'Solo admin' });
     await Mantenimiento.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// GET próximo mantenimiento (para el aviso del home)
-app.get('/api/mantenimientos/proximo', requireAuth, async (req, res) => {
-  try {
-    const hoy = new Date();
-    const en30 = new Date(hoy.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const proximo = await Mantenimiento.findOne({
-      proximaFecha: { $gte: hoy, $lte: en30 }
-    }).sort({ proximaFecha: 1 });
-    res.json({ proximo: proximo || null });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
