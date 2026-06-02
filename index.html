@@ -6266,9 +6266,13 @@ async function renderMantenimientos() {
             ${m.descripcion ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${escapeHtml(m.descripcion)}</div>` : ''}
             ${proxFecha ? `<div style="font-size:12px;font-weight:700;color:${enBreve?'#f57f17':'var(--muted)'};margin-top:4px">🔁 Próxima: ${proxFecha}${enBreve?' ⚠️':''}</div>` : ''}
           </div>
-          ${isAdmin ? `<div style="display:flex;gap:6px;flex-shrink:0">
-            <button onclick="openMantModal('${m._id}')" style="background:none;border:none;cursor:pointer;font-size:16px">✏️</button>
-            <button onclick="deleteMant('${m._id}')" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--red)">🗑️</button>
+          ${isAdmin ? `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+            <div style="display:flex;gap:6px">
+              <button onclick="openMantModal('${m._id}')" style="background:none;border:none;cursor:pointer;font-size:16px">✏️</button>
+              <button onclick="deleteMant('${m._id}')" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--red)">🗑️</button>
+            </div>
+            ${m.proximaFecha ? `<button onclick="abrirRealizadoModal('${m._id}','${escapeHtml(m.tipo)}','${m.tecnico ? escapeHtml(m.tecnico) : ''}')"
+              style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:#2e7d32;cursor:pointer;white-space:nowrap">✅ Realizado</button>` : ''}
           </div>` : ''}
         </div>
       </div>`;
@@ -6276,6 +6280,53 @@ async function renderMantenimientos() {
   } catch(e) {
     if (list) list.innerHTML = '<div style="text-align:center;color:var(--red);font-size:13px;padding:20px">Error al cargar</div>';
   }
+}
+
+// Modal "Marcar como realizado"
+function abrirRealizadoModal(id, tipo, tecnico) {
+  document.getElementById('mant-realizado-id').value    = id;
+  document.getElementById('mant-realizado-tipo').value  = tipo;
+  document.getElementById('mant-realizado-tec').value   = tecnico;
+  // Próxima fecha por defecto: 1 año desde hoy
+  const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+  document.getElementById('mant-realizado-proxima').value = d.toISOString().split('T')[0];
+  // Fecha de realización por defecto: hoy
+  document.getElementById('mant-realizado-fechaReal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('mant-realizado-modal-bg').classList.add('open');
+}
+function cerrarRealizadoModal() {
+  document.getElementById('mant-realizado-modal-bg').classList.remove('open');
+}
+async function confirmarRealizado() {
+  const id      = document.getElementById('mant-realizado-id').value;
+  const tipo    = document.getElementById('mant-realizado-tipo').value;
+  const tecnico = document.getElementById('mant-realizado-tec').value;
+  const proxima = document.getElementById('mant-realizado-proxima').value;
+  const desc    = document.getElementById('mant-realizado-desc').value.trim();
+  cerrarRealizadoModal();
+  try {
+    // 1. Quitar próxima fecha del registro antiguo (queda como histórico)
+    await authFetch(`/api/mantenimientos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ tipo, tecnico, proximaFecha: null,
+        fecha: document.getElementById('mant-realizado-fechaReal').value || new Date().toISOString().split('T')[0],
+        descripcion: desc })
+    });
+    // 2. Crear nuevo registro con fecha de hoy y nueva próxima revisión
+    await authFetch('/api/mantenimientos', {
+      method: 'POST',
+      body: JSON.stringify({
+        tipo,
+        tecnico,
+        fecha:        new Date().toISOString().split('T')[0],
+        proximaFecha: proxima || null,
+        descripcion:  desc,
+      })
+    });
+    toast2('✅ Mantenimiento registrado');
+    renderMantenimientos();
+    checkMantHomeBanner();
+  } catch(e) { toast2('Error al registrar'); }
 }
 
 // Cargar aviso en el home
@@ -6804,6 +6855,35 @@ function coerceToBuffer(val) {
     </div>
     <button class="confirm-modal-btn-ok" onclick="saveMant()">Guardar</button>
     <button class="confirm-modal-btn-cancel" onclick="closeMantModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ════ MODAL MARCAR REALIZADO ════ -->
+<div class="confirm-modal-bg" id="mant-realizado-modal-bg" onclick="if(event.target===this)cerrarRealizadoModal()">
+  <div class="confirm-modal" style="max-width:420px">
+    <div class="confirm-modal-icon">✅</div>
+    <div class="confirm-modal-title">Marcar como realizado</div>
+    <div class="confirm-modal-sub">Se guardará el registro actual y se creará uno nuevo con la próxima revisión.</div>
+    <input type="hidden" id="mant-realizado-id">
+    <input type="hidden" id="mant-realizado-tipo">
+    <input type="hidden" id="mant-realizado-tec">
+    <div style="width:100%;text-align:left;margin-bottom:8px">
+      <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Fecha de realización</label>
+      <input type="date" id="mant-realizado-fechaReal"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--text);background:var(--bg);outline:none;box-sizing:border-box">
+    </div>
+    <div style="width:100%;text-align:left;margin-bottom:8px">
+      <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Próxima revisión prevista</label>
+      <input type="date" id="mant-realizado-proxima"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--text);background:var(--bg);outline:none;box-sizing:border-box">
+    </div>
+    <div style="width:100%;text-align:left;margin-bottom:16px">
+      <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Notas (opcional)</label>
+      <textarea id="mant-realizado-desc" maxlength="500" placeholder="Observaciones del mantenimiento..." rows="2"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:var(--text);background:var(--bg);outline:none;resize:none;box-sizing:border-box"></textarea>
+    </div>
+    <button class="confirm-modal-btn-ok" onclick="confirmarRealizado()" style="background:#2e7d32">✅ Confirmar realizado</button>
+    <button class="confirm-modal-btn-cancel" onclick="cerrarRealizadoModal()">Cancelar</button>
   </div>
 </div>
 
