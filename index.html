@@ -1718,7 +1718,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
               <div class="form-field"><label>Número de móvil</label>
                 <input id="movil-tel-input" type="tel" placeholder="+34600000000">
               </div>
-              <button class="btn-add" onclick="enviarSmsVerif()" style="width:100%">📲 Enviar SMS de verificación</button>
+              <button id="sms-btn-enviar" class="btn-add" onclick="enviarSmsVerif()" style="width:100%">📲 Enviar SMS de verificación</button>
             </div>
             <!-- Paso 2: código SMS -->
             <div id="movil-paso2" style="display:none">
@@ -1922,6 +1922,35 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           </div>
           <div id="llamadas-list" style="margin-bottom:8px"></div>
           <div class="cfg-saved" id="llamadas-ok" style="margin-top:6px"></div>
+        </div>
+
+        <!-- Llamada de prueba — solo admin -->
+        <div class="admin-card admin-only" id="test-call-card" style="display:none">
+          <div class="ac-title" style="margin-bottom:6px">🧪 Llamada de prueba <span class="admin-star-badge">★</span></div>
+          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:14px">
+            Llama ahora a un número verificado para comprobar que Twilio funciona. El receptor oirá una locución de prueba (sin PIN).
+          </div>
+          <div id="test-call-select-wrap" style="margin-bottom:12px">
+            <select id="test-call-select" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text);background:var(--bg);appearance:none">
+              <option value="">— Selecciona un contacto —</option>
+            </select>
+          </div>
+          <button onclick="hacerLlamadaPrueba()" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+            📞 Llamar ahora
+          </button>
+          <div class="cfg-saved" id="test-call-msg" style="margin-top:8px;text-align:center"></div>
+        </div>
+
+        <!-- Modo simulacro — solo admin -->
+        <div class="admin-card admin-only" id="simulacro-card" style="display:none">
+          <div class="ac-title" style="margin-bottom:6px">🚨 Modo simulacro <span class="admin-star-badge">★</span></div>
+          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:14px">
+            Simula el flujo completo: envía notificación push a todos los usuarios y realiza una llamada de prueba al primer contacto activo. <strong>No activa ni modifica el panel Tuya.</strong>
+          </div>
+          <button onclick="ejecutarSimulacro()" style="width:100%;padding:12px;background:#ff9500;color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+            🚨 Iniciar simulacro
+          </button>
+          <div id="simulacro-result" style="margin-top:10px;font-size:12px;font-weight:600;color:var(--muted);display:none"></div>
         </div>
       </div>
     </div>
@@ -2494,7 +2523,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           <label>Número de móvil</label>
           <input id="fc-movil-tel" type="tel" placeholder="+34600000000">
         </div>
-        <button onclick="fcEnviarSms()" type="button"
+        <button id="fc-btn-enviar-sms" onclick="fcEnviarSms()" type="button"
           style="width:100%;padding:12px;background:#34c759;color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
           📲 Verificar por SMS
         </button>
@@ -4150,6 +4179,8 @@ function renderLlamadas() {
   el.innerHTML = html;
 
   // Mostrar/ocultar botón añadir número según rol (ya gestionado en renderApp)
+  // Actualizar selector de la llamada de prueba con los contactos actuales
+  actualizarSelectTestCall();
 }
 
 async function añadirUsuarioALlamadas(telefono, nombre) {
@@ -4229,6 +4260,74 @@ async function guardarLlamadas() {
       if (ok) { ok.textContent = '✅ Guardado'; setTimeout(() => ok.textContent = '', 2000); }
     }
   } catch(e) { toast2('Error al guardar'); }
+}
+
+// ── ADMIN: LLAMADA DE PRUEBA ──────────────────────────────────────────────
+
+function actualizarSelectTestCall() {
+  const sel = document.getElementById('test-call-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Selecciona un contacto —</option>';
+  (llamadasData || []).forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify({ telefono: n.telefono, nombre: n.nombre });
+    opt.textContent = `${n.nombre} · ${n.telefono.replace(/^\+34/, '')}`;
+    sel.appendChild(opt);
+  });
+}
+
+async function hacerLlamadaPrueba() {
+  const sel = document.getElementById('test-call-select');
+  const msg = document.getElementById('test-call-msg');
+  if (!sel || !sel.value) { if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Selecciona un contacto primero.'; } return; }
+  const { telefono, nombre } = JSON.parse(sel.value);
+  if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = '⏳ Iniciando llamada...'; }
+  try {
+    const res = await authFetch('/api/admin/test-call', {
+      method: 'POST',
+      body: JSON.stringify({ telefono, nombre })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (msg) { msg.style.color = 'var(--green)'; msg.textContent = `✅ Llamada iniciada a ${nombre}`; setTimeout(() => msg.textContent = '', 4000); }
+    } else {
+      if (msg) { msg.style.color = 'var(--red)'; msg.textContent = `❌ ${data.message}`; }
+    }
+  } catch(e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = '❌ Error al iniciar la llamada'; }
+  }
+}
+
+// ── ADMIN: MODO SIMULACRO ─────────────────────────────────────────────────
+
+async function ejecutarSimulacro() {
+  const resultEl = document.getElementById('simulacro-result');
+  if (!confirm('¿Iniciar simulacro? Se enviará una notificación push a todos los usuarios y se realizará una llamada de prueba al primer contacto activo.')) return;
+  if (resultEl) { resultEl.style.display = 'block'; resultEl.innerHTML = '⏳ Ejecutando simulacro...'; }
+  try {
+    const res  = await authFetch('/api/admin/simulacro', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      const { push, llamada } = data.results;
+      let html = '<div style="margin-top:4px">';
+      if (push && !push.skipped)
+        html += `<div>🔔 Push: ${push.enviadas}/${push.total} enviadas${push.fallidas ? `, ${push.fallidas} fallidas` : ''}</div>`;
+      else if (push?.skipped)
+        html += `<div>🔔 Push: omitido (${push.razon})</div>`;
+      if (llamada && !llamada.skipped && !llamada.error)
+        html += `<div>📞 Llamada: iniciada a ${llamada.nombre} (${llamada.numero})</div>`;
+      else if (llamada?.error)
+        html += `<div style="color:var(--red)">📞 Llamada: error — ${llamada.error}</div>`;
+      else if (llamada?.skipped)
+        html += `<div>📞 Llamada: omitida (${llamada.razon})</div>`;
+      html += '</div>';
+      if (resultEl) { resultEl.style.color = 'var(--green)'; resultEl.innerHTML = '✅ Simulacro completado' + html; }
+    } else {
+      if (resultEl) { resultEl.style.color = 'var(--red)'; resultEl.innerHTML = `❌ ${data.message}`; }
+    }
+  } catch(e) {
+    if (resultEl) { resultEl.style.color = 'var(--red)'; resultEl.innerHTML = '❌ Error al ejecutar el simulacro'; }
+  }
 }
 
 // ── VERIFICACIÓN DE MÓVIL ──────────────────────────────────────────────────
@@ -4331,6 +4430,28 @@ async function confirmarDesvincularMovil() {
   } catch(e) { toast2('⚠️ Error de conexión'); }
 }
 
+// ── RATE LIMIT SMS: bloqueo visual del botón durante el cooldown ──────────
+function iniciarCooldownSms(btnId, segundos) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  let restantes = segundos;
+  const tick = () => {
+    const m = Math.floor(restantes / 60);
+    const s = restantes % 60;
+    btn.textContent = `⏳ Espera ${m}:${String(s).padStart(2,'0')}`;
+    if (--restantes >= 0) setTimeout(tick, 1000);
+    else {
+      btn.textContent = textoOriginal;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
+  };
+  tick();
+}
+
 async function enviarSmsVerif() {
   const tel = document.getElementById('movil-tel-input').value.trim();
   const err = document.getElementById('movil-err');
@@ -4347,8 +4468,10 @@ async function enviarSmsVerif() {
       document.getElementById('movil-paso1').style.display = 'none';
       document.getElementById('movil-paso2').style.display = 'block';
       document.getElementById('movil-estado').innerHTML = `<span style="color:var(--blue)">📲 SMS enviado a ${escapeHtml(tel)}</span>`;
+      iniciarCooldownSms('sms-btn-enviar', 300);
     } else {
       err.textContent = data.message || 'Error al enviar SMS';
+      if (data.waitSecs) iniciarCooldownSms('sms-btn-enviar', data.waitSecs);
     }
   } catch(e) { err.textContent = 'Error de conexión'; }
 }
@@ -4760,8 +4883,10 @@ async function fcEnviarSms() {
       document.getElementById('fc-movil-paso1').style.display = 'none';
       document.getElementById('fc-movil-paso2').style.display = 'block';
       document.getElementById('fc-movil-sms-info').textContent = `📲 SMS enviado a ${tel}`;
+      iniciarCooldownSms('fc-btn-enviar-sms', 300);
     } else {
       err.textContent = data.message || 'Error al enviar SMS';
+      if (data.waitSecs) iniciarCooldownSms('fc-btn-enviar-sms', data.waitSecs);
     }
   } catch(e) { err.textContent = 'Error de conexión'; }
 }

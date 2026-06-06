@@ -271,6 +271,10 @@ const Mantenimiento = mongoose.model('Mantenimiento', mantenimientoSchema);
 // Mapa temporal de códigos SMS: username -> { codigo, expira }
 const smsVerifCodes = new Map();
 
+// Rate limit de envío SMS: username -> timestamp del último envío
+const smsSendCooldown = new Map();
+const SMS_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutos
+
 // --- 4. DOS CLIENTES TUYA ---
 
 // CLIENTE A: sensor de luz (cuenta exclusiva para la alarma)
@@ -1684,6 +1688,126 @@ app.use('/twilio/confirmar', async (req, res) => {
   }
 });
 
+// ── ADMIN: LLAMADA DE PRUEBA A UN CONTACTO ────────────────────────────────
+// TwiML para la llamada de prueba (no requiere PIN, solo avisa que es un test)
+app.use('/twilio/test-locucion', (req, res) => {
+  const nombre = req.query?.nombre ? decodeURIComponent(req.query.nombre) : 'usuario';
+  const primerNombre = nombre.split(' ')[0];
+  res.type('text/xml');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say language="es-ES" voice="Polly.Lucia">
+    ${saludoHora()}, ${primerNombre}. Esta es una llamada de prueba de Smart Alarm.
+    Su sistema de alarma está configurado correctamente y Twilio funciona con normalidad.
+    No es necesaria ninguna acción. Hasta pronto.
+  </Say>
+  <Pause length="2"/>
+</Response>`);
+});
+
+// Iniciar llamada de prueba a un número concreto (solo admin)
+app.post('/api/admin/test-call', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Solo admins' });
+
+    if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM || !twilioClient)
+      return res.status(400).json({ success: false, message: 'Twilio no está configurado en el servidor' });
+
+    const { telefono, nombre } = req.body;
+    if (!telefono || !/^\+\d{9,15}$/.test(telefono))
+      return res.status(400).json({ success: false, message: 'Número inválido. Usa formato +34XXXXXXXXX' });
+
+    const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
+    const twimlUrl   = `${backendUrl}/twilio/test-locucion?nombre=${encodeURIComponent(nombre || 'usuario')}`;
+
+    const call = await twilioClient.calls.create({
+      to:  telefono,
+      from: TWILIO_FROM,
+      url: twimlUrl,
+      statusCallback: `${backendUrl}/twilio/status`,
+      timeLimit: 30,
+    });
+
+    console.log(`🧪 Llamada de prueba iniciada a ${nombre} (${telefono}): ${call.sid}`);
+    await new Log({ usuario: req.sessionUser, accion: `🧪 Llamada de prueba a ${nombre} (${telefono})` }).save();
+    res.json({ success: true, sid: call.sid });
+  } catch(e) {
+    console.error('❌ Error llamada de prueba:', e.message);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// ── ADMIN: MODO SIMULACRO (push + llamada sin tocar Tuya) ─────────────────
+app.post('/api/admin/simulacro', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Solo admins' });
+
+    const results = { push: null, llamada: null };
+
+    // 1. Push notification de prueba a todos los suscriptores
+    if (VAPID_PUBLIC && VAPID_PRIVATE) {
+      const subs = await PushSub.find({});
+      if (subs.length) {
+        const payload = JSON.stringify({
+          title: '🧪 SIMULACRO — Smart Alarm',
+          body:  'Esta es una notificación de prueba. El sistema funciona correctamente.',
+          icon:  '/icon-192.png', badge: '/icon-192.png', data: { url: '/' }
+        });
+        const pushResults = await Promise.allSettled(subs.map(async sub => {
+          try { await webpush.sendNotification(sub.subscription, payload); return 'ok'; }
+          catch(e2) {
+            if (e2.statusCode === 404 || e2.statusCode === 410) await PushSub.deleteOne({ _id: sub._id });
+            throw e2;
+          }
+        }));
+        const ok  = pushResults.filter(r => r.status === 'fulfilled').length;
+        const err = pushResults.filter(r => r.status === 'rejected').length;
+        results.push = { enviadas: ok, fallidas: err, total: subs.length };
+        console.log(`🧪 Simulacro: ${ok}/${subs.length} push enviados`);
+      } else {
+        results.push = { enviadas: 0, fallidas: 0, total: 0 };
+      }
+    } else {
+      results.push = { skipped: true, razon: 'VAPID no configurado' };
+    }
+
+    // 2. Llamada de prueba al primer contacto activo (si Twilio está disponible)
+    if (TWILIO_SID && TWILIO_TOKEN && TWILIO_FROM && twilioClient) {
+      const cfg = await LlamadaConfig.findOne({ id: 'llamadas_config' });
+      const numerosActivos = cfg?.numeros?.filter(n => n.activo) || [];
+      if (numerosActivos.length) {
+        const { telefono, nombre } = numerosActivos[0];
+        const backendUrl = process.env.BACKEND_URL || 'https://smartalarm-production.up.railway.app';
+        const twimlUrl   = `${backendUrl}/twilio/test-locucion?nombre=${encodeURIComponent(nombre)}`;
+        try {
+          const call = await twilioClient.calls.create({
+            to: telefono, from: TWILIO_FROM, url: twimlUrl,
+            statusCallback: `${backendUrl}/twilio/status`, timeLimit: 30,
+          });
+          results.llamada = { numero: telefono, nombre, sid: call.sid };
+          console.log(`🧪 Simulacro: llamada a ${nombre} (${telefono}) — ${call.sid}`);
+        } catch(e) {
+          results.llamada = { error: e.message };
+        }
+      } else {
+        results.llamada = { skipped: true, razon: 'No hay contactos activos' };
+      }
+    } else {
+      results.llamada = { skipped: true, razon: 'Twilio no configurado' };
+    }
+
+    await new Log({ usuario: req.sessionUser, accion: '🧪 Simulacro ejecutado (push + llamada de prueba)' }).save();
+    res.json({ success: true, results });
+  } catch(e) {
+    console.error('❌ Error simulacro:', e.message);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // Devuelve el número de Twilio y el logo para el vCard del contacto Verisure
 app.get('/api/twilio-number', requireAuth, async (req, res) => {
   let logoB64 = '';
@@ -1759,6 +1883,22 @@ app.post('/api/usuarios/verificar-movil/enviar', requireAuth, async (req, res) =
 
     if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM)
       return res.status(500).json({ success: false, message: 'Twilio no configurado' });
+
+    // Rate limit: 1 envío cada 5 minutos
+    const lastSend = smsSendCooldown.get(req.sessionUser);
+    if (lastSend) {
+      const elapsed = Date.now() - lastSend;
+      if (elapsed < SMS_COOLDOWN_MS) {
+        const waitSecs = Math.ceil((SMS_COOLDOWN_MS - elapsed) / 1000);
+        const waitMins = Math.ceil(waitSecs / 60);
+        return res.status(429).json({
+          success: false,
+          message: `Por seguridad, solo puedes solicitar un código cada 5 minutos. Espera ${waitMins} minuto${waitMins > 1 ? 's' : ''}.`,
+          waitSecs
+        });
+      }
+    }
+    smsSendCooldown.set(req.sessionUser, Date.now());
 
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
     smsVerifCodes.set(req.sessionUser, { codigo, telefono, expira: Date.now() + 10 * 60 * 1000 });
