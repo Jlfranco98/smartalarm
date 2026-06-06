@@ -415,14 +415,16 @@ async function sendPushNotification(action, triggeredBy, ubicacion = null) {
     panel_offline: '⚠️ Panel Alarma desconectado', panel_online: '✅ Panel Alarma reconectado',
     macrodroid_offline: '⚠️ Servidor de seguridad caído',
     macrodroid_online: '✅ Servidor de seguridad reactivado',
-    corte_energia: '⚡ CORTE DE ENERGÍA detectado',
-    vuelta_energia: '✅ Energía restaurada',
+    corte_energia: '⚡ CORTE DE ENERGÍA — Modo batería',
+    vuelta_energia: '✅ ENERGÍA REESTABLECIDA — Modo corriente',
     ...labelsAgua,
   };
 
   const mapsUrl = ubicacion ? `https://maps.google.com/?q=${ubicacion.lat},${ubicacion.lng}` : null;
   const body = action === 'sos' && mapsUrl
     ? `${triggeredBy} — 📍 Pulsa para ver ubicación (±${ubicacion.precision}m)`
+    : action === 'corte_energia' ? 'Sin suministro eléctrico — la alarma sigue activa con batería'
+    : action === 'vuelta_energia' ? 'Suministro eléctrico recuperado — todo en orden'
     : `Por: ${triggeredBy}`;
 
   const payload = JSON.stringify({
@@ -823,11 +825,11 @@ app.get('/alerta-corte-energia', async (req, res) => {
       return res.status(401).send('No autorizado');
     }
 
-    console.log('⚡ [MacroDroid] CORTE DE ENERGÍA detectado');
+    console.log('⚡ [MacroDroid] CORTE DE ENERGÍA — sistema en modo batería');
 
     await new Log({
       usuario: 'Sistema',
-      accion: '⚡ CORTE DE ENERGÍA detectado'
+      accion: '⚡ CORTE DE ENERGÍA — Sistema en modo batería'
     }).save();
 
     await sendPushNotification('corte_energia', 'Sistema');
@@ -848,11 +850,11 @@ app.get('/alerta-vuelta-energia', async (req, res) => {
       return res.status(401).send('No autorizado');
     }
 
-    console.log('✅ [MacroDroid] Energía restaurada');
+    console.log('✅ [MacroDroid] ENERGÍA REESTABLECIDA — sistema en modo corriente');
 
     await new Log({
       usuario: 'Sistema',
-      accion: '✅ Energía restaurada'
+      accion: '✅ ENERGÍA REESTABLECIDA — Sistema en modo corriente'
     }).save();
 
     await sendPushNotification('vuelta_energia', 'Sistema');
