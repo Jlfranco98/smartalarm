@@ -423,8 +423,8 @@ async function sendPushNotification(action, triggeredBy, ubicacion = null) {
   const mapsUrl = ubicacion ? `https://maps.google.com/?q=${ubicacion.lat},${ubicacion.lng}` : null;
   const body = action === 'sos' && mapsUrl
     ? `${triggeredBy} — 📍 Pulsa para ver ubicación (±${ubicacion.precision}m)`
-    : action === 'corte_energia' ? 'Sin suministro eléctrico — la alarma sigue activa con batería'
-    : action === 'vuelta_energia' ? 'Suministro eléctrico recuperado — todo en orden'
+    : action === 'corte_energia' ? 'Fallo suministro eléctrico — Alarma en modo bateria'
+    : action === 'vuelta_energia' ? 'Suministro eléctrico recuperado — Alarma en modo corriente'
     : `Por: ${triggeredBy}`;
 
   const payload = JSON.stringify({
