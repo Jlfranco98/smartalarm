@@ -1808,6 +1808,56 @@ app.post('/api/admin/simulacro', requireAuth, async (req, res) => {
   }
 });
 
+// ── ADMIN: DEBUG — Enviar push de prueba ignorando preferencias ──────────
+app.post('/api/admin/debug-push', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Solo admins' });
+
+    if (!VAPID_PUBLIC || !VAPID_PRIVATE)
+      return res.status(400).json({ success: false, message: 'VAPID no configurado' });
+
+    const { title, body, target, username } = req.body;
+    if (!title || !body)
+      return res.status(400).json({ success: false, message: 'Título y cuerpo requeridos' });
+
+    let subs;
+    if (target === 'me') {
+      // Solo las suscripciones del admin que lanza el test
+      subs = await PushSub.find({ username: req.sessionUser });
+    } else if (target === 'user' && username) {
+      subs = await PushSub.find({ username });
+    } else {
+      // Todos
+      subs = await PushSub.find({});
+    }
+
+    if (!subs.length)
+      return res.json({ success: true, enviadas: 0, message: 'No hay suscriptores para el destino seleccionado' });
+
+    const payload = JSON.stringify({
+      title, body,
+      icon: '/icon-192.png', badge: '/icon-192.png', data: { url: '/' }
+    });
+
+    const results = await Promise.allSettled(subs.map(async sub => {
+      try { await webpush.sendNotification(sub.subscription, payload); return 'ok'; }
+      catch(e2) {
+        if (e2.statusCode === 404 || e2.statusCode === 410) await PushSub.deleteOne({ _id: sub._id });
+        throw e2;
+      }
+    }));
+
+    const enviadas = results.filter(r => r.status === 'fulfilled').length;
+    console.log(`🔔 Debug push: ${enviadas}/${subs.length} enviadas (target: ${target})`);
+    res.json({ success: true, enviadas, total: subs.length });
+  } catch(e) {
+    console.error('❌ Error debug push:', e.message);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // Devuelve el número de Twilio y el logo para el vCard del contacto Verisure
 app.get('/api/twilio-number', requireAuth, async (req, res) => {
   let logoB64 = '';

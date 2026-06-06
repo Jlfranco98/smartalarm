@@ -1880,6 +1880,14 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           <div class="mac-sub">Backend y dispositivo</div>
           <div class="mac-lock-badge"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Solo admin</div>
         </div>
+        <div class="mialarma-card mac-locked" id="mac-card-debug" onclick="openAdminOnlyModal()">
+          <div class="mac-icon" style="background:#e8fdf3">
+            <svg viewBox="0 0 24 24" fill="#1a6e3c"><path d="M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C12.96 5.06 12.49 5 12 5s-.96.06-1.41.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8zm-4 4v3c0 2.21-1.79 4-4 4s-4-1.79-4-4v-3c0-2.21 1.79-4 4-4s4 1.79 4 4zm-3-2h-2v3h2v-3z"/></svg>
+          </div>
+          <div class="mac-label">Debug</div>
+          <div class="mac-sub">Pruebas del sistema</div>
+          <div class="mac-lock-badge"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Solo admin</div>
+        </div>
       </div>
     </div>
 
@@ -1924,35 +1932,126 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           <div class="cfg-saved" id="llamadas-ok" style="margin-top:6px"></div>
         </div>
 
-        <!-- Llamada de prueba — solo admin -->
-        <div class="admin-card admin-only" id="test-call-card" style="display:none">
-          <div class="ac-title" style="margin-bottom:6px">🧪 Llamada de prueba <span class="admin-star-badge">★</span></div>
-          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:14px">
-            Llama ahora a un número verificado para comprobar que Twilio funciona. El receptor oirá una locución de prueba (sin PIN).
+
+      </div>
+    </div>
+
+    <!-- ── ADMIN: DEBUG ── -->
+    <div class="page" id="pg-admin-debug">
+      <div class="subpage-hdr" onclick="navTo('admin')">
+        <span class="subpage-back">‹</span>
+        <span class="subpage-title">Debug</span>
+        <span style="margin-left:auto;font-size:10px;font-weight:800;color:var(--muted);background:var(--border);padding:3px 8px;border-radius:20px;letter-spacing:.04em">SOLO ADMIN</span>
+      </div>
+
+      <!-- Header decorativo -->
+      <div style="margin:20px 16px 0;background:linear-gradient(135deg,#0a1628,#1a2e4a);border-radius:20px;padding:20px;color:#fff;position:relative;overflow:hidden">
+        <div style="position:absolute;right:-10px;top:-10px;width:80px;height:80px;background:rgba(255,255,255,.04);border-radius:50%"></div>
+        <div style="position:absolute;right:20px;bottom:-20px;width:100px;height:100px;background:rgba(255,255,255,.03);border-radius:50%"></div>
+        <div style="font-size:28px;margin-bottom:6px">🛠️</div>
+        <div style="font-size:16px;font-weight:900;letter-spacing:-.2px">Panel de diagnóstico</div>
+        <div style="font-size:12px;font-weight:600;opacity:.6;margin-top:3px">Pruebas sin afectar al sistema real</div>
+      </div>
+
+      <!-- SECCIÓN: LLAMADAS TWILIO -->
+      <div style="padding:20px 16px 0">
+        <div style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📞 Twilio — Llamadas</div>
+
+        <!-- Llamada de prueba -->
+        <div style="background:var(--white);border-radius:18px;padding:18px;margin-bottom:12px;box-shadow:0 2px 14px rgba(0,0,0,.06)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <div style="width:40px;height:40px;border-radius:13px;background:#e8fdf3;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📞</div>
+            <div>
+              <div style="font-size:14px;font-weight:900;color:var(--text)">Llamada de prueba</div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px">Locución de test sin pedir PIN</div>
+            </div>
           </div>
-          <div id="test-call-select-wrap" style="margin-bottom:12px">
-            <select id="test-call-select" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text);background:var(--bg);appearance:none">
-              <option value="">— Selecciona un contacto —</option>
-            </select>
-          </div>
-          <button onclick="hacerLlamadaPrueba()" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+          <select id="test-call-select" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text);background:var(--bg);appearance:none;margin-bottom:10px">
+            <option value="">— Selecciona un contacto —</option>
+          </select>
+          <button onclick="hacerLlamadaPrueba()" style="width:100%;padding:11px;background:#1a6e3c;color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
             📞 Llamar ahora
           </button>
-          <div class="cfg-saved" id="test-call-msg" style="margin-top:8px;text-align:center"></div>
+          <div id="test-call-msg" style="margin-top:8px;text-align:center;font-size:12px;font-weight:700;min-height:18px"></div>
         </div>
 
-        <!-- Modo simulacro — solo admin -->
-        <div class="admin-card admin-only" id="simulacro-card" style="display:none">
-          <div class="ac-title" style="margin-bottom:6px">🚨 Modo simulacro <span class="admin-star-badge">★</span></div>
-          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:14px">
-            Simula el flujo completo: envía notificación push a todos los usuarios y realiza una llamada de prueba al primer contacto activo. <strong>No activa ni modifica el panel Tuya.</strong>
+        <!-- Modo simulacro -->
+        <div style="background:var(--white);border-radius:18px;padding:18px;margin-bottom:12px;box-shadow:0 2px 14px rgba(0,0,0,.06)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <div style="width:40px;height:40px;border-radius:13px;background:#fff3e0;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🚨</div>
+            <div>
+              <div style="font-size:14px;font-weight:900;color:var(--text)">Modo simulacro</div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px">Push a todos + llamada al primer contacto activo</div>
+            </div>
           </div>
-          <button onclick="ejecutarSimulacro()" style="width:100%;padding:12px;background:#ff9500;color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer">
+          <div style="background:#fff8f0;border:1.5px solid #ffe0b2;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:11px;font-weight:700;color:#e65100;line-height:1.5">
+            ⚠️ Se realizará una llamada real y se enviarán notificaciones a todos los usuarios. No modifica el panel Tuya.
+          </div>
+          <button onclick="ejecutarSimulacro()" style="width:100%;padding:11px;background:#e65100;color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">
             🚨 Iniciar simulacro
           </button>
-          <div id="simulacro-result" style="margin-top:10px;font-size:12px;font-weight:600;color:var(--muted);display:none"></div>
+          <div id="simulacro-result" style="margin-top:10px;font-size:12px;font-weight:600;color:var(--muted);display:none;line-height:1.6"></div>
         </div>
       </div>
+
+      <!-- SECCIÓN: NOTIFICACIONES PUSH -->
+      <div style="padding:4px 16px 0">
+        <div style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">🔔 Push — Notificaciones</div>
+
+        <div style="background:var(--white);border-radius:18px;padding:18px;margin-bottom:12px;box-shadow:0 2px 14px rgba(0,0,0,.06)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <div style="width:40px;height:40px;border-radius:13px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🔔</div>
+            <div>
+              <div style="font-size:14px;font-weight:900;color:var(--text)">Notificación push de prueba</div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px">Ignora preferencias de notificación del usuario</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:12px">
+            <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Destinatario</div>
+            <select id="debug-push-target" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text);background:var(--bg);appearance:none" onchange="debugPushTargetChanged()">
+              <option value="all">📢 Todos los usuarios</option>
+              <option value="me">👤 Solo yo (este dispositivo)</option>
+              <option value="user">👥 Usuario específico...</option>
+            </select>
+          </div>
+          <div id="debug-push-user-wrap" style="display:none;margin-bottom:12px">
+            <select id="debug-push-user-select" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text);background:var(--bg);appearance:none">
+              <option value="">— Selecciona usuario —</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:12px">
+            <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Tipo de notificación</div>
+            <div id="debug-push-type-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <button onclick="selectDebugPushType(this,'alarma')" data-type="alarma" class="debug-push-type-btn debug-push-type-active" style="padding:10px 8px;border-radius:12px;border:2px solid #e8192c;background:#fff0f1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#e8192c;cursor:pointer;text-align:center">
+                🚨 Alarma saltada
+              </button>
+              <button onclick="selectDebugPushType(this,'armar')" data-type="armar" style="padding:10px 8px;border-radius:12px;border:2px solid var(--border);background:var(--bg);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--text);cursor:pointer;text-align:center">
+                🔒 Alarma armada
+              </button>
+              <button onclick="selectDebugPushType(this,'desarmar')" data-type="desarmar" style="padding:10px 8px;border-radius:12px;border:2px solid var(--border);background:var(--bg);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--text);cursor:pointer;text-align:center">
+                🔓 Alarma desarmada
+              </button>
+              <button onclick="selectDebugPushType(this,'custom')" data-type="custom" style="padding:10px 8px;border-radius:12px;border:2px solid var(--border);background:var(--bg);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--text);cursor:pointer;text-align:center">
+                ✏️ Personalizado
+              </button>
+            </div>
+          </div>
+
+          <div id="debug-push-custom-wrap" style="display:none;margin-bottom:12px">
+            <input id="debug-push-title" placeholder="Título de la notificación" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text);background:var(--bg);box-sizing:border-box;margin-bottom:8px">
+            <input id="debug-push-body" placeholder="Cuerpo del mensaje" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text);background:var(--bg);box-sizing:border-box">
+          </div>
+
+          <button onclick="enviarPushDebug()" style="width:100%;padding:11px;background:#1a73e8;color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer">
+            🔔 Enviar notificación
+          </button>
+          <div id="debug-push-msg" style="margin-top:8px;text-align:center;font-size:12px;font-weight:700;min-height:18px"></div>
+        </div>
+      </div>
+
+      <div style="height:32px"></div>
     </div>
 
     <!-- ── ADMIN: SESIONES ACTIVAS ── -->
@@ -3258,6 +3357,7 @@ function navTo(page){
   if(page==='admin'){ renderMiAlarma(); }
   if(page==='admin-usuarios'){ renderUsersAdmin(); }
   if(page==='admin-contactos'){ cargarLlamadas(); }
+  if(page==='admin-debug'){ cargarLlamadas(); cargarUsuariosDebug(); }
   if(page==='admin-sesiones'){ renderSessions(); }
   if(page==='admin-servidor'){ loadConfigForm(); }
   if(page==='admin-mantenimientos'){ renderMantenimientos(); }
@@ -4428,6 +4528,91 @@ async function confirmarDesvincularMovil() {
       toast2('⚠️ Error: ' + (data.message || res.status));
     }
   } catch(e) { toast2('⚠️ Error de conexión'); }
+}
+
+// ── ADMIN: DEBUG — PUSH NOTIFICATIONS ────────────────────────────────────
+
+let debugPushType = 'alarma';
+
+function selectDebugPushType(btn, type) {
+  debugPushType = type;
+  document.querySelectorAll('.debug-push-type-btn').forEach(b => {
+    b.style.border = '2px solid var(--border)';
+    b.style.background = 'var(--bg)';
+    b.style.color = 'var(--text)';
+  });
+  // remove active from all
+  document.querySelectorAll('#debug-push-type-grid button').forEach(b => {
+    b.style.border = '2px solid var(--border)';
+    b.style.background = 'var(--bg)';
+    b.style.color = 'var(--text)';
+  });
+  btn.style.border = '2px solid #1a73e8';
+  btn.style.background = '#e8f0fe';
+  btn.style.color = '#1a73e8';
+  const customWrap = document.getElementById('debug-push-custom-wrap');
+  if (customWrap) customWrap.style.display = type === 'custom' ? 'block' : 'none';
+}
+
+function debugPushTargetChanged() {
+  const val = document.getElementById('debug-push-target')?.value;
+  const wrap = document.getElementById('debug-push-user-wrap');
+  if (wrap) wrap.style.display = val === 'user' ? 'block' : 'none';
+}
+
+async function cargarUsuariosDebug() {
+  const sel = document.getElementById('debug-push-user-select');
+  if (!sel) return;
+  try {
+    const res = await authFetch('/api/usuarios');
+    if (!res.ok) return;
+    const users = await res.json();
+    sel.innerHTML = '<option value="">— Selecciona usuario —</option>';
+    users.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.username;
+      opt.textContent = `${u.name || u.username} (@${u.username})`;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+async function enviarPushDebug() {
+  const msg = document.getElementById('debug-push-msg');
+  const target = document.getElementById('debug-push-target')?.value || 'all';
+  let username = null;
+  if (target === 'user') {
+    username = document.getElementById('debug-push-user-select')?.value;
+    if (!username) { if (msg) { msg.style.color='var(--red)'; msg.textContent='Selecciona un usuario'; } return; }
+  }
+
+  const payloads = {
+    alarma:   { title: '🚨 ¡ALARMA SALTADA! [TEST]',   body: 'Prueba de notificación — alarma saltada' },
+    armar:    { title: '🔒 Modo total activado [TEST]', body: 'Prueba de notificación — alarma armada' },
+    desarmar: { title: '🔓 Alarma desarmada [TEST]',   body: 'Prueba de notificación — alarma desarmada' },
+    custom:   {
+      title: document.getElementById('debug-push-title')?.value?.trim() || '🧪 Test',
+      body:  document.getElementById('debug-push-body')?.value?.trim()  || 'Notificación de prueba'
+    }
+  };
+  const { title, body } = payloads[debugPushType] || payloads.alarma;
+
+  if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = '⏳ Enviando...'; }
+
+  try {
+    const res = await authFetch('/api/admin/debug-push', {
+      method: 'POST',
+      body: JSON.stringify({ title, body, target, username })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (msg) { msg.style.color = 'var(--green)'; msg.textContent = `✅ ${data.enviadas} notificación${data.enviadas !== 1 ? 'es' : ''} enviada${data.enviadas !== 1 ? 's' : ''}`; setTimeout(() => { if(msg) msg.textContent=''; }, 4000); }
+    } else {
+      if (msg) { msg.style.color = 'var(--red)'; msg.textContent = `❌ ${data.message}`; }
+    }
+  } catch(e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = '❌ Error de conexión'; }
+  }
 }
 
 // ── RATE LIMIT SMS: bloqueo visual del botón durante el cooldown ──────────
@@ -6360,12 +6545,16 @@ function renderMiAlarma() {
   const mantAddBtn = document.getElementById('mant-add-btn-hdr');
   if (mantAddBtn) mantAddBtn.style.display = isAdmin ? 'block' : 'none';
 
+  const dbgCard = document.getElementById('mac-card-debug');
+
   if (isAdmin) {
     if (sesCard) { sesCard.onclick = () => navTo('admin-sesiones'); sesCard.classList.remove('mac-locked'); const b = sesCard.querySelector('.mac-lock-badge'); if(b) b.style.display='none'; }
     if (srvCard) { srvCard.onclick = () => navTo('admin-servidor'); srvCard.classList.remove('mac-locked'); const b = srvCard.querySelector('.mac-lock-badge'); if(b) b.style.display='none'; }
+    if (dbgCard) { dbgCard.onclick = () => navTo('admin-debug');   dbgCard.classList.remove('mac-locked'); const b = dbgCard.querySelector('.mac-lock-badge'); if(b) b.style.display='none'; }
   } else {
     if (sesCard) { sesCard.onclick = openAdminOnlyModal; sesCard.classList.add('mac-locked'); }
     if (srvCard) { srvCard.onclick = openAdminOnlyModal; srvCard.classList.add('mac-locked'); }
+    if (dbgCard) { dbgCard.onclick = openAdminOnlyModal; dbgCard.classList.add('mac-locked'); }
   }
 }
 
