@@ -140,6 +140,8 @@ const TWILIO_SID   = process.env.TWILIO_SID   || '';
 const TWILIO_TOKEN = process.env.TWILIO_TOKEN  || '';
 const TWILIO_FROM  = process.env.TWILIO_FROM   || ''; 
 const TWILIO_TO    = (process.env.TWILIO_TO    || '').split(',').map(n => n.trim()).filter(Boolean);
+const TWILIO_NOMBRES = {}; // Mapa tel→nombre para fallback (se usa si no hay config en MongoDB)
+const twilioClient = (TWILIO_SID && TWILIO_TOKEN) ? twilio(TWILIO_SID, TWILIO_TOKEN) : null;
 
 // Cuenta A: solo sensor de luz (alarma crítica)
 const TUYA_CLIENT_ID_ALARMA     = process.env.TUYA_CLIENT_ID_ALARMA;
@@ -623,6 +625,8 @@ app.post('/api/change-password', requireAuth, async (req, res) => {
       return res.json({ success: false, message: 'Contraseña demasiado fácil.' });
     const user = await User.findOne({ username });
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    // Solo el propio usuario puede cambiar su contraseña
+    if (username !== req.sessionUser) return res.status(403).json({ success: false, message: 'No autorizado' });
     // Validar contraseña actual
     const match = await bcrypt.compare(currentPassword, user.password);
     if (!match) return res.json({ success: false, message: 'La contraseña actual es incorrecta.' });
@@ -714,6 +718,8 @@ app.post('/api/change-pin', requireAuth, async (req, res) => {
     if (PIN_BLACKLIST.includes(newPin)) return res.json({ success: false, message: 'PIN demasiado predecible.' });
     const user = await User.findOne({ username });
     if (!user) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    // Solo el propio usuario puede cambiar su PIN
+    if (username !== req.sessionUser) return res.status(403).json({ success: false, message: 'No autorizado' });
     const pinMatch = await checkPinCompat(currentPin, user.pin, username);
     if (!pinMatch) return res.json({ success: false, message: 'PIN actual incorrecto' });
     if (newPin === currentPin) return res.json({ success: false, message: 'El nuevo PIN debe ser diferente.' });
@@ -732,6 +738,12 @@ app.post('/api/push/subscribe', requireAuth, async (req, res) => {
     await PushSub.findOneAndUpdate({ 'subscription.endpoint': subscription.endpoint }, { username, subscription, device: device || 'unknown' }, { upsert: true, new: true });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ success: false }); }
+});
+app.post('/api/push/unsubscribe', requireAuth, async (req, res) => {
+  try {
+    await PushSub.deleteMany({ username: req.sessionUser });
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ success: false }); }
 });
 app.get('/api/push/prefs/:username', requireAuth, async (req, res) => {
   try { res.json(await NotifPref.findOne({ username: req.params.username }) || { arm_away: true, arm_home: true, disarm: true }); }
@@ -1278,7 +1290,7 @@ let twilioNumerosActivos = []; // cargado desde MongoDB al iniciar cada alarma
 
 // Llamadas SOS simultáneas a todos los contactos menos al que activó el SOS
 async function llamarSosTodos(nombreActivador, telefonoActivador) {
-  if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
+  if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM || !twilioClient) {
     console.warn('⚠️ Twilio no configurado — llamadas SOS omitidas');
     return;
   }
