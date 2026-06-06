@@ -3571,6 +3571,14 @@ function clasificarEvento(l) {
     return { cat: 'acciones', sub: 'sos' };
   }
 
+  // 1b. ENERGÍA
+  if (texto.includes('corte de energía') || texto.includes('corte de energia')) {
+    return { cat: 'errores', sub: 'corte_energia' };
+  }
+  if (texto.includes('energía restaurada') || texto.includes('energia restaurada')) {
+    return { cat: 'errores', sub: 'vuelta_energia' };
+  }
+
   // 2. VERIFICACIÓN POR LLAMADA (antes que saltos para no confundirse)
   if ((texto.includes('verificaci') && texto.includes('salto')) || texto.includes('falsa alarma') || (texto.includes('verificación no confirmada') || texto.includes('no confirmada por ningún'))) {
     return { cat: 'saltos', sub: 'llamada' };
@@ -3848,6 +3856,10 @@ function buildLogItem(l, full = false, prefix = 'home') {
       icono = '💧'; icClass = 'ic-agua'; badgeColor = '#2196f3'; badgeBg = '#e3f2fd'; catLabel = '💧 AGUA';
     } else if (cl.cat === 'saltos') {
       icono = '🚨'; icClass = 'ic-salto'; badgeColor = '#e8192c'; badgeBg = '#fdecea'; catLabel = '🚨 SALTO';
+    } else if (cl.cat === 'errores' && cl.sub === 'corte_energia') {
+      icono = '⚡'; icClass = 'ic-sistema'; badgeColor = '#c62828'; badgeBg = '#ffebee'; catLabel = '⚡ ENERGÍA';
+    } else if (cl.cat === 'errores' && cl.sub === 'vuelta_energia') {
+      icono = '✅'; icClass = 'ic-sistema'; badgeColor = '#00b562'; badgeBg = '#f0fdf6'; catLabel = '✅ ENERGÍA';
     } else if (cl.cat === 'errores' && cl.sub === 'reconectado') {
       icono = '✅'; icClass = 'ic-sistema'; badgeColor = '#00b562'; badgeBg = '#f0fdf6'; catLabel = '✅ SISTEMA';
     } else if (cl.cat === 'errores' && cl.sub === 'bateria') {

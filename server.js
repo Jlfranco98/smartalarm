@@ -386,7 +386,7 @@ async function checkSensorAgua(sensor) {
 async function sendPushNotification(action, triggeredBy, ubicacion = null) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
   
-  const notificarATodos = ['sos','sensor_luz','sensor_offline','sensor_online','panel_offline','panel_online','macrodroid_offline','macrodroid_online'].includes(action)
+  const notificarATodos = ['sos','sensor_luz','sensor_offline','sensor_online','panel_offline','panel_online','macrodroid_offline','macrodroid_online','corte_energia','vuelta_energia'].includes(action)
     || action.startsWith('sensor_agua_') || action.startsWith('dispositivo_offline_') || action.startsWith('dispositivo_online_');
 
   let subs;
@@ -415,6 +415,8 @@ async function sendPushNotification(action, triggeredBy, ubicacion = null) {
     panel_offline: '⚠️ Panel Alarma desconectado', panel_online: '✅ Panel Alarma reconectado',
     macrodroid_offline: '⚠️ Servidor de seguridad caído',
     macrodroid_online: '✅ Servidor de seguridad reactivado',
+    corte_energia: '⚡ CORTE DE ENERGÍA detectado',
+    vuelta_energia: '✅ Energía restaurada',
     ...labelsAgua,
   };
 
@@ -809,6 +811,56 @@ app.get('/alerta-alarma', async (req, res) => {
   } catch (e) {
     console.error('❌ Error en alerta MacroDroid:', e.message);
     res.status(500).send("Error");
+  }
+});
+
+// ── CORTE DE ENERGÍA ─────────────────────────────────────────────────────
+app.get('/alerta-corte-energia', async (req, res) => {
+  try {
+    const CLAVE_SECRETA = process.env.MACRODROID_SECRET;
+    if (req.query.token !== CLAVE_SECRETA) {
+      console.log('❌ Acceso no autorizado a /alerta-corte-energia');
+      return res.status(401).send('No autorizado');
+    }
+
+    console.log('⚡ [MacroDroid] CORTE DE ENERGÍA detectado');
+
+    await new Log({
+      usuario: 'Sistema',
+      accion: '⚡ CORTE DE ENERGÍA detectado'
+    }).save();
+
+    await sendPushNotification('corte_energia', 'Sistema');
+
+    res.status(200).send('✅ Corte de energía registrado');
+  } catch (e) {
+    console.error('❌ Error en alerta corte energía:', e.message);
+    res.status(500).send('Error');
+  }
+});
+
+// ── VUELTA DE ENERGÍA ─────────────────────────────────────────────────────
+app.get('/alerta-vuelta-energia', async (req, res) => {
+  try {
+    const CLAVE_SECRETA = process.env.MACRODROID_SECRET;
+    if (req.query.token !== CLAVE_SECRETA) {
+      console.log('❌ Acceso no autorizado a /alerta-vuelta-energia');
+      return res.status(401).send('No autorizado');
+    }
+
+    console.log('✅ [MacroDroid] Energía restaurada');
+
+    await new Log({
+      usuario: 'Sistema',
+      accion: '✅ Energía restaurada'
+    }).save();
+
+    await sendPushNotification('vuelta_energia', 'Sistema');
+
+    res.status(200).send('✅ Vuelta de energía registrada');
+  } catch (e) {
+    console.error('❌ Error en alerta vuelta energía:', e.message);
+    res.status(500).send('Error');
   }
 });
 
