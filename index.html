@@ -1284,40 +1284,39 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 <body>
 
 <!-- ════ SPLASH SCREEN ════ -->
-<!-- Barra de estado iOS: blanca, encima del splash -->
-<div id="splash-statusbar" style="
-  position:fixed;top:0;left:0;right:0;
-  height:env(safe-area-inset-top,0px);
-  background:#ffffff;
-  z-index:10000;
-"></div>
 <div id="splash" style="
-  position:fixed;
-  top:env(safe-area-inset-top,0px);
-  left:0;right:0;bottom:0;
-  z-index:9999;
-  background:#e8192c;
+  position:fixed;inset:0;z-index:9999;
+  background:#ffffff;
   display:flex;flex-direction:column;
   align-items:center;justify-content:center;
   font-family:'Nunito',system-ui,sans-serif;
-  transition:opacity .45s cubic-bezier(.4,0,.2,1),transform .45s cubic-bezier(.4,0,.2,1);
+  transition:opacity .4s cubic-bezier(.4,0,.2,1);
 ">
-  <img src="icon-192.png" alt="Smart Alarm"
-    style="width:96px;height:96px;border-radius:22px;box-shadow:0 8px 32px rgba(0,0,0,.3);margin-bottom:28px;animation:splashPop .55s cubic-bezier(.34,1.56,.64,1) both .1s">
-  <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-1px;animation:splashFade .4s ease both .3s;opacity:0">Smart Alarm</div>
-  <div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:6px;font-weight:600;animation:splashFade .4s ease both .45s;opacity:0">Panel de control</div>
-  <div style="position:absolute;bottom:52px;display:flex;gap:7px">
-    <span style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);animation:splashDot .9s .0s ease-in-out infinite alternate"></span>
-    <span style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);animation:splashDot .9s .2s ease-in-out infinite alternate"></span>
-    <span style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);animation:splashDot .9s .4s ease-in-out infinite alternate"></span>
+  <!-- Círculo rojo de fondo + icono -->
+  <div style="position:relative;margin-bottom:28px;animation:splashPop .55s cubic-bezier(.34,1.56,.64,1) both .1s">
+    <div style="
+      width:112px;height:112px;border-radius:28px;
+      background:#e8192c;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 8px 32px rgba(232,25,44,.35);
+    ">
+      <img src="icon-192.png" alt="Smart Alarm" style="width:72px;height:72px;border-radius:16px;">
+    </div>
+  </div>
+  <div style="font-size:26px;font-weight:900;color:#1a1a1a;letter-spacing:-1px;animation:splashFade .4s ease both .3s;opacity:0">Smart Alarm</div>
+  <div style="font-size:13px;color:#6e6e73;margin-top:5px;font-weight:600;animation:splashFade .4s ease both .45s;opacity:0">Panel de control</div>
+  <!-- Puntos de carga -->
+  <div style="position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 48px);display:flex;gap:7px;animation:splashFade .4s ease both .5s;opacity:0">
+    <span style="width:7px;height:7px;border-radius:50%;background:#e8192c;opacity:.4;animation:splashDot .9s .0s ease-in-out infinite alternate"></span>
+    <span style="width:7px;height:7px;border-radius:50%;background:#e8192c;opacity:.4;animation:splashDot .9s .2s ease-in-out infinite alternate"></span>
+    <span style="width:7px;height:7px;border-radius:50%;background:#e8192c;opacity:.4;animation:splashDot .9s .4s ease-in-out infinite alternate"></span>
   </div>
 </div>
 <style>
-@keyframes splashPop{from{opacity:0;transform:scale(.65)}to{opacity:1;transform:scale(1)}}
-@keyframes splashFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes splashDot{from{opacity:.25;transform:translateY(0)}to{opacity:1;transform:translateY(-5px)}}
-#splash.splash-hide{opacity:0;transform:scale(1.05);pointer-events:none}
-#splash-statusbar.splash-hide{opacity:0;pointer-events:none}
+@keyframes splashPop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+@keyframes splashFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes splashDot{from{opacity:.3;transform:translateY(0)}to{opacity:1;transform:translateY(-5px)}}
+#splash.splash-hide{opacity:0;pointer-events:none}
 </style>
 
 <!-- ════════════════ MODAL EDITAR MÓVIL ADMIN ════════════════ -->
@@ -5070,17 +5069,12 @@ function closePinOutside(e) {
 const _splashStart = Date.now();
 function hideSplash() {
   const splashEl = document.getElementById('splash');
-  const statusBar = document.getElementById('splash-statusbar');
   if (!splashEl) return;
   const elapsed = Date.now() - _splashStart;
   const delay = Math.max(0, 1800 - elapsed); // mínimo 1.8s visible
   setTimeout(() => {
     splashEl.classList.add('splash-hide');
-    if (statusBar) statusBar.classList.add('splash-hide');
-    setTimeout(() => {
-      if (splashEl.parentNode) splashEl.remove();
-      if (statusBar && statusBar.parentNode) statusBar.remove();
-    }, 480);
+    setTimeout(() => { if (splashEl.parentNode) splashEl.remove(); }, 420);
   }, delay);
 }
 
