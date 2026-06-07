@@ -1282,6 +1282,81 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 </style>
 </head>
 <body>
+<!-- ── SPLASH SCREEN ─────────────────────────────────────────────────────── -->
+<div id="splash-screen" style="
+  position:fixed;inset:0;z-index:99999;
+  background:linear-gradient(160deg,#0d1f3c 0%,#1a0a0e 60%,#2a0810 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Nunito',sans-serif;
+  transition:opacity .5s ease, visibility .5s ease;
+">
+  <!-- Círculos decorativos de fondo -->
+  <div style="position:absolute;width:320px;height:320px;border-radius:50%;
+    background:radial-gradient(circle,rgba(232,25,44,.12) 0%,transparent 70%);
+    top:50%;left:50%;transform:translate(-50%,-60%);pointer-events:none"></div>
+  <div style="position:absolute;width:500px;height:500px;border-radius:50%;
+    border:1px solid rgba(232,25,44,.08);
+    top:50%;left:50%;transform:translate(-50%,-55%);pointer-events:none"></div>
+  <div style="position:absolute;width:650px;height:650px;border-radius:50%;
+    border:1px solid rgba(232,25,44,.05);
+    top:50%;left:50%;transform:translate(-50%,-55%);pointer-events:none"></div>
+
+  <!-- Logo con pulso -->
+  <div id="splash-icon-wrap" style="
+    position:relative;margin-bottom:28px;
+    animation:splashPulse 2.2s ease-in-out infinite;
+  ">
+    <!-- Halo exterior -->
+    <div style="
+      position:absolute;inset:-18px;border-radius:50%;
+      background:radial-gradient(circle,rgba(232,25,44,.18) 0%,transparent 70%);
+      animation:splashHalo 2.2s ease-in-out infinite;
+    "></div>
+    <!-- Halo interior -->
+    <div style="
+      position:absolute;inset:-8px;border-radius:50%;
+      background:rgba(232,25,44,.1);
+      animation:splashHalo 2.2s ease-in-out infinite .3s;
+    "></div>
+    <!-- Icono -->
+    <img src="/icon-192.png" alt="Smart Alarm" style="
+      width:96px;height:96px;border-radius:24px;
+      position:relative;z-index:1;
+      box-shadow:0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.06);
+    ">
+  </div>
+
+  <!-- Nombre -->
+  <div style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-.5px;margin-bottom:6px">
+    Smart Alarm
+  </div>
+  <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.35);letter-spacing:.08em;text-transform:uppercase;margin-bottom:52px">
+    Sistema de seguridad
+  </div>
+
+  <!-- Barra de progreso -->
+  <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.06)">
+    <div id="splash-bar" style="
+      height:100%;width:0%;
+      background:linear-gradient(90deg,#e8192c,#ff6b7a);
+      border-radius:0 2px 2px 0;
+      transition:width .4s ease;
+      box-shadow:0 0 10px rgba(232,25,44,.6);
+    "></div>
+  </div>
+</div>
+
+<style>
+@keyframes splashPulse {
+  0%,100% { transform:scale(1); }
+  50%      { transform:scale(1.06); }
+}
+@keyframes splashHalo {
+  0%,100% { opacity:.6; transform:scale(1); }
+  50%      { opacity:1;  transform:scale(1.12); }
+}
+</style>
+
 
 <!-- ════════════════ MODAL EDITAR MÓVIL ADMIN ════════════════ -->
 <div class="auto-modal-bg" id="movil-admin-modal-bg" onclick="if(event.target===this)cerrarMovilAdminModal()">
@@ -2712,6 +2787,41 @@ const STATUS_CFG = {
 const ACTION_NAMES = {arm_away:'Conectar total', arm_home:'Conectar parcialmente', disarm:'Desconectar alarma', sos:'PÁNICO / SOS'};
 
 // ── Persist ────────────────────────────────────────────────────────────────
+// ── SPLASH SCREEN CONTROL ────────────────────────────────────────────────────
+let _splashProgress = 0;
+let _splashInterval = null;
+
+function startSplashProgress() {
+  const bar = document.getElementById('splash-bar');
+  if (!bar) return;
+  _splashProgress = 0;
+  // Avanza rápido hasta 80%, luego espera a que la app esté lista
+  _splashInterval = setInterval(() => {
+    if (_splashProgress < 80) {
+      _splashProgress += Math.random() * 12 + 4;
+      if (_splashProgress > 80) _splashProgress = 80;
+      bar.style.width = _splashProgress + '%';
+    }
+  }, 180);
+}
+
+function hideSplash() {
+  const splash = document.getElementById('splash-screen');
+  const bar = document.getElementById('splash-bar');
+  if (!splash) return;
+  if (_splashInterval) { clearInterval(_splashInterval); _splashInterval = null; }
+  // Completar barra hasta 100% y luego fade out
+  if (bar) bar.style.width = '100%';
+  setTimeout(() => {
+    splash.style.opacity = '0';
+    splash.style.visibility = 'hidden';
+    setTimeout(() => splash.remove(), 520);
+  }, 350);
+}
+
+// Arrancar la barra de progreso inmediatamente
+startSplashProgress();
+
 function load(){
   try {
     const d = JSON.parse(localStorage.getItem('mialarm') || '{}');
@@ -2724,9 +2834,11 @@ function load(){
       document.getElementById('s-app').classList.add('active');
       gestionarVisibilidadAdmin();
       // Usamos setTimeout para asegurarnos que el DOM está listo
-      setTimeout(() => renderApp(), 0);
+      setTimeout(() => { renderApp(); hideSplash(); }, 0);
     }
   } catch(e) {}
+  // Si no hay sesión guardada, ocultar splash y mostrar login
+  if (!S.currentUser) hideSplash();
 }
   
 function save(){
@@ -2777,6 +2889,7 @@ async function doLogin() {
       renderApp();
       document.getElementById('s-login').classList.remove('active');
       document.getElementById('s-app').classList.add('active');
+      hideSplash();
       startPolling();
     } else {
       err.textContent = data.message || 'Credenciales incorrectas';
