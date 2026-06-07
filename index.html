@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="MiAlarma">
-<meta name="theme-color" content="#ffffff" id="meta-theme-color">
+<meta name="theme-color" content="#e8192c" id="meta-theme-color">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -5063,6 +5063,11 @@ function hideSplash() {
   const elapsed = Date.now() - _splashStart;
   const delay = Math.max(0, 1800 - elapsed); // mínimo 1.8s visible
   setTimeout(() => {
+    // Restaurar theme-color al valor correcto (blanco o dark) antes del fade
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+      (document.documentElement.getAttribute('data-theme') === 'system' &&
+       window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.getElementById('meta-theme-color').content = isDark ? '#0f0f0f' : '#ffffff';
     splashEl.classList.add('splash-hide');
     setTimeout(() => { if (splashEl.parentNode) splashEl.remove(); }, 480);
   }, delay);
