@@ -1858,6 +1858,47 @@ app.post('/api/admin/debug-push', requireAuth, async (req, res) => {
   }
 });
 
+// ── ADMIN: SESIONES CON ESTADO PUSH ──────────────────────────────────────────
+app.get('/api/admin/sessions-push-status', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin')
+      return res.status(403).json({ success: false });
+
+    const [sessions, pushSubs] = await Promise.all([
+      Session.find({}, '-token').sort({ lastSeenAt: -1 }),
+      PushSub.find({}, 'username device subscription.endpoint createdAt updatedAt')
+    ]);
+
+    // Agrupar tokens push por usuario
+    const pushByUser = {};
+    pushSubs.forEach(sub => {
+      if (!pushByUser[sub.username]) pushByUser[sub.username] = [];
+      pushByUser[sub.username].push({
+        device:    sub.device,
+        endpoint:  sub.subscription?.endpoint?.slice(-30) || '?', // solo los últimos 30 chars para debug
+        updatedAt: sub.updatedAt || sub.createdAt
+      });
+    });
+
+    // Adjuntar info push a cada sesión
+    const result = sessions.map(s => ({
+      _id:        s._id,
+      username:   s.username,
+      deviceName: s.deviceName,
+      userAgent:  s.userAgent,
+      createdAt:  s.createdAt,
+      lastSeenAt: s.lastSeenAt,
+      pushTokens: pushByUser[s.username] || []  // todos los tokens de ese usuario
+    }));
+
+    res.json({ success: true, sessions: result, pushByUser });
+  } catch(e) {
+    console.error('❌ Error sessions-push-status:', e.message);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // Devuelve el número de Twilio y el logo para el vCard del contacto Verisure
 app.get('/api/twilio-number', requireAuth, async (req, res) => {
   let logoB64 = '';

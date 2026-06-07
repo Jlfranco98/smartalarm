@@ -4722,8 +4722,11 @@ async function renderSessions() {
   const el = document.getElementById('sessions-list');
   el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:8px">Cargando...</div>';
   try {
-    const res = await authFetch('/api/sessions');
-    const sessions = await res.json();
+    const res = await authFetch('/api/admin/sessions-push-status');
+    const data = await res.json();
+    const sessions = data.sessions || [];
+    const pushByUser = data.pushByUser || {};
+
     if (!sessions.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:8px">Sin sesiones activas</div>'; return; }
 
     function tiempoDesde(iso) {
@@ -4732,6 +4735,20 @@ async function renderSessions() {
       if (diff < 3600) return `hace ${Math.floor(diff/60)} min`;
       if (diff < 86400) return `hace ${Math.floor(diff/3600)}h`;
       return `hace ${Math.floor(diff/86400)}d`;
+    }
+
+    function pushBadge(username, pushByUser) {
+      const tokens = pushByUser[username] || [];
+      if (tokens.length === 0) {
+        return `<span title="Sin tokens push registrados — las notificaciones no llegarán" style="font-size:10px;font-weight:800;color:#c0392b;background:#fdf0f0;border:1.5px solid #f5c6c6;border-radius:6px;padding:2px 7px;white-space:nowrap">🔕 Sin push</span>`;
+      }
+      // Comprobar si algún token fue actualizado hace más de 30 días (posiblemente caducado)
+      const ahora = Date.now();
+      const algunoCaducado = tokens.some(t => t.updatedAt && (ahora - new Date(t.updatedAt)) > 30 * 24 * 60 * 60 * 1000);
+      if (algunoCaducado && tokens.length === 1) {
+        return `<span title="Token push con más de 30 días sin renovar — puede estar caducado" style="font-size:10px;font-weight:800;color:#e67e22;background:#fef9f0;border:1.5px solid #fde8b2;border-radius:6px;padding:2px 7px;white-space:nowrap">⚠️ Push antiguo</span>`;
+      }
+      return `<span title="${tokens.length} token(s) push activo(s)\nDispositivos: ${tokens.map(t=>t.device||'?').join(', ')}" style="font-size:10px;font-weight:800;color:#1a6e3c;background:#e8fdf3;border:1.5px solid #b2f0d0;border-radius:6px;padding:2px 7px;white-space:nowrap">🔔 Push ×${tokens.length}</span>`;
     }
 
     // Agrupar por usuario
@@ -4743,10 +4760,22 @@ async function renderSessions() {
 
     el.innerHTML = Object.entries(byUser).map(([username, sess]) => `
       <div style="margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:12px;font-weight:900;color:var(--text)">👤 ${username}</div>
-          <button onclick="revokeUserSessions('${username}')" style="font-size:10px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:8px;padding:3px 8px;cursor:pointer">Revocar todas</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0">
+            <div style="font-size:12px;font-weight:900;color:var(--text)">👤 ${username}</div>
+            ${pushBadge(username, pushByUser)}
+          </div>
+          <button onclick="revokeUserSessions('${username}')" style="font-size:10px;font-weight:800;color:var(--red);background:var(--red-light);border:none;border-radius:8px;padding:3px 8px;cursor:pointer;flex-shrink:0">Revocar todas</button>
         </div>
+        ${(pushByUser[username]||[]).length > 0 ? `
+        <div style="background:#f0faf5;border:1px solid #b2f0d0;border-radius:8px;padding:7px 10px;margin-bottom:8px;font-size:10px;font-weight:700;color:#1a6e3c;line-height:1.7">
+          ${(pushByUser[username]||[]).map((t,i) => `
+            <span>Token ${i+1}: <span style="font-family:monospace;font-weight:600">…${t.endpoint}</span> — ${t.device||'?'} — actualizado ${tiempoDesde(t.updatedAt)}</span><br>
+          `).join('')}
+        </div>` : `
+        <div style="background:#fdf0f0;border:1px solid #f5c6c6;border-radius:8px;padding:7px 10px;margin-bottom:8px;font-size:11px;font-weight:700;color:#c0392b;line-height:1.5">
+          ⚠️ Este usuario no tiene ningún token push registrado. Para recibir notificaciones debe abrir la app y aceptar los permisos de notificación.
+        </div>`}
         ${sess.map(s => {
           const parsed = parseDeviceName(s.deviceName, s.userAgent);
           return `
