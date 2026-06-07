@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="MiAlarma">
-<meta name="theme-color" content="#ffffff" id="meta-theme-color">
+<meta name="theme-color" content="#0d1f3c" id="meta-theme-color">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -2776,15 +2776,15 @@ function hideSplash() {
   const bar    = document.getElementById('splash-bar');
   if (!splash) return;
   if (_splashInterval) { clearInterval(_splashInterval); _splashInterval = null; }
-  // Restaurar theme-color según tema activo
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-    || (localStorage.getItem('theme') === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  const meta = document.getElementById('meta-theme-color');
-  if (meta) meta.content = isDark ? '#0f0f0f' : '#ffffff';
   if (bar) bar.style.width = '100%';
   setTimeout(() => {
     splash.style.opacity = '0';
     splash.style.visibility = 'hidden';
+    // Restaurar theme-color DESPUÉS del fade, cuando el splash ya no es visible
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+      || (localStorage.getItem('theme') === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const meta = document.getElementById('meta-theme-color');
+    if (meta) meta.content = isDark ? '#0f0f0f' : '#ffffff';
     setTimeout(() => splash.remove(), 520);
   }, 350);
 }
