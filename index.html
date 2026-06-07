@@ -1292,30 +1292,65 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
   font-family:'Nunito',system-ui,sans-serif;
   transition:opacity .4s cubic-bezier(.4,0,.2,1);
 ">
-  <!-- Círculo rojo de fondo + icono -->
-  <div style="position:relative;margin-bottom:28px;animation:splashPop .55s cubic-bezier(.34,1.56,.64,1) both .1s">
+  <!-- Icono animado -->
+  <div style="position:relative;margin-bottom:28px;">
+    <!-- Onda de pulso exterior (la más grande) -->
     <div style="
+      position:absolute;inset:-20px;border-radius:46px;
+      background:rgba(232,25,44,.08);
+      animation:splashRing 2s ease-out both .85s;
+      transform:scale(.7);opacity:0;
+    "></div>
+    <!-- Onda de pulso interior -->
+    <div style="
+      position:absolute;inset:-10px;border-radius:38px;
+      background:rgba(232,25,44,.12);
+      animation:splashRing 2s ease-out both .7s;
+      transform:scale(.7);opacity:0;
+    "></div>
+    <!-- Caja del icono: entra con rebote, luego late -->
+    <div style="
+      position:relative;
       width:112px;height:112px;border-radius:28px;
       background:#e8192c;
       display:flex;align-items:center;justify-content:center;
       box-shadow:0 8px 32px rgba(232,25,44,.35);
+      animation:splashPop .55s cubic-bezier(.34,1.56,.64,1) both .1s, splashBeat 2.4s ease-in-out infinite .9s;
     ">
       <img src="icon-192.png" alt="Smart Alarm" style="width:72px;height:72px;border-radius:16px;">
     </div>
   </div>
-  <div style="font-size:26px;font-weight:900;color:#1a1a1a;letter-spacing:-1px;animation:splashFade .4s ease both .3s;opacity:0">Smart Alarm</div>
-  <div style="font-size:13px;color:#6e6e73;margin-top:5px;font-weight:600;animation:splashFade .4s ease both .45s;opacity:0">Panel de control</div>
+  <div style="font-size:26px;font-weight:900;color:#1a1a1a;letter-spacing:-1px;animation:splashFade .4s ease both .35s;opacity:0">Smart Alarm</div>
+  <div style="font-size:13px;color:#6e6e73;margin-top:5px;font-weight:600;animation:splashFade .4s ease both .5s;opacity:0">Panel de control</div>
   <!-- Puntos de carga -->
-  <div style="position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 48px);display:flex;gap:7px;animation:splashFade .4s ease both .5s;opacity:0">
+  <div style="position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 48px);display:flex;gap:7px;animation:splashFade .4s ease both .6s;opacity:0">
     <span style="width:7px;height:7px;border-radius:50%;background:#e8192c;opacity:.4;animation:splashDot .9s .0s ease-in-out infinite alternate"></span>
     <span style="width:7px;height:7px;border-radius:50%;background:#e8192c;opacity:.4;animation:splashDot .9s .2s ease-in-out infinite alternate"></span>
     <span style="width:7px;height:7px;border-radius:50%;background:#e8192c;opacity:.4;animation:splashDot .9s .4s ease-in-out infinite alternate"></span>
   </div>
 </div>
 <style>
-@keyframes splashPop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+/* Entrada con rebote */
+@keyframes splashPop{
+  from{opacity:0;transform:scale(.65)}
+  to{opacity:1;transform:scale(1)}
+}
+/* Latido suave continuo */
+@keyframes splashBeat{
+  0%,100%{transform:scale(1);box-shadow:0 8px 32px rgba(232,25,44,.35)}
+  50%{transform:scale(1.07);box-shadow:0 12px 40px rgba(232,25,44,.55)}
+}
+/* Ondas que se expanden desde el icono */
+@keyframes splashRing{
+  0%{transform:scale(.7);opacity:0}
+  30%{opacity:1}
+  100%{transform:scale(1.25);opacity:0}
+}
+/* Textos aparecen desde abajo */
 @keyframes splashFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* Puntitos de carga */
 @keyframes splashDot{from{opacity:.3;transform:translateY(0)}to{opacity:1;transform:translateY(-5px)}}
+/* Fade out al cerrar */
 #splash.splash-hide{opacity:0;pointer-events:none}
 </style>
 
