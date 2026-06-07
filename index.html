@@ -2780,11 +2780,11 @@ function hideSplash() {
   setTimeout(() => {
     splash.style.opacity = '0';
     splash.style.visibility = 'hidden';
-    // Restaurar theme-color DESPUÉS del fade, cuando el splash ya no es visible
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-      || (localStorage.getItem('theme') === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    const meta = document.getElementById('meta-theme-color');
-    if (meta) meta.content = isDark ? '#0f0f0f' : '#ffffff';
+    // Aplicar el tema guardado — esto actualiza meta-theme-color al color correcto
+    // (blanco en modo claro, oscuro en modo oscuro), respetando la preferencia del usuario
+    if (typeof applyTheme === 'function') {
+      applyTheme(localStorage.getItem('theme') || 'system');
+    }
     setTimeout(() => splash.remove(), 520);
   }, 350);
 }
