@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="MiAlarma">
-<meta name="theme-color" content="#e8192c" id="meta-theme-color">
+<meta name="theme-color" content="#ffffff" id="meta-theme-color">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -1284,8 +1284,18 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 <body>
 
 <!-- ════ SPLASH SCREEN ════ -->
+<!-- Barra de estado iOS: blanca, encima del splash -->
+<div id="splash-statusbar" style="
+  position:fixed;top:0;left:0;right:0;
+  height:env(safe-area-inset-top,0px);
+  background:#ffffff;
+  z-index:10000;
+"></div>
 <div id="splash" style="
-  position:fixed;inset:0;z-index:9999;
+  position:fixed;
+  top:env(safe-area-inset-top,0px);
+  left:0;right:0;bottom:0;
+  z-index:9999;
   background:#e8192c;
   display:flex;flex-direction:column;
   align-items:center;justify-content:center;
@@ -1307,6 +1317,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 @keyframes splashFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes splashDot{from{opacity:.25;transform:translateY(0)}to{opacity:1;transform:translateY(-5px)}}
 #splash.splash-hide{opacity:0;transform:scale(1.05);pointer-events:none}
+#splash-statusbar.splash-hide{opacity:0;pointer-events:none}
 </style>
 
 <!-- ════════════════ MODAL EDITAR MÓVIL ADMIN ════════════════ -->
@@ -5059,17 +5070,17 @@ function closePinOutside(e) {
 const _splashStart = Date.now();
 function hideSplash() {
   const splashEl = document.getElementById('splash');
+  const statusBar = document.getElementById('splash-statusbar');
   if (!splashEl) return;
   const elapsed = Date.now() - _splashStart;
   const delay = Math.max(0, 1800 - elapsed); // mínimo 1.8s visible
   setTimeout(() => {
-    // Restaurar theme-color al valor correcto (blanco o dark) antes del fade
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
-      (document.documentElement.getAttribute('data-theme') === 'system' &&
-       window.matchMedia('(prefers-color-scheme: dark)').matches);
-    document.getElementById('meta-theme-color').content = isDark ? '#0f0f0f' : '#ffffff';
     splashEl.classList.add('splash-hide');
-    setTimeout(() => { if (splashEl.parentNode) splashEl.remove(); }, 480);
+    if (statusBar) statusBar.classList.add('splash-hide');
+    setTimeout(() => {
+      if (splashEl.parentNode) splashEl.remove();
+      if (statusBar && statusBar.parentNode) statusBar.remove();
+    }, 480);
   }, delay);
 }
 
