@@ -7226,8 +7226,17 @@ function updatePinLockTimer() {
 }
 
 function restorePinLockIfNeeded() {
-  // Llamar al abrir el modal — restaura la cuenta atrás si aún está activa
+  // Si localmente no hay bloqueo, no hacer nada
   if (!isPinLocked()) return false;
+  // Hay bloqueo local — verificar con el servidor si sigue vigente
+  // La llamada es async pero mostramos el bloqueo optimistamente y lo quitamos si el servidor dice que no
+  authFetch('/api/pin-lock-status').then(r => r.json()).then(data => {
+    if (!data.bloqueado) {
+      // El admin desbloqueó desde debug — limpiar localStorage y ocultar la pantalla de bloqueo
+      resetPinLockout();
+    }
+  }).catch(() => {}); // si falla la red, mantenemos el bloqueo local
+  // Mientras llega la respuesta, mostramos el UI de bloqueo como siempre
   showPinLockoutUI();
   updatePinLockTimer();
   if (pinLockTimer) clearInterval(pinLockTimer);

@@ -619,6 +619,20 @@ app.post('/api/verify-pin', requireAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ valid: false }); }
 });
 
+// Comprueba si la IP del cliente tiene bloqueo de PIN activo en el servidor
+// El frontend lo consulta al abrir el modal para sincronizar con el localStorage
+app.get('/api/pin-lock-status', requireAuth, (req, res) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+  const entry = pinAttempts.get(ip);
+  const ahora = Date.now();
+  if (!entry || ahora - entry.firstAt > PIN_WINDOW || entry.count < PIN_MAX) {
+    return res.json({ bloqueado: false });
+  }
+  const waitMs   = PIN_WINDOW - (ahora - entry.firstAt);
+  const waitMins = Math.ceil(waitMs / 60000);
+  res.json({ bloqueado: true, waitMins });
+});
+
 app.post('/api/change-password', requireAuth, async (req, res) => {
   try {
     const { username, currentPassword, newPassword } = req.body;
