@@ -268,6 +268,20 @@ const mantenimientoSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Mantenimiento = mongoose.model('Mantenimiento', mantenimientoSchema);
 
+// ── Cola de reintentos de push ─────────────────────────────────────────────
+// Guarda pushes fallidos para reintentarlos hasta 2 veces con delay de 2 min
+const pushQueueSchema = new mongoose.Schema({
+  username:     { type: String, required: true },
+  endpoint:     { type: String, required: true }, // para identificar la sub
+  subscription: { type: Object, required: true },
+  payload:      { type: String, required: true }, // JSON serializado
+  intentos:     { type: Number, default: 0 },
+  maxIntentos:  { type: Number, default: 2 },
+  proximoIntento: { type: Date, default: () => new Date(Date.now() + 2 * 60 * 1000) },
+  creadoEn:     { type: Date, default: Date.now },
+}, { collection: 'push_queue' });
+const PushQueue = mongoose.model('PushQueue', pushQueueSchema);
+
 // Mapa temporal de códigos SMS: username -> { codigo, expira }
 const smsVerifCodes = new Map();
 
@@ -388,6 +402,19 @@ async function checkSensorAgua(sensor) {
   } catch (e) { console.error(`❌ Error agua ${sensor.nombre}:`, e.message); }
 }
 
+// Helper: descripción legible del dispositivo a partir del User-Agent
+function parseUaServer(ua) {
+  if (!ua) return 'Dispositivo desconocido';
+  if (/iPhone/.test(ua))  return 'iPhone';
+  if (/iPad/.test(ua))    return 'iPad';
+  if (/Android/.test(ua) && /Mobile/.test(ua)) return 'Android';
+  if (/Android/.test(ua)) return 'Tablet Android';
+  if (/Windows/.test(ua)) return 'Windows';
+  if (/Macintosh/.test(ua)) return 'Mac';
+  if (/Linux/.test(ua))   return 'Linux';
+  return 'Navegador';
+}
+
 // --- 8. PUSH NOTIFICATIONS ---
 async function sendPushNotification(action, triggeredBy, ubicacion = null) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
@@ -442,10 +469,69 @@ async function sendPushNotification(action, triggeredBy, ubicacion = null) {
   });
 
   await Promise.allSettled(subs.map(async sub => {
-    try { await webpush.sendNotification(sub.subscription, payload); }
-    catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await PushSub.deleteOne({ _id: sub._id }); }
+    try {
+      await webpush.sendNotification(sub.subscription, payload);
+    } catch (e) {
+      if (e.statusCode === 404 || e.statusCode === 410) {
+        // Suscripción caducada — borrar definitivamente
+        await PushSub.deleteOne({ _id: sub._id });
+      } else {
+        // Fallo temporal (red, servidor push caído) — encolar para reintento
+        try {
+          await PushQueue.findOneAndUpdate(
+            { endpoint: sub.subscription.endpoint },
+            {
+              username: sub.username,
+              subscription: sub.subscription,
+              payload,
+              intentos: 0,
+              proximoIntento: new Date(Date.now() + 2 * 60 * 1000)
+            },
+            { upsert: true, new: true }
+          );
+        } catch(qErr) { console.error('❌ Error encolando push fallido:', qErr.message); }
+      }
+    }
   }));
 }
+
+// ── Cron de reintentos de push (cada 2 minutos) ───────────────────────────
+setInterval(async () => {
+  try {
+    const ahora = new Date();
+    const pendientes = await PushQueue.find({
+      proximoIntento: { $lte: ahora },
+      intentos: { $lt: 2 }
+    }).limit(20);
+
+    if (!pendientes.length) return;
+    console.log(`🔄 Push retry: ${pendientes.length} pendiente(s)`);
+
+    for (const item of pendientes) {
+      try {
+        await webpush.sendNotification(item.subscription, item.payload);
+        await PushQueue.deleteOne({ _id: item._id }); // éxito — borrar de la cola
+        console.log(`✅ Push reintentado OK para ${item.username}`);
+      } catch(e) {
+        if (e.statusCode === 404 || e.statusCode === 410) {
+          // Suscripción caducada durante el reintento
+          await PushSub.deleteOne({ 'subscription.endpoint': item.endpoint });
+          await PushQueue.deleteOne({ _id: item._id });
+        } else if (item.intentos + 1 >= 2) {
+          // Agotados los reintentos — descartar
+          await PushQueue.deleteOne({ _id: item._id });
+          console.warn(`⚠️ Push descartado tras 2 reintentos para ${item.username}`);
+        } else {
+          // Reintento fallido — programar el siguiente en 2 minutos más
+          await PushQueue.updateOne({ _id: item._id }, {
+            $inc: { intentos: 1 },
+            $set: { proximoIntento: new Date(Date.now() + 2 * 60 * 1000) }
+          });
+        }
+      }
+    }
+  } catch(e) { console.error('❌ Error cron push retry:', e.message); }
+}, 2 * 60 * 1000);
 
 // --- 9. USUARIOS ---
 app.get('/api/usuarios', requireAuth, async (req, res) => { try { res.json(await User.find({}, '-password')); } catch (e) { res.status(500).json([]); } });
@@ -536,6 +622,30 @@ app.post('/api/login', async (req, res) => {
       const token = generateToken();
       const ua = req.headers['user-agent'] || '';
       await Session.create({ token, username: user.username, userAgent: ua, deviceName: (deviceName || '').trim().slice(0, 60) });
+
+      // Push de nueva sesión — al propio usuario Y al admin (si son distintos)
+      const dispositivoDesc = deviceName?.trim() || parseUaServer(ua);
+      const horaLogin = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: process.env.TZ || 'Europe/Madrid' });
+      const payloadNuevaSesion = JSON.stringify({
+        title: '🔑 Nueva sesión iniciada',
+        body:  `${user.name || username} — ${dispositivoDesc} · ${horaLogin}`,
+        icon:  '/icon-192.png',
+        badge: '/icon-192.png',
+        data:  { url: '/' }
+      });
+
+      // Notificar al propio usuario (todos sus dispositivos ya registrados)
+      const subsUsuario = await PushSub.find({ username: user.username });
+      // Notificar también a todos los admins (excepto si el propio usuario es admin, para no duplicar)
+      const admins = await User.find({ role: 'admin', username: { $ne: user.username } }, 'username');
+      const usernamesToNotify = new Set([...subsUsuario.map(s => s.username), ...admins.map(a => a.username)]);
+      const subsNotificar = await PushSub.find({ username: { $in: [...usernamesToNotify] } });
+
+      Promise.allSettled(subsNotificar.map(async sub => {
+        try { await webpush.sendNotification(sub.subscription, payloadNuevaSesion); }
+        catch(e) { if (e.statusCode === 404 || e.statusCode === 410) await PushSub.deleteOne({ _id: sub._id }); }
+      })).catch(() => {});
+
       res.json({ success: true, token, user: { name: user.name, username: user.username, role: user.role, isNew: user.isNew, avatar: user.avatar || null, telefono: user.telefono || null, telefonoVerificado: user.telefonoVerificado || false } });
     }
     else res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
