@@ -1898,6 +1898,198 @@ app.get('/api/admin/sessions-push-status', requireAuth, async (req, res) => {
   }
 });
 
+// ── DIAGNÓSTICO COMPLETO DEL SISTEMA ─────────────────────────────────────
+app.get('/api/admin/diagnostico', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Solo admins' });
+
+    const resultado = {};
+
+    // 1. MongoDB — latencia real
+    try {
+      const t0 = Date.now();
+      await Log.findOne().lean();
+      resultado.mongodb = { ok: true, ms: Date.now() - t0 };
+    } catch(e) {
+      resultado.mongodb = { ok: false, error: e.message };
+    }
+
+    // 2. Twilio — estado de cuenta via API REST
+    try {
+      if (!TWILIO_SID || !TWILIO_TOKEN || !twilioClient) {
+        resultado.twilio = { ok: false, error: 'No configurado (faltan TWILIO_SID / TWILIO_TOKEN)' };
+      } else {
+        const account = await twilioClient.api.accounts(TWILIO_SID).fetch();
+        resultado.twilio = {
+          ok:     account.status === 'active',
+          status: account.status,
+          nombre: account.friendlyName,
+          from:   TWILIO_FROM || '(sin TWILIO_FROM)',
+        };
+      }
+    } catch(e) {
+      resultado.twilio = { ok: false, error: e.message };
+    }
+
+    // 3. Push (VAPID) — claves + número de suscripciones
+    try {
+      if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+        resultado.push = { ok: false, error: 'Claves VAPID no configuradas' };
+      } else {
+        const total = await PushSub.countDocuments();
+        resultado.push = { ok: true, suscripciones: total };
+      }
+    } catch(e) {
+      resultado.push = { ok: false, error: e.message };
+    }
+
+    // 4. Tuya A — centralita (sensor de luz / alarma)
+    try {
+      if (!TUYA_CLIENT_ID_ALARMA || !TUYA_CLIENT_SECRET_ALARMA || !SENSOR_LUZ_ID) {
+        resultado.tuyaA = { ok: false, error: 'Credenciales Tuya A no configuradas' };
+      } else {
+        const t0 = Date.now();
+        const data = await tuyaAlarma('GET', `/v1.0/devices/${SENSOR_LUZ_ID}`);
+        resultado.tuyaA = {
+          ok:     data.success === true,
+          online: data.result?.online === true,
+          ms:     Date.now() - t0,
+          error:  data.success ? undefined : (data.msg || 'Error Tuya A'),
+        };
+      }
+    } catch(e) {
+      resultado.tuyaA = { ok: false, error: e.message };
+    }
+
+    // 5. Tuya B — panel + sensores agua
+    try {
+      if (!TUYA_CLIENT_ID || !TUYA_CLIENT_SECRET || !TUYA_DEVICE_ID) {
+        resultado.tuyaB = { ok: false, error: 'Credenciales Tuya B no configuradas' };
+      } else {
+        const t0 = Date.now();
+        const data = await tuyaNormal('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
+        resultado.tuyaB = {
+          ok:     data.success === true,
+          online: data.result?.online === true,
+          ms:     Date.now() - t0,
+          error:  data.success ? undefined : (data.msg || 'Error Tuya B'),
+        };
+      }
+    } catch(e) {
+      resultado.tuyaB = { ok: false, error: e.message };
+    }
+
+    // 6. Heartbeat MacroDroid
+    const ahora = Date.now();
+    const segsDesde = Math.floor((ahora - ultimoHeartbeat) / 1000);
+    resultado.heartbeat = {
+      ok:            (ahora - ultimoHeartbeat) < HEARTBEAT_TIMEOUT_MS,
+      segundosDesde: segsDesde,
+      alertaActiva:  heartbeatAlertaEnviada,
+    };
+
+    res.json({ success: true, resultado, ts: new Date().toISOString() });
+  } catch(e) {
+    console.error('❌ Error diagnóstico:', e.message);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// ── ESTADO MEMORIA EN TIEMPO REAL + ACCIONES DE LIMPIEZA ─────────────────
+app.get('/api/admin/memoria', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Solo admins' });
+
+    const ahora = Date.now();
+
+    // loginAttempts: enriquecer con tiempo restante
+    const logins = [];
+    for (const [ip, entry] of loginAttempts) {
+      const expiresAt = entry.firstAt + LOGIN_WINDOW;
+      if (expiresAt > ahora) // solo los activos
+        logins.push({ ip, intentos: entry.count, max: LOGIN_MAX, expiraEn: Math.ceil((expiresAt - ahora) / 1000) });
+    }
+
+    // pinAttempts
+    const pins = [];
+    for (const [ip, entry] of pinAttempts) {
+      const expiresAt = entry.firstAt + PIN_WINDOW;
+      if (expiresAt > ahora)
+        pins.push({ ip, intentos: entry.count, max: PIN_MAX, expiraEn: Math.ceil((expiresAt - ahora) / 1000) });
+    }
+
+    // smsSendCooldown
+    const smsCooldowns = [];
+    for (const [username, ts] of smsSendCooldown) {
+      const expiresAt = ts + SMS_COOLDOWN_MS;
+      if (expiresAt > ahora)
+        smsCooldowns.push({ username, expiraEn: Math.ceil((expiresAt - ahora) / 1000) });
+    }
+
+    // smsVerifCodes — solo si hay código pendiente
+    const smsCodigos = [];
+    for (const [username, entry] of smsVerifCodes) {
+      if (entry.expira > ahora)
+        smsCodigos.push({ username, telefono: entry.telefono, expiraEn: Math.ceil((entry.expira - ahora) / 1000) });
+    }
+
+    // pinIntentosFallidos Twilio (por número)
+    const pinFallidos = [];
+    for (const [numero, entry] of pinIntentosFallidos) {
+      pinFallidos.push({ numero, nombre: entry.nombre });
+    }
+
+    // Estado Twilio secuencia activa
+    const twilioEstado = {
+      confirmacion:   twilioConfirmacion,
+      secuenciaIdx:   twilioSecuenciaIdx,
+      numerosActivos: twilioNumerosActivos.length,
+    };
+
+    res.json({
+      success: true,
+      logins, pins, smsCooldowns, smsCodigos, pinFallidos, twilioEstado,
+      ts: new Date().toISOString()
+    });
+  } catch(e) {
+    console.error('❌ Error /api/admin/memoria:', e.message);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// Limpiar una entrada concreta de los mapas en memoria
+app.post('/api/admin/memoria/limpiar', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Solo admins' });
+
+    const { mapa, clave } = req.body; // mapa: 'login'|'pin'|'smsCooldown'|'smsVerif'|'pinFallidos'
+    let eliminado = false;
+    if (mapa === 'login'        && clave) { loginAttempts.delete(clave);   eliminado = true; }
+    if (mapa === 'pin'          && clave) { pinAttempts.delete(clave);      eliminado = true; }
+    if (mapa === 'smsCooldown'  && clave) { smsSendCooldown.delete(clave);  eliminado = true; }
+    if (mapa === 'smsVerif'     && clave) { smsVerifCodes.delete(clave);    eliminado = true; }
+    if (mapa === 'pinFallidos'  && clave) { pinIntentosFallidos.delete(clave); eliminado = true; }
+    // Limpiar TODO un mapa
+    if (mapa === 'login'       && !clave) { loginAttempts.clear();          eliminado = true; }
+    if (mapa === 'pin'         && !clave) { pinAttempts.clear();            eliminado = true; }
+    if (mapa === 'smsCooldown' && !clave) { smsSendCooldown.clear();        eliminado = true; }
+    if (mapa === 'smsVerif'    && !clave) { smsVerifCodes.clear();          eliminado = true; }
+    if (mapa === 'pinFallidos' && !clave) { pinIntentosFallidos.clear();    eliminado = true; }
+
+    if (!eliminado) return res.status(400).json({ success: false, message: 'Mapa desconocido o sin clave' });
+    console.log(`🧹 [Admin] Limpiado mapa '${mapa}' clave '${clave || 'ALL'}' por ${req.sessionUser}`);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // Devuelve el número de Twilio y el logo para el vCard del contacto Verisure
 app.get('/api/twilio-number', requireAuth, async (req, res) => {
   let logoB64 = '';
