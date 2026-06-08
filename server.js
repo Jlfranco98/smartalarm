@@ -1726,7 +1726,6 @@ app.post('/api/admin/test-call', requireAuth, async (req, res) => {
       to:  telefono,
       from: TWILIO_FROM,
       url: twimlUrl,
-      statusCallback: `${backendUrl}/twilio/status`,
       timeLimit: 30,
     });
 
@@ -1786,7 +1785,7 @@ app.post('/api/admin/simulacro', requireAuth, async (req, res) => {
         try {
           const call = await twilioClient.calls.create({
             to: telefono, from: TWILIO_FROM, url: twimlUrl,
-            statusCallback: `${backendUrl}/twilio/status`, timeLimit: 30,
+            timeLimit: 30,
           });
           results.llamada = { numero: telefono, nombre, sid: call.sid };
           console.log(`🧪 Simulacro: llamada a ${nombre} (${telefono}) — ${call.sid}`);
