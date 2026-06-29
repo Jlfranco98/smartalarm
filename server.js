@@ -1920,6 +1920,47 @@ app.post('/api/admin/test-call', requireAuth, async (req, res) => {
   }
 });
 
+});
+
+// ── ADMIN: SMS DE PRUEBA ──────────────────────────────────────────────────
+app.post('/api/admin/test-sms', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.sessionUser });
+    if (!user || user.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Solo admins' });
+
+    if (!twilioClient || !TWILIO_FROM)
+      return res.status(400).json({ success: false, message: 'Twilio no está configurado en el servidor' });
+
+    const { username } = req.body; // null = todos, string = usuario concreto
+    const query = username
+      ? { username, telefonoVerificado: true, telefono: { $ne: null } }
+      : { telefonoVerificado: true, telefono: { $ne: null } };
+
+    const usuarios = await User.find(query, 'telefono name');
+    if (!usuarios.length)
+      return res.status(400).json({ success: false, message: 'No hay usuarios con teléfono verificado' });
+
+    const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: process.env.TZ || 'Europe/Madrid' });
+    const texto = `🧪 SMS de prueba — Smart Alarm\nEste es un mensaje de prueba enviado manualmente desde el panel de diagnóstico.\n${hora}`;
+
+    const resultados = await Promise.allSettled(usuarios.map(u =>
+      twilioClient.messages.create({ to: u.telefono, from: TWILIO_FROM, body: texto })
+    ));
+
+    const enviados = resultados.filter(r => r.status === 'fulfilled').length;
+    const fallidos = resultados.filter(r => r.status === 'rejected').length;
+
+    console.log(`🧪 SMS de prueba: ${enviados} enviados, ${fallidos} fallidos`);
+    await new Log({ usuario: req.sessionUser, accion: `🧪 SMS de prueba enviado a ${enviados} usuario(s)` }).save();
+
+    res.json({ success: true, enviados, fallidos });
+  } catch(e) {
+    console.error('❌ Error SMS de prueba:', e.message);
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // ── ADMIN: MODO SIMULACRO (push + llamada sin tocar Tuya) ─────────────────
 app.post('/api/admin/simulacro', requireAuth, async (req, res) => {
   try {
