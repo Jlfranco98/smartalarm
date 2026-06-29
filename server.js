@@ -1004,7 +1004,7 @@ app.get('/alerta-alarma', async (req, res) => {
 
     await sendPushNotification('sensor_luz', 'Verisure');
     await llamarAlarma();
-    enviarSmsAlarma('ALARMA SALTADA', 'Se ha disparado la alarma de tu hogar en C/ Sondalezas Nº33.')
+    await enviarSmsAlarma('ALARMA SALTADA', 'Se ha disparado la alarma de tu hogar en C/ Sondalezas Nº33.');
 
     res.status(200).send("✅ Alerta procesada");
   } catch (e) {
@@ -1087,7 +1087,7 @@ app.get('/alerta-agua', async (req, res) => {
 
     // 2. Enviar notificación push con el ID correcto
     await sendPushNotification('sensor_agua_' + sensorId, `Verisure`);
-    enviarSmsAlarma('FUGA DE AGUA', `Sensor detectado: ${sensor}`)
+    await enviarSmsAlarma('FUGA DE AGUA', `Sensor detectado: ${sensor}`);
 
     res.status(200).send("✅ Alerta de agua procesada correctamente, enviando alerta");
   } catch (e) {
