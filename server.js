@@ -415,6 +415,39 @@ function parseUaServer(ua) {
   return 'Navegador';
 }
 
+// ── SMS de alerta a todos los usuarios con teléfono verificado ─────────────
+async function enviarSmsAlarma(titulo, mensaje) {
+  if (!twilioClient || !TWILIO_FROM) {
+    console.warn('⚠️ Twilio no configurado — SMS omitido');
+    return;
+  }
+  try {
+    const usuarios = await User.find({ telefonoVerificado: true, telefono: { $ne: null } }, 'telefono name');
+    if (!usuarios.length) {
+      console.warn('⚠️ No hay usuarios con teléfono verificado para SMS');
+      return;
+    }
+    const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: process.env.TZ || 'Europe/Madrid' });
+    const textoSms = `${titulo}\n${mensaje}\n${hora} · Smart Alarm`;
+
+    console.log(`📨 Enviando SMS de alerta a ${usuarios.length} usuario(s)`);
+    await Promise.allSettled(usuarios.map(async u => {
+      try {
+        await twilioClient.messages.create({
+          to:   u.telefono,
+          from: TWILIO_FROM,
+          body: textoSms
+        });
+        console.log(`✅ SMS enviado a ${u.name} (${u.telefono})`);
+      } catch(e) {
+        console.error(`❌ Error SMS a ${u.name} (${u.telefono}):`, e.message);
+      }
+    }));
+  } catch(e) {
+    console.error('❌ Error en enviarSmsAlarma:', e.message);
+  }
+}
+
 // --- 8. PUSH NOTIFICATIONS ---
 async function sendPushNotification(action, triggeredBy, ubicacion = null) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
@@ -948,6 +981,7 @@ app.get('/alerta-alarma', async (req, res) => {
 
     await sendPushNotification('sensor_luz', 'Verisure');
     await llamarAlarma();
+    enviarSmsAlarma('ALARMA SALTADA', 'Se ha disparado la alarma de tu hogar en C/ Sondalezas Nº33.')
 
     res.status(200).send("✅ Alerta procesada");
   } catch (e) {
@@ -1030,6 +1064,7 @@ app.get('/alerta-agua', async (req, res) => {
 
     // 2. Enviar notificación push con el ID correcto
     await sendPushNotification('sensor_agua_' + sensorId, `Verisure`);
+    enviarSmsAlarma('FUGA DE AGUA', `Sensor detectado: ${sensor}`)
 
     res.status(200).send("✅ Alerta de agua procesada correctamente, enviando alerta");
   } catch (e) {
