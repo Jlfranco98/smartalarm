@@ -1940,19 +1940,22 @@ app.post('/api/admin/test-sms', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'No hay usuarios con teléfono verificado' });
 
     const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: process.env.TZ || 'Europe/Madrid' });
-    const texto = `🧪 SMS de prueba — Smart Alarm\nEste es un mensaje de prueba enviado manualmente desde el panel de diagnóstico.\n${hora}`;
+    const texto = `SMS de prueba - Smart Alarm\nMensaje de prueba enviado desde el panel de diagnostico.\n${hora}`;
 
     const resultados = await Promise.allSettled(usuarios.map(u =>
       twilioClient.messages.create({ to: u.telefono, from: TWILIO_FROM, body: texto })
     ));
 
     const enviados = resultados.filter(r => r.status === 'fulfilled').length;
-    const fallidos = resultados.filter(r => r.status === 'rejected').length;
+    const errores  = resultados
+      .map((r, i) => r.status === 'rejected' ? `${usuarios[i].name || usuarios[i].telefono}: ${r.reason?.message || r.reason}` : null)
+      .filter(Boolean);
 
-    console.log(`🧪 SMS de prueba: ${enviados} enviados, ${fallidos} fallidos`);
-    await new Log({ usuario: req.sessionUser, accion: `🧪 SMS de prueba enviado a ${enviados} usuario(s)` }).save();
+    console.log(`SMS de prueba: ${enviados} enviados, ${errores.length} fallidos`);
+    if (errores.length) console.error('Error SMS prueba:', errores);
+    await new Log({ usuario: req.sessionUser, accion: `SMS de prueba enviado a ${enviados} usuario(s)` }).save();
 
-    res.json({ success: true, enviados, fallidos });
+    res.json({ success: true, enviados, fallidos: errores.length, errores });
   } catch(e) {
     console.error('❌ Error SMS de prueba:', e.message);
     res.status(500).json({ success: false, message: e.message });

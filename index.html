@@ -4664,7 +4664,11 @@ async function enviarSmsPrueba() {
     });
     const data = await res.json();
     if (data.success) {
-      if (msg) { msg.style.color = 'var(--green)'; msg.textContent = `✅ SMS enviado a ${data.enviados} contacto(s)`; setTimeout(() => msg.textContent = '', 5000); }
+      if (data.fallidos > 0 && data.errores?.length) {
+        if (msg) { msg.style.color = 'var(--orange)'; msg.textContent = `⚠️ ${data.enviados} enviados, ${data.fallidos} fallido(s): ${data.errores.join(' | ')}`; }
+      } else {
+        if (msg) { msg.style.color = 'var(--green)'; msg.textContent = `✅ SMS enviado a ${data.enviados} contacto(s)`; setTimeout(() => msg.textContent = '', 5000); }
+      }
     } else {
       if (msg) { msg.style.color = 'var(--red)'; msg.textContent = `❌ ${data.message}`; }
     }
