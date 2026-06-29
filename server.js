@@ -1920,8 +1920,6 @@ app.post('/api/admin/test-call', requireAuth, async (req, res) => {
   }
 });
 
-});
-
 // ── ADMIN: SMS DE PRUEBA ──────────────────────────────────────────────────
 app.post('/api/admin/test-sms', requireAuth, async (req, res) => {
   try {
