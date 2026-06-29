@@ -1940,7 +1940,7 @@ app.post('/api/admin/test-sms', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'No hay usuarios con teléfono verificado' });
 
     const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: process.env.TZ || 'Europe/Madrid' });
-    const texto = `SMART ALARM\nMensaje de prueba enviado desde el panel de diagnostico.\n${hora}`;
+    const texto = `SMS de prueba - Smart Alarm\nMensaje de prueba enviado desde el panel de diagnostico.\n${hora}`;
 
     const resultados = await Promise.allSettled(usuarios.map(u =>
       twilioClient.messages.create({ to: u.telefono, from: TWILIO_FROM, body: texto })
@@ -2063,6 +2063,17 @@ app.post('/api/admin/debug-push', requireAuth, async (req, res) => {
       title, body,
       icon: '/icon-192.png', badge: '/icon-192.png', data: { url: '/' }
     });
+
+    // Persistir en bandeja según destinatario
+    try {
+      if (target === 'me') {
+        await NotifLog.create({ username: req.sessionUser, title, body });
+      } else if (target === 'user' && username) {
+        await NotifLog.create({ username, title, body });
+      } else {
+        await NotifLog.create({ username: null, title, body });
+      }
+    } catch(logErr) { console.error('❌ Error guardando NotifLog (debug):', logErr.message); }
 
     const results = await Promise.allSettled(subs.map(async sub => {
       try { await webpush.sendNotification(sub.subscription, payload); return 'ok'; }
