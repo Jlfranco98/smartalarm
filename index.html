@@ -7675,6 +7675,9 @@ async function tryBiometricAuth() {
 function _bandejaKey() {
   return 'bandeja_' + (S.currentUser?.username || 'guest');
 }
+function _bandejaDescKey() {
+  return 'bandeja_desc_' + (S.currentUser?.username || 'guest');
+}
 
 function bandejaLoad() {
   try { return JSON.parse(localStorage.getItem(_bandejaKey()) || '[]'); }
@@ -7686,8 +7689,28 @@ function bandejaSave(items) {
   catch(e) {}
 }
 
+// Set de timestamps descartados — impide que el poll los vuelva a añadir
+function bandejaDescLoad() {
+  try { return new Set(JSON.parse(localStorage.getItem(_bandejaDescKey()) || '[]')); }
+  catch(e) { return new Set(); }
+}
+function bandejaDescSave(set) {
+  try {
+    // Mantener solo los últimos 200 para no crecer indefinidamente
+    const arr = [...set].slice(-200);
+    localStorage.setItem(_bandejaDescKey(), JSON.stringify(arr));
+  } catch(e) {}
+}
+function bandejaDescAdd(ts) {
+  const set = bandejaDescLoad();
+  set.add(ts);
+  bandejaDescSave(set);
+}
+
 /** Añade una notificación a la bandeja. */
 function bandejaAgregar({ title, body, type = 'default', ts = Date.now() }) {
+  // Ignorar si fue descartada por el usuario
+  if (bandejaDescLoad().has(ts)) return;
   const items = bandejaLoad();
   // Deduplicar: ignorar si ya existe un item con mismo title+body en los últimos 10 segundos
   const YA_EXISTE = items.some(i => i.title === title && i.body === body && Math.abs(i.ts - ts) < 10000);
@@ -7779,14 +7802,20 @@ function bandejaMarcarTodo() {
 }
 
 function bandejaBorrar(id) {
-  const items = bandejaLoad().filter(n => n.id !== id);
+  const all   = bandejaLoad();
+  const item  = all.find(n => n.id === id);
+  if (item) bandejaDescAdd(item.ts); // marcar como descartado para que el poll no lo reponga
+  const items = all.filter(n => n.id !== id);
   bandejaSave(items);
   bandejaBadgeUpdate();
   bandejaRender();
 }
 
 function bandejaLimpiarLeidas() {
-  const items = bandejaLoad().filter(n => !n.leida);
+  const all    = bandejaLoad();
+  // Marcar los ts de las leídas como descartados
+  all.filter(n => n.leida).forEach(n => bandejaDescAdd(n.ts));
+  const items  = all.filter(n => !n.leida);
   bandejaSave(items);
   bandejaBadgeUpdate();
   bandejaRender();
