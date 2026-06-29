@@ -268,6 +268,18 @@ const mantenimientoSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Mantenimiento = mongoose.model('Mantenimiento', mantenimientoSchema);
 
+// ── Log de notificaciones push (bandeja de entrada) ───────────────────────
+const notifLogSchema = new mongoose.Schema({
+  // null = enviada a todos; username concreto = solo ese usuario
+  username: { type: String, default: null },
+  title:    { type: String, required: true },
+  body:     { type: String, default: '' },
+  ts:       { type: Date, default: Date.now },
+}, { collection: 'notif_log' });
+// TTL: borrar automáticamente entradas con más de 30 días
+notifLogSchema.index({ ts: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
+const NotifLog = mongoose.model('NotifLog', notifLogSchema);
+
 // ── Cola de reintentos de push ─────────────────────────────────────────────
 // Guarda pushes fallidos para reintentarlos hasta 2 veces con delay de 2 min
 const pushQueueSchema = new mongoose.Schema({
@@ -500,6 +512,17 @@ async function sendPushNotification(action, triggeredBy, ubicacion = null) {
     badge: '/icon-192.png',
     data: mapsUrl ? { url: mapsUrl } : { url: '/' }
   });
+
+  // Persistir en bandeja (una sola entrada: null = para todos, o username concreto)
+  try {
+    const parsedPayload = JSON.parse(payload);
+    if (notificarATodos) {
+      await NotifLog.create({ username: null, title: parsedPayload.title, body: parsedPayload.body });
+    } else {
+      const usernames = [...new Set(subs.map(s => s.username))];
+      await NotifLog.insertMany(usernames.map(u => ({ username: u, title: parsedPayload.title, body: parsedPayload.body })));
+    }
+  } catch(logErr) { console.error('❌ Error guardando NotifLog:', logErr.message); }
 
   await Promise.allSettled(subs.map(async sub => {
     try {
@@ -2611,6 +2634,18 @@ app.get('/api/webauthn/credentials', requireAuth, async (req, res) => {
       createdAt: c.createdAt,
     })));
   } catch(e) { res.status(500).json([]); }
+});
+
+// ── Bandeja de notificaciones: recientes desde un timestamp ───────────────
+app.get('/api/notificaciones/recientes', requireAuth, async (req, res) => {
+  try {
+    const since = new Date(parseInt(req.query.since) || 0);
+    const docs = await NotifLog.find({
+      ts: { $gt: since },
+      $or: [{ username: req.sessionUser }, { username: null }]
+    }).sort({ ts: -1 }).limit(50);
+    res.json(docs.map(d => ({ title: d.title, body: d.body, ts: d.ts })));
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.listen(PORT, async () => {
