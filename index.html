@@ -3618,9 +3618,11 @@ function navTo(page){
     updateNotifPermCard();
   }
   if(page==='bandeja'){
-    bandejaRender();
-    bandejaMarcarTodo(); // al abrir la bandeja se marcan todas como leídas automáticamente
-    bandejaBadgeUpdate();
+    bandejaPollRecientes().then(() => {
+      bandejaRender();
+      bandejaMarcarTodo();
+      bandejaBadgeUpdate();
+    });
   }
 }
 
@@ -7687,6 +7689,9 @@ function bandejaSave(items) {
 /** Añade una notificación a la bandeja. */
 function bandejaAgregar({ title, body, type = 'default', ts = Date.now() }) {
   const items = bandejaLoad();
+  // Deduplicar: ignorar si ya existe un item con mismo title+body en los últimos 10 segundos
+  const YA_EXISTE = items.some(i => i.title === title && i.body === body && Math.abs(i.ts - ts) < 10000);
+  if (YA_EXISTE) return;
   const id = 'bn_' + ts + '_' + Math.random().toString(36).slice(2, 7);
   items.unshift({ id, title, body, type, ts, leida: false });
   if (items.length > 100) items.splice(100);
@@ -7814,7 +7819,7 @@ if ('serviceWorker' in navigator) {
 
 // ── Poll ligero al backend (por si el SW no manda postMessage) ─────────────
 let _bandejaPollTimer = null;
-let _bandejaLastTs    = Date.now();
+let _bandejaLastTs    = 0; // 0 = primera carga trae histórico de MongoDB
 
 async function bandejaPollRecientes() {
   if (!S.currentUser || !S.sessionToken) return;
