@@ -268,18 +268,6 @@ const mantenimientoSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Mantenimiento = mongoose.model('Mantenimiento', mantenimientoSchema);
 
-// ── Log de notificaciones push (bandeja de entrada) ───────────────────────
-const notifLogSchema = new mongoose.Schema({
-  // null = enviada a todos; username concreto = solo ese usuario
-  username: { type: String, default: null },
-  title:    { type: String, required: true },
-  body:     { type: String, default: '' },
-  ts:       { type: Date, default: Date.now },
-}, { collection: 'notif_log' });
-// TTL: borrar automáticamente entradas con más de 30 días
-notifLogSchema.index({ ts: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
-const NotifLog = mongoose.model('NotifLog', notifLogSchema);
-
 // ── Cola de reintentos de push ─────────────────────────────────────────────
 // Guarda pushes fallidos para reintentarlos hasta 2 veces con delay de 2 min
 const pushQueueSchema = new mongoose.Schema({
@@ -427,39 +415,6 @@ function parseUaServer(ua) {
   return 'Navegador';
 }
 
-// ── SMS de alerta a todos los usuarios con teléfono verificado ─────────────
-async function enviarSmsAlarma(titulo, mensaje) {
-  if (!twilioClient || !TWILIO_FROM) {
-    console.warn('⚠️ Twilio no configurado — SMS omitido');
-    return;
-  }
-  try {
-    const usuarios = await User.find({ telefonoVerificado: true, telefono: { $ne: null } }, 'telefono name');
-    if (!usuarios.length) {
-      console.warn('⚠️ No hay usuarios con teléfono verificado para SMS');
-      return;
-    }
-    const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: process.env.TZ || 'Europe/Madrid' });
-    const textoSms = `${titulo}\n${mensaje}\n${hora} · Smart Alarm`;
-
-    console.log(`📨 Enviando SMS de alerta a ${usuarios.length} usuario(s)`);
-    await Promise.allSettled(usuarios.map(async u => {
-      try {
-        await twilioClient.messages.create({
-          to:   u.telefono,
-          from: TWILIO_FROM,
-          body: textoSms
-        });
-        console.log(`✅ SMS enviado a ${u.name} (${u.telefono})`);
-      } catch(e) {
-        console.error(`❌ Error SMS a ${u.name} (${u.telefono}):`, e.message);
-      }
-    }));
-  } catch(e) {
-    console.error('❌ Error en enviarSmsAlarma:', e.message);
-  }
-}
-
 // --- 8. PUSH NOTIFICATIONS ---
 async function sendPushNotification(action, triggeredBy, ubicacion = null) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
@@ -512,17 +467,6 @@ async function sendPushNotification(action, triggeredBy, ubicacion = null) {
     badge: '/icon-192.png',
     data: mapsUrl ? { url: mapsUrl } : { url: '/' }
   });
-
-  // Persistir en bandeja (una sola entrada: null = para todos, o username concreto)
-  try {
-    const parsedPayload = JSON.parse(payload);
-    if (notificarATodos) {
-      await NotifLog.create({ username: null, title: parsedPayload.title, body: parsedPayload.body });
-    } else {
-      const usernames = [...new Set(subs.map(s => s.username))];
-      await NotifLog.insertMany(usernames.map(u => ({ username: u, title: parsedPayload.title, body: parsedPayload.body })));
-    }
-  } catch(logErr) { console.error('❌ Error guardando NotifLog:', logErr.message); }
 
   await Promise.allSettled(subs.map(async sub => {
     try {
@@ -1004,7 +948,6 @@ app.get('/alerta-alarma', async (req, res) => {
 
     await sendPushNotification('sensor_luz', 'Verisure');
     await llamarAlarma();
-    await enviarSmsAlarma('ALARMA SALTADA', 'Se ha disparado la alarma de tu hogar en C/ Sondalezas Nº33.');
 
     res.status(200).send("✅ Alerta procesada");
   } catch (e) {
@@ -1087,7 +1030,6 @@ app.get('/alerta-agua', async (req, res) => {
 
     // 2. Enviar notificación push con el ID correcto
     await sendPushNotification('sensor_agua_' + sensorId, `Verisure`);
-    await enviarSmsAlarma('FUGA DE AGUA', `Sensor detectado: ${sensor}`);
 
     res.status(200).send("✅ Alerta de agua procesada correctamente, enviando alerta");
   } catch (e) {
@@ -1920,48 +1862,6 @@ app.post('/api/admin/test-call', requireAuth, async (req, res) => {
   }
 });
 
-// ── ADMIN: SMS DE PRUEBA ──────────────────────────────────────────────────
-app.post('/api/admin/test-sms', requireAuth, async (req, res) => {
-  try {
-    const user = await User.findOne({ username: req.sessionUser });
-    if (!user || user.role !== 'admin')
-      return res.status(403).json({ success: false, message: 'Solo admins' });
-
-    if (!twilioClient || !TWILIO_FROM)
-      return res.status(400).json({ success: false, message: 'Twilio no está configurado en el servidor' });
-
-    const { username } = req.body; // null = todos, string = usuario concreto
-    const query = username
-      ? { username, telefonoVerificado: true, telefono: { $ne: null } }
-      : { telefonoVerificado: true, telefono: { $ne: null } };
-
-    const usuarios = await User.find(query, 'telefono name');
-    if (!usuarios.length)
-      return res.status(400).json({ success: false, message: 'No hay usuarios con teléfono verificado' });
-
-    const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: process.env.TZ || 'Europe/Madrid' });
-    const texto = `SMS de prueba - Smart Alarm\nMensaje de prueba enviado desde el panel de diagnostico.\n${hora}`;
-
-    const resultados = await Promise.allSettled(usuarios.map(u =>
-      twilioClient.messages.create({ to: u.telefono, from: TWILIO_FROM, body: texto })
-    ));
-
-    const enviados = resultados.filter(r => r.status === 'fulfilled').length;
-    const errores  = resultados
-      .map((r, i) => r.status === 'rejected' ? `${usuarios[i].name || usuarios[i].telefono}: ${r.reason?.message || r.reason}` : null)
-      .filter(Boolean);
-
-    console.log(`SMS de prueba: ${enviados} enviados, ${errores.length} fallidos`);
-    if (errores.length) console.error('Error SMS prueba:', errores);
-    await new Log({ usuario: req.sessionUser, accion: `SMS de prueba enviado a ${enviados} usuario(s)` }).save();
-
-    res.json({ success: true, enviados, fallidos: errores.length, errores });
-  } catch(e) {
-    console.error('❌ Error SMS de prueba:', e.message);
-    res.status(500).json({ success: false, message: e.message });
-  }
-});
-
 // ── ADMIN: MODO SIMULACRO (push + llamada sin tocar Tuya) ─────────────────
 app.post('/api/admin/simulacro', requireAuth, async (req, res) => {
   try {
@@ -2063,17 +1963,6 @@ app.post('/api/admin/debug-push', requireAuth, async (req, res) => {
       title, body,
       icon: '/icon-192.png', badge: '/icon-192.png', data: { url: '/' }
     });
-
-    // Persistir en bandeja según destinatario
-    try {
-      if (target === 'me') {
-        await NotifLog.create({ username: req.sessionUser, title, body });
-      } else if (target === 'user' && username) {
-        await NotifLog.create({ username, title, body });
-      } else {
-        await NotifLog.create({ username: null, title, body });
-      }
-    } catch(logErr) { console.error('❌ Error guardando NotifLog (debug):', logErr.message); }
 
     const results = await Promise.allSettled(subs.map(async sub => {
       try { await webpush.sendNotification(sub.subscription, payload); return 'ok'; }
@@ -2687,18 +2576,6 @@ app.get('/api/webauthn/credentials', requireAuth, async (req, res) => {
       createdAt: c.createdAt,
     })));
   } catch(e) { res.status(500).json([]); }
-});
-
-// ── Bandeja de notificaciones: recientes desde un timestamp ───────────────
-app.get('/api/notificaciones/recientes', requireAuth, async (req, res) => {
-  try {
-    const since = new Date(parseInt(req.query.since) || 0);
-    const docs = await NotifLog.find({
-      ts: { $gt: since },
-      $or: [{ username: req.sessionUser }, { username: null }]
-    }).sort({ ts: -1 }).limit(50);
-    res.json(docs.map(d => ({ title: d.title, body: d.body, ts: d.ts })));
-  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.listen(PORT, async () => {

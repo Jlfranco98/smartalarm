@@ -345,90 +345,6 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 .hist-empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:14px;font-weight:700}
 .hist-empty-icon{font-size:36px;margin-bottom:10px}
 
-/* ══════════════════════════════════════════════════════════
-   BANDEJA DE NOTIFICACIONES
-══════════════════════════════════════════════════════════ */
-.bandeja-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:16px 16px 8px;
-}
-.bandeja-title{font-size:20px;font-weight:900;color:var(--text)}
-.bandeja-actions{display:flex;gap:8px;align-items:center}
-.bandeja-btn-leer{
-  font-size:12px;font-weight:800;color:var(--red);
-  background:none;border:none;cursor:pointer;padding:6px 10px;
-  border-radius:10px;
-}
-.bandeja-btn-leer:active{background:var(--red-light)}
-.bandeja-list{padding:0 16px 16px}
-.bn-item{
-  background:var(--white);border-radius:16px;
-  padding:14px 14px 12px;margin-bottom:10px;
-  box-shadow:0 1px 6px rgba(0,0,0,.06);
-  display:flex;gap:12px;align-items:flex-start;
-  position:relative;overflow:hidden;
-  transition:transform .12s;
-}
-.bn-item:active{transform:scale(0.98)}
-.bn-item.unread::before{
-  content:'';position:absolute;left:0;top:0;bottom:0;
-  width:4px;background:var(--red);border-radius:4px 0 0 4px;
-}
-.bn-icon-wrap{
-  width:42px;height:42px;border-radius:12px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:20px;flex-shrink:0;
-}
-.bn-icon-alarma{background:#fff0f1}
-.bn-icon-arm{background:#e8f5e9}
-.bn-icon-info{background:#fff8f0}
-.bn-icon-sos{background:#f3e5ff}
-.bn-icon-default{background:var(--bg)}
-.bn-body{flex:1;min-width:0}
-.bn-title{font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:2px;line-height:1.3}
-.bn-desc{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px;line-height:1.4}
-.bn-footer{display:flex;align-items:center;justify-content:space-between}
-.bn-time{font-size:11px;color:var(--muted);font-weight:700}
-.bn-badge-unread{
-  font-size:9px;font-weight:900;color:#fff;
-  background:var(--red);padding:2px 7px;border-radius:10px;
-  letter-spacing:.03em;
-}
-.bn-badge-read{
-  font-size:9px;font-weight:900;color:var(--muted);
-  background:var(--bg);padding:2px 7px;border-radius:10px;
-  border:1px solid var(--border);
-}
-.bn-del-btn{
-  background:none;border:none;cursor:pointer;
-  font-size:15px;padding:4px 6px;color:var(--muted);
-  border-radius:8px;flex-shrink:0;
-  transition:color .15s,background .15s;
-}
-.bn-del-btn:active{background:var(--red-light);color:var(--red)}
-.bandeja-empty{
-  padding:48px 20px;text-align:center;
-}
-.bandeja-empty-icon{font-size:48px;margin-bottom:12px;filter:grayscale(1);opacity:.5}
-.bandeja-empty-title{font-size:16px;font-weight:900;color:var(--text);margin-bottom:6px}
-.bandeja-empty-sub{font-size:13px;color:var(--muted);font-weight:600;line-height:1.5}
-
-/* Badge rojo en el drawer */
-.drawer-badge{
-  display:inline-flex;align-items:center;justify-content:center;
-  min-width:18px;height:18px;border-radius:9px;
-  background:var(--red);color:#fff;
-  font-size:10px;font-weight:900;padding:0 5px;
-  margin-left:auto;
-}
-/* Badge en el topbar */
-.tb-notif-badge{
-  position:absolute;top:-3px;right:-3px;
-  width:14px;height:14px;border-radius:50%;
-  background:var(--red);border:2px solid var(--white);
-  display:none;
-}
-
 /* ── Collapsible filter panel ─────────────────────────────────────── */
 .hf-filter-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;flex-shrink:0}
 .hf-filter-toggle.active{background:var(--red);border-color:var(--red);color:#fff}
@@ -1550,14 +1466,6 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       </div>
       <span class="drawer-item-label">Notificaciones</span>
     </button>
-
-    <button class="drawer-item" id="ditem-bandeja" onclick="drawerNav('bandeja')">
-      <div class="drawer-item-icon">
-        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-      </div>
-      <span class="drawer-item-label">Bandeja</span>
-      <span class="drawer-badge" id="drawer-bandeja-badge" style="display:none">0</span>
-    </button>
   </div>
 
   <!-- Pie: cerrar sesión -->
@@ -1627,10 +1535,6 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
     <div class="tb-address" id="tb-address">📍 C/ Sondalezas Nº33</div>
     <div class="tb-icons" style="display:flex;align-items:center;gap:6px">
       <div class="tb-status-dot ok" id="tb-status-dot" title="Estado dispositivos"></div>
-      <button class="tb-icon-btn" onclick="navTo('bandeja')" title="Bandeja" style="position:relative">
-        🔔
-        <span class="tb-notif-badge" id="tb-notif-badge"></span>
-      </button>
       <button class="tb-icon-btn" onclick="refreshStatus(event)" title="Actualizar">🔄</button>
     </div>
   </div>
@@ -2142,24 +2046,6 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
           <div id="test-call-msg" style="margin-top:8px;text-align:center;font-size:12px;font-weight:700;min-height:18px"></div>
         </div>
 
-        <!-- SMS de prueba -->
-        <div style="background:var(--white);border-radius:18px;padding:18px;margin-bottom:12px;box-shadow:0 2px 14px rgba(0,0,0,.06)">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-            <div style="width:40px;height:40px;border-radius:13px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💬</div>
-            <div>
-              <div style="font-size:14px;font-weight:900;color:var(--text)">SMS de prueba</div>
-              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px">Envía un SMS real al destinatario seleccionado</div>
-            </div>
-          </div>
-          <select id="test-sms-select" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text);background:var(--bg);appearance:none;margin-bottom:10px">
-            <option value="all">📢 Todos los usuarios verificados</option>
-          </select>
-          <button onclick="enviarSmsPrueba()" style="width:100%;padding:11px;background:#2e7d32;color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-            💬 Enviar SMS ahora
-          </button>
-          <div id="test-sms-msg" style="margin-top:8px;text-align:center;font-size:12px;font-weight:700;min-height:18px"></div>
-        </div>
-
         <!-- Modo simulacro -->
         <div style="background:var(--white);border-radius:18px;padding:18px;margin-bottom:12px;box-shadow:0 2px 14px rgba(0,0,0,.06)">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -2362,24 +2248,6 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       </div>
       <!-- FAB botón añadir -->
       <button class="auto-fab" onclick="openAutoModal()" id="auto-fab">＋</button>
-    </div>
-
-    <!-- ── BANDEJA DE NOTIFICACIONES ── -->
-    <div class="page" id="pg-bandeja">
-      <div class="bandeja-header">
-        <div class="bandeja-title">🔔 Bandeja</div>
-        <div class="bandeja-actions">
-          <button class="bandeja-btn-leer" onclick="bandejaMarcarTodo()">Marcar todo leído</button>
-          <button class="bandeja-btn-leer" onclick="bandejaLimpiarLeidas()" style="color:var(--muted)">🗑 Borrar leídas</button>
-        </div>
-      </div>
-      <div class="bandeja-list" id="bandeja-list">
-        <div class="bandeja-empty">
-          <div class="bandeja-empty-icon">🔔</div>
-          <div class="bandeja-empty-title">Sin notificaciones</div>
-          <div class="bandeja-empty-sub">Aquí aparecerán todas las alertas<br>aunque no lleguen al sistema</div>
-        </div>
-      </div>
     </div>
 
     <!-- ── NOTIFICACIONES ── -->
@@ -2965,7 +2833,7 @@ function load(){
       document.getElementById('s-app').classList.add('active');
       gestionarVisibilidadAdmin();
       // Usamos setTimeout para asegurarnos que el DOM está listo
-      setTimeout(() => { renderApp(); bandejaBadgeUpdate(); }, 0);
+      setTimeout(() => renderApp(), 0);
     }
   } catch(e) {}
 }
@@ -3617,13 +3485,6 @@ function navTo(page){
     loadNotifPrefs();
     updateNotifPermCard();
   }
-  if(page==='bandeja'){
-    bandejaPollRecientes().then(() => {
-      bandejaRender();
-      bandejaMarcarTodo();
-      bandejaBadgeUpdate();
-    });
-  }
 }
 
 // ── Estado alarma desde MongoDB ────────────────────────────────────────────
@@ -3662,12 +3523,9 @@ function startPolling(){
     await fetchStatus();
     await fetchHistorialGlobal();
   }, 15000); // Un único intervalo, cancelable
-  bandejaPollStart();
-  bandejaBadgeUpdate();
 }
 function stopPolling(){
   if(_pollTimer){ clearInterval(_pollTimer); _pollTimer = null; }
-  bandejaPollStop();
 }
 
 async function fetchHistorialGlobal() {
@@ -4654,31 +4512,6 @@ async function hacerLlamadaPrueba() {
   }
 }
 
-async function enviarSmsPrueba() {
-  const sel = document.getElementById('test-sms-select');
-  const msg = document.getElementById('test-sms-msg');
-  const target = sel?.value || 'all';
-  if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = '⏳ Enviando SMS...'; }
-  try {
-    const res = await authFetch('/api/admin/test-sms', {
-      method: 'POST',
-      body: JSON.stringify({ username: target === 'all' ? null : target })
-    });
-    const data = await res.json();
-    if (data.success) {
-      if (data.fallidos > 0 && data.errores?.length) {
-        if (msg) { msg.style.color = 'var(--orange)'; msg.textContent = `⚠️ ${data.enviados} enviados, ${data.fallidos} fallido(s): ${data.errores.join(' | ')}`; }
-      } else {
-        if (msg) { msg.style.color = 'var(--green)'; msg.textContent = `✅ SMS enviado a ${data.enviados} contacto(s)`; setTimeout(() => msg.textContent = '', 5000); }
-      }
-    } else {
-      if (msg) { msg.style.color = 'var(--red)'; msg.textContent = `❌ ${data.message}`; }
-    }
-  } catch(e) {
-    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = '❌ Error al enviar el SMS'; }
-  }
-}
-
 // ── ADMIN: MODO SIMULACRO ─────────────────────────────────────────────────
 
 async function ejecutarSimulacro() {
@@ -5013,34 +4846,19 @@ function debugPushTargetChanged() {
 }
 
 async function cargarUsuariosDebug() {
-  const sel     = document.getElementById('debug-push-user-select');
-  const selSms  = document.getElementById('test-sms-select');
+  const sel = document.getElementById('debug-push-user-select');
+  if (!sel) return;
   try {
     const res = await authFetch('/api/usuarios');
     if (!res.ok) return;
     const users = await res.json();
-
-    // Select push (solo username)
-    if (sel) {
-      sel.innerHTML = '<option value="">— Selecciona usuario —</option>';
-      users.forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u.username;
-        opt.textContent = `${u.name || u.username} (@${u.username})`;
-        sel.appendChild(opt);
-      });
-    }
-
-    // Select SMS (todos + solo usuarios con teléfono verificado)
-    if (selSms) {
-      selSms.innerHTML = '<option value="all">📢 Todos los usuarios verificados</option>';
-      users.filter(u => u.telefonoVerificado && u.telefono).forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u.username;
-        opt.textContent = `${u.name || u.username} · ${u.telefono.replace(/^\+34/, '')}`;
-        selSms.appendChild(opt);
-      });
-    }
+    sel.innerHTML = '<option value="">— Selecciona usuario —</option>';
+    users.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.username;
+      opt.textContent = `${u.name || u.username} (@${u.username})`;
+      sel.appendChild(opt);
+    });
   } catch(e) {}
 }
 
@@ -7666,217 +7484,6 @@ async function tryBiometricAuth() {
       document.getElementById('pm-err').textContent = 'Biometría no disponible — usa el PIN';
     }
   }
-}
-
-// ══════════════════════════════════════════════════════════
-//  BANDEJA DE NOTIFICACIONES — localStorage por usuario
-// ══════════════════════════════════════════════════════════
-
-function _bandejaKey() {
-  return 'bandeja_' + (S.currentUser?.username || 'guest');
-}
-function _bandejaDescKey() {
-  return 'bandeja_desc_' + (S.currentUser?.username || 'guest');
-}
-
-function bandejaLoad() {
-  try { return JSON.parse(localStorage.getItem(_bandejaKey()) || '[]'); }
-  catch(e) { return []; }
-}
-
-function bandejaSave(items) {
-  try { localStorage.setItem(_bandejaKey(), JSON.stringify(items)); }
-  catch(e) {}
-}
-
-// Set de timestamps descartados — impide que el poll los vuelva a añadir
-function bandejaDescLoad() {
-  try { return new Set(JSON.parse(localStorage.getItem(_bandejaDescKey()) || '[]')); }
-  catch(e) { return new Set(); }
-}
-function bandejaDescSave(set) {
-  try {
-    // Mantener solo los últimos 200 para no crecer indefinidamente
-    const arr = [...set].slice(-200);
-    localStorage.setItem(_bandejaDescKey(), JSON.stringify(arr));
-  } catch(e) {}
-}
-function bandejaDescAdd(ts) {
-  const set = bandejaDescLoad();
-  set.add(ts);
-  bandejaDescSave(set);
-}
-
-/** Añade una notificación a la bandeja. */
-function bandejaAgregar({ title, body, type = 'default', ts = Date.now() }) {
-  // Ignorar si fue descartada por el usuario
-  if (bandejaDescLoad().has(ts)) return;
-  const items = bandejaLoad();
-  // Deduplicar: ignorar si ya existe un item con mismo title+body en los últimos 10 segundos
-  const YA_EXISTE = items.some(i => i.title === title && i.body === body && Math.abs(i.ts - ts) < 10000);
-  if (YA_EXISTE) return;
-  const id = 'bn_' + ts + '_' + Math.random().toString(36).slice(2, 7);
-  items.unshift({ id, title, body, type, ts, leida: false });
-  if (items.length > 100) items.splice(100);
-  bandejaSave(items);
-  bandejaBadgeUpdate();
-  const pg = document.getElementById('pg-bandeja');
-  if (pg && pg.classList.contains('active')) bandejaRender();
-}
-
-function bandejaTipo(title, body) {
-  const t = (title + ' ' + body).toLowerCase();
-  if (t.includes('sos') || t.includes('pánico') || t.includes('panico')) return 'sos';
-  if (t.includes('salto') || t.includes('alarma saltada') || t.includes('🚨')) return 'alarma';
-  if (t.includes('conectad') || t.includes('armad') || t.includes('desarmad') || t.includes('desconect')) return 'arm';
-  return 'info';
-}
-
-const BANDEJA_ICONS = {
-  sos:     { emoji: '🆘', cls: 'bn-icon-sos' },
-  alarma:  { emoji: '🚨', cls: 'bn-icon-alarma' },
-  arm:     { emoji: '🔒', cls: 'bn-icon-arm' },
-  info:    { emoji: '🔔', cls: 'bn-icon-info' },
-  default: { emoji: '📬', cls: 'bn-icon-default' },
-};
-
-function bandejaFmtTime(ts) {
-  const d = new Date(ts);
-  const hoy = new Date();
-  const ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1);
-  const hm = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
-  if (d.toDateString() === hoy.toDateString()) return 'Hoy ' + hm;
-  if (d.toDateString() === ayer.toDateString()) return 'Ayer ' + hm;
-  return d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0') + ' ' + hm;
-}
-
-function bandejaRender() {
-  const list = document.getElementById('bandeja-list');
-  if (!list) return;
-  const items = bandejaLoad();
-  if (!items.length) {
-    list.innerHTML = `
-      <div class="bandeja-empty">
-        <div class="bandeja-empty-icon">🔔</div>
-        <div class="bandeja-empty-title">Sin notificaciones</div>
-        <div class="bandeja-empty-sub">Aquí aparecerán todas las alertas<br>aunque no lleguen al sistema</div>
-      </div>`;
-    return;
-  }
-  list.innerHTML = items.map(n => {
-    const tipo = n.type || bandejaTipo(n.title || '', n.body || '');
-    const cfg  = BANDEJA_ICONS[tipo] || BANDEJA_ICONS.default;
-    return `
-      <div class="bn-item ${n.leida ? '' : 'unread'}" onclick="bandejaMarcarLeida('${n.id}')">
-        <div class="bn-icon-wrap ${cfg.cls}">${cfg.emoji}</div>
-        <div class="bn-body">
-          <div class="bn-title">${escapeHtml(n.title || 'Notificación')}</div>
-          ${n.body ? `<div class="bn-desc">${escapeHtml(n.body)}</div>` : ''}
-          <div class="bn-footer">
-            <span class="bn-time">${bandejaFmtTime(n.ts)}</span>
-            <span class="${n.leida ? 'bn-badge-read' : 'bn-badge-unread'}">${n.leida ? 'Leída' : 'Nueva'}</span>
-          </div>
-        </div>
-        <button class="bn-del-btn" onclick="event.stopPropagation();bandejaBorrar('${n.id}')" title="Borrar">✕</button>
-      </div>`;
-  }).join('');
-}
-
-function bandejaMarcarLeida(id) {
-  const items = bandejaLoad();
-  const item  = items.find(n => n.id === id);
-  if (item && !item.leida) {
-    item.leida = true;
-    bandejaSave(items);
-    bandejaBadgeUpdate();
-    bandejaRender();
-  }
-}
-
-function bandejaMarcarTodo() {
-  const items = bandejaLoad();
-  items.forEach(n => n.leida = true);
-  bandejaSave(items);
-  bandejaBadgeUpdate();
-  bandejaRender();
-}
-
-function bandejaBorrar(id) {
-  const all   = bandejaLoad();
-  const item  = all.find(n => n.id === id);
-  if (item) bandejaDescAdd(item.ts); // marcar como descartado para que el poll no lo reponga
-  const items = all.filter(n => n.id !== id);
-  bandejaSave(items);
-  bandejaBadgeUpdate();
-  bandejaRender();
-}
-
-function bandejaLimpiarLeidas() {
-  const all    = bandejaLoad();
-  // Marcar los ts de las leídas como descartados
-  all.filter(n => n.leida).forEach(n => bandejaDescAdd(n.ts));
-  const items  = all.filter(n => !n.leida);
-  bandejaSave(items);
-  bandejaBadgeUpdate();
-  bandejaRender();
-}
-
-function bandejaBadgeUpdate() {
-  const items    = bandejaLoad();
-  const noLeidas = items.filter(n => !n.leida).length;
-  const badge    = document.getElementById('drawer-bandeja-badge');
-  if (badge) {
-    badge.style.display = noLeidas > 0 ? 'inline-flex' : 'none';
-    badge.textContent   = noLeidas > 99 ? '99+' : String(noLeidas);
-  }
-  const tbBadge = document.getElementById('tb-notif-badge');
-  if (tbBadge) tbBadge.style.display = noLeidas > 0 ? 'block' : 'none';
-}
-
-// ── Captura Service Worker messages ────────────────────────────────────────
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('message', function(event) {
-    const data = event.data;
-    if (!data) return;
-    const title = data.title || data.notification?.title || '';
-    const body  = data.body  || data.notification?.body  || '';
-    if (title || body) {
-      bandejaAgregar({ title, body, type: bandejaTipo(title, body), ts: Date.now() });
-    }
-  });
-}
-
-// ── Poll ligero al backend (por si el SW no manda postMessage) ─────────────
-let _bandejaPollTimer = null;
-let _bandejaLastTs    = 0; // 0 = primera carga trae histórico de MongoDB
-
-async function bandejaPollRecientes() {
-  if (!S.currentUser || !S.sessionToken) return;
-  try {
-    const res = await authFetch('/api/notificaciones/recientes?since=' + _bandejaLastTs);
-    if (!res.ok) return;
-    const data = await res.json();
-    if (Array.isArray(data) && data.length) {
-      data.forEach(n => {
-        bandejaAgregar({
-          title: n.title || n.titulo || '',
-          body:  n.body  || n.cuerpo || '',
-          type:  bandejaTipo(n.title || '', n.body || ''),
-          ts:    n.ts ? new Date(n.ts).getTime() : (n.fecha ? new Date(n.fecha).getTime() : Date.now())
-        });
-      });
-      _bandejaLastTs = Date.now();
-    }
-  } catch(e) { /* endpoint puede no existir aún — silenciar */ }
-}
-
-function bandejaPollStart() {
-  if (_bandejaPollTimer) return;
-  bandejaPollRecientes();
-  _bandejaPollTimer = setInterval(bandejaPollRecientes, 30000);
-}
-function bandejaPollStop() {
-  if (_bandejaPollTimer) { clearInterval(_bandejaPollTimer); _bandejaPollTimer = null; }
 }
 
 // ── Helpers base64url ─────────────────────────────────────────────
