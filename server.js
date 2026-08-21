@@ -209,8 +209,12 @@ const pushSubSchema = new mongoose.Schema({
 const sessionSchema = new mongoose.Schema({
   token:      { type: String, required: true, unique: true },
   username:   { type: String, required: true },
-  createdAt:  { type: Date, default: Date.now, expires: 60 * 60 * 24 * 90 }, // 90 días
-  lastSeenAt: { type: Date, default: Date.now },
+  createdAt:  { type: Date, default: Date.now }, // fecha de creación, ya no expira por sí sola
+  // TTL "deslizante": Mongo borra la sesión 90 días después de la ÚLTIMA actividad,
+  // no 90 días después del login. requireAuth() refresca lastSeenAt en cada petición,
+  // así que una sesión en uso activo nunca caduca; solo caduca si el dispositivo
+  // deja de usarse 90 días seguidos.
+  lastSeenAt: { type: Date, default: Date.now, expires: 60 * 60 * 24 * 90 },
   userAgent:  { type: String, default: '' },
   deviceName: { type: String, default: '' }  // Nombre personalizado del dispositivo
 }, { collection: 'sessions' });
