@@ -316,6 +316,26 @@ async function tuyaNormal(method, path, body) {
   return await tuyaClientNormal.request({ method, path, body });
 }
 
+// Reintenta hasta 3 veces (cada 10s) antes de dar por desconectado un dispositivo.
+// Evita alarmas falsas por timeouts puntuales de la nube de Tuya.
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function isOnlineWithRetry(tuyaFn, deviceId, { intentos = 3, esperaMs = 10000 } = {}) {
+  for (let intento = 1; intento <= intentos; intento++) {
+    try {
+      const data = await tuyaFn('GET', `/v1.0/devices/${deviceId}`);
+      const isOnline = data.result?.online === true;
+      if (isOnline) return true;
+      // No está online: si aún quedan reintentos, espera y vuelve a comprobar
+      if (intento < intentos) await sleep(esperaMs);
+    } catch (e) {
+      console.error(`❌ Error comprobando ${deviceId} (intento ${intento}/${intentos}):`, e.message);
+      if (intento < intentos) await sleep(esperaMs);
+    }
+  }
+  return false; // Solo tras agotar todos los reintentos se considera realmente offline
+}
+
 // --- 5. ESTADO EN MEMORIA ---
 const SENSOR_LUZ_ID = process.env.SENSOR_LUZ_ID;
 const SENSORES_AGUA = [
@@ -334,8 +354,7 @@ const HEARTBEAT_TIMEOUT_MS = 10 * 60 * 1000; // 10 min sin pulso = alerta
 // Solo comprueba online/offline — MacroDroid gestiona el salto de alarma
 async function checkSensorLuz() {
   try {
-    const data = await tuyaAlarma('GET', `/v1.0/devices/${SENSOR_LUZ_ID}`);
-    const isOnline = data.result?.online === true;
+    const isOnline = await isOnlineWithRetry(tuyaAlarma, SENSOR_LUZ_ID);
     deviceStateCache[SENSOR_LUZ_ID] = { online: isOnline, updatedAt: Date.now() };
     console.log(`🛡️ Comprobando Estado Centralita: ${isOnline ? '✅' : '❌'}`);
 
@@ -369,8 +388,7 @@ async function checkSensoresLentos() {
 
 async function checkPanelAlarma() {
   try {
-    const data = await tuyaNormal('GET', `/v1.0/devices/${TUYA_DEVICE_ID}`);
-    const isOnline = data.result?.online === true;
+    const isOnline = await isOnlineWithRetry(tuyaNormal, TUYA_DEVICE_ID);
     deviceStateCache[TUYA_DEVICE_ID] = { online: isOnline, updatedAt: Date.now() };
 
     if (!isOnline && !dispositivosOffline['panel']) {
@@ -388,8 +406,7 @@ async function checkPanelAlarma() {
 // Solo comprueba online/offline — MacroDroid gestiona la detección de fugas
 async function checkSensorAgua(sensor) {
   try {
-    const data = await tuyaNormal('GET', `/v1.0/devices/${sensor.id}`);
-    const isOnline = data.result?.online === true;
+    const isOnline = await isOnlineWithRetry(tuyaNormal, sensor.id);
     deviceStateCache[sensor.id] = { online: isOnline, updatedAt: Date.now() };
 
     if (!isOnline && !dispositivosOffline[sensor.id]) {
