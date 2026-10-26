@@ -16,6 +16,10 @@ const { TuyaContext } = require('@tuya/tuya-connector-nodejs');
 const crypto = require('crypto');
 const twilio = require('twilio');
 const app = express();
+
+// Evita que un error no capturado (Tuya, Twilio, Mongo...) tumbe todo el servidor
+process.on('unhandledRejection', (err) => console.error('❌ Promesa rechazada sin capturar:', err?.message || err));
+process.on('uncaughtException',  (err) => console.error('❌ Excepción no capturada:', err?.stack || err));
 app.use('/api/change-avatar', express.json({ limit: '800kb' })); // avatares en base64
 app.use(express.json({ limit: '10kb' }));                              // resto de rutas
 app.use(cors({
@@ -348,7 +352,41 @@ const dispositivosOffline = {};
 const deviceStateCache = {};
 let ultimoHeartbeat = Date.now(); // Arranca asumiendo que está vivo
 let heartbeatAlertaEnviada = false;
-const HEARTBEAT_TIMEOUT_MS = 10 * 60 * 1000; // 10 min sin pulso = alerta
+// MacroDroid envía un pulso cada 2 min y el servidor comprueba cada minuto.
+// Con 8 min de margen se toleran 3 pulsos perdidos seguidos (fallos de DNS/red
+// puntuales) y una caída real se avisa en 8-9 min (antes tardaba 10-15).
+// Configurable en Railway con HEARTBEAT_TIMEOUT_MIN.
+const HEARTBEAT_TIMEOUT_MS = (parseInt(process.env.HEARTBEAT_TIMEOUT_MIN, 10) || 8) * 60 * 1000;
+
+// Estado del heartbeat persistido en MongoDB para que un reinicio/redeploy de
+// Railway no vuelva a disparar (ni a perder) la alerta.
+const heartbeatStateSchema = new mongoose.Schema({
+  _id: { type: String, default: 'macrodroid' },
+  ultimoHeartbeat: Number,
+  alertaEnviada: Boolean
+}, { collection: 'heartbeat_state' });
+const HeartbeatState = mongoose.model('HeartbeatState', heartbeatStateSchema);
+function guardarEstadoHeartbeat() {
+  HeartbeatState.updateOne(
+    { _id: 'macrodroid' },
+    { ultimoHeartbeat, alertaEnviada: heartbeatAlertaEnviada },
+    { upsert: true }
+  ).catch(e => console.error('❌ Error guardando heartbeat:', e.message));
+}
+mongoose.connection.once('open', async () => {
+  try {
+    const st = await HeartbeatState.findById('macrodroid');
+    if (st) {
+      heartbeatAlertaEnviada = !!st.alertaEnviada;
+      // Si el último pulso guardado es reciente, lo respetamos; si no, damos
+      // un margen completo tras el arranque antes de alertar.
+      if (st.ultimoHeartbeat && Date.now() - st.ultimoHeartbeat < HEARTBEAT_TIMEOUT_MS) {
+        ultimoHeartbeat = st.ultimoHeartbeat;
+      }
+    }
+    console.log(`💾 Estado heartbeat restaurado (alerta activa: ${heartbeatAlertaEnviada})`);
+  } catch (e) { console.error('❌ Error leyendo heartbeat:', e.message); }
+});
 
 // --- 6. SENSOR DE LUZ (CUENTA A)
 // Solo comprueba online/offline — MacroDroid gestiona el salto de alarma
@@ -1075,11 +1113,12 @@ app.get('/heartbeat', async (req, res) => {
   }
 
   ultimoHeartbeat = Date.now();
+  guardarEstadoHeartbeat();
   console.log('💓 Heartbeat recibido del servidor de seguridad');
   res.status(200).send('OK');
 });
 
-// Comprueba cada 5 minutos si el móvil sigue vivo
+// Comprueba cada minuto si el móvil sigue vivo
 setInterval(async () => {
   try {
     const ahora = Date.now();
@@ -1087,6 +1126,7 @@ setInterval(async () => {
     console.log(`🔍 Check heartbeat: ${Math.floor(tiempoSinHeartbeat / 60000)} min sin pulso`);
     if (tiempoSinHeartbeat > HEARTBEAT_TIMEOUT_MS && !heartbeatAlertaEnviada) {
       heartbeatAlertaEnviada = true;
+      guardarEstadoHeartbeat();
       console.log('⚠️ Servidor de seguridad sin respuesta — enviando alerta');
       await new Log({ usuario: 'Sistema', accion: '⚠️ Servidor de seguridad caído — sin respuesta' }).save();
       await sendPushNotification('macrodroid_offline', 'MacroDroid');
@@ -1094,7 +1134,7 @@ setInterval(async () => {
   } catch(e) {
     console.error('❌ Error en check heartbeat:', e.message);
   }
-}, 5 * 60 * 1000);
+}, 60 * 1000);
 
 // --- 13. HISTORIAL Y CONFIG ---
 app.get('/api/logs', requireAuth,      async (req, res) => { try { res.json(await Log.find().sort({ fecha: -1 }).limit(500)); } catch (e) { res.status(500).json([]); } });
