@@ -630,6 +630,41 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 .aco-bar-fill.disarmed{background:var(--green)}
 .aco-bar-fill.arm_home{background:var(--orange)}
 
+/* ── Ventana de notificación al abrir la app desde un aviso ───────────────── */
+#notif-popup-bg{
+  position:fixed;inset:0;z-index:9100;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0);opacity:0;pointer-events:none;
+  transition:opacity .22s,background .22s;
+}
+#notif-popup-bg.open{opacity:1;pointer-events:all;background:rgba(0,0,0,.55)}
+.np-box{
+  background:var(--white);border-radius:24px;overflow:hidden;
+  width:calc(100% - 48px);max-width:340px;
+  box-shadow:0 12px 48px rgba(0,0,0,.25);
+  transform:scale(.9) translateY(14px);
+  transition:transform .28s cubic-bezier(.34,1.4,.64,1);
+}
+#notif-popup-bg.open .np-box{transform:scale(1) translateY(0)}
+.np-head{padding:26px 22px 20px;text-align:center;color:#fff;background:var(--np-color,#1a1a1a)}
+.np-box.alarma{--np-color:var(--red)}
+.np-box.aviso{--np-color:var(--orange)}
+.np-box.ok{--np-color:var(--green)}
+.np-box.info{--np-color:#3a3a3c}
+.np-icon{font-size:46px;line-height:1;margin-bottom:10px}
+.np-box.alarma .np-icon{animation:np-pulse 1s ease-in-out infinite}
+@keyframes np-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.np-label{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.85;margin-bottom:4px}
+.np-title{font-size:19px;font-weight:900;line-height:1.25}
+.np-body{padding:18px 22px 6px;text-align:center}
+.np-msg{font-size:15px;font-weight:700;color:var(--text);line-height:1.45}
+.np-time{font-size:13px;font-weight:700;color:var(--muted);margin-top:8px}
+.np-btns{display:flex;gap:10px;padding:16px 18px 18px}
+.np-btn{flex:1;padding:13px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer}
+.np-btn:active{transform:scale(.96);opacity:.85}
+.np-btn-sec{background:var(--bg);color:var(--text)}
+.np-btn-pri{background:var(--np-color,#1a1a1a);color:#fff}
+
 /* ── Custom Confirm Modal ─────────────────────────────────────────────────── */
 #custom-confirm-bg{
   position:fixed;inset:0;z-index:9000;
@@ -1519,7 +1554,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       <button class="btn-red" onclick="doLogin()">Iniciar sesión</button>
       <div id="li-err" style="font-size:13px;color:var(--red);min-height:18px;margin-top:10px;text-align:center;font-weight:700"></div>
     </div> </div> <div class="login-bottom">
-    <div class="login-register"> © 2026 Smart Alarm. Todos los derechos reservados <strong>Version v7.4</strong></div>
+    <div class="login-register"> © 2026 Smart Alarm. Todos los derechos reservados <strong>Version v7.6</strong></div>
   </div>
 </div>
 
@@ -2629,6 +2664,25 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
     <div class="dcm-btns">
       <button class="dcm-btn dcm-btn-cancel" onclick="closeDeleteConfirm()">Cancelar</button>
       <button class="dcm-btn dcm-btn-delete" id="dcm-confirm-btn" onclick="executeDeleteHistorial()" disabled>Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ventana de notificación (al abrir la app desde un aviso) -->
+<div id="notif-popup-bg" onclick="if(event.target===this)cerrarNotifPopup()">
+  <div class="np-box info" id="np-box">
+    <div class="np-head">
+      <div class="np-icon" id="np-icon">🔔</div>
+      <div class="np-label">Notificación</div>
+      <div class="np-title" id="np-title"></div>
+    </div>
+    <div class="np-body">
+      <div class="np-msg" id="np-msg"></div>
+      <div class="np-time" id="np-time"></div>
+    </div>
+    <div class="np-btns">
+      <button class="np-btn np-btn-sec" onclick="cerrarNotifPopup();navTo('historial')">Ver historial</button>
+      <button class="np-btn np-btn-pri" onclick="cerrarNotifPopup()">Entendido</button>
     </div>
   </div>
 </div>
@@ -5345,6 +5399,79 @@ function hideSplash() {
 }
 
 // ── Carga inicial ──────────────────────────────────────────────────────────
+
+// ── Ventana con la notificación pulsada ─────────────────────────────────────
+// El service worker nos pasa la notificación (por URL si la app estaba cerrada,
+// o por mensaje si ya estaba abierta) y la mostramos para que no se pierda.
+let _notifPendiente = null, _notifEspera = null;
+
+function _tipoNotif(t) {
+  if (/ALARMA SALTADA|PÁNICO|SOS|FUGA|💧/i.test(t)) return 'alarma';
+  if (/⚠️|⚡|desconectad|caído|CORTE/i.test(t)) return 'aviso';
+  if (/✅|reconectad|reactivad|REESTABLECIDA|desarmada/i.test(t)) return 'ok';
+  return 'info';
+}
+
+function _horaNotif(ts) {
+  const d = new Date(Number(ts) || Date.now());
+  const hora = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const hoy = new Date(); const ayer = new Date(); ayer.setDate(hoy.getDate() - 1);
+  const dia = d.toDateString() === hoy.toDateString() ? 'Hoy'
+            : d.toDateString() === ayer.toDateString() ? 'Ayer'
+            : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  const min = Math.round((Date.now() - d.getTime()) / 60000);
+  const hace = min < 1 ? 'ahora mismo' : min < 60 ? `hace ${min} min`
+             : min < 1440 ? `hace ${Math.floor(min / 60)} h` : '';
+  return `${dia} a las ${hora}${hace ? ' · ' + hace : ''}`;
+}
+
+function mostrarNotifPopup(n) {
+  if (!n || !n.title) return;
+  // Si aún no ha entrado (pantalla de login), esperamos a que entre
+  const enApp = S.sessionToken && document.getElementById('s-app')?.classList.contains('active');
+  if (!enApp) {
+    _notifPendiente = n;
+    if (!_notifEspera) _notifEspera = setInterval(() => {
+      if (S.sessionToken && document.getElementById('s-app')?.classList.contains('active')) {
+        clearInterval(_notifEspera); _notifEspera = null;
+        const p = _notifPendiente; _notifPendiente = null; mostrarNotifPopup(p);
+      }
+    }, 700);
+    return;
+  }
+  const m = String(n.title).match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
+  document.getElementById('np-icon').textContent  = m ? m[1] : '🔔';
+  document.getElementById('np-title').textContent = m ? m[2] : n.title;
+  document.getElementById('np-msg').textContent   = n.body || '';
+  document.getElementById('np-time').textContent  = _horaNotif(n.ts);
+  document.getElementById('np-box').className = 'np-box ' + _tipoNotif(n.title + ' ' + (n.body || ''));
+  document.getElementById('notif-popup-bg').classList.add('open');
+  try { navigator.vibrate && navigator.vibrate(120); } catch (e) {}
+}
+
+function cerrarNotifPopup() {
+  document.getElementById('notif-popup-bg').classList.remove('open');
+}
+
+// App cerrada → la notificación llega en la URL (?notif=...)
+(function leerNotifDeUrl() {
+  try {
+    const params = new URLSearchParams(location.search);
+    const raw = params.get('notif');
+    if (!raw) return;
+    history.replaceState(null, '', location.pathname); // limpiar la URL
+    const n = JSON.parse(raw);
+    setTimeout(() => mostrarNotifPopup(n), 600);
+  } catch (e) {}
+})();
+
+// App ya abierta → la notificación llega por mensaje del service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data && e.data.type === 'notif-click') mostrarNotifPopup(e.data.notif);
+  });
+}
+
 load();
 hideSplash();
 
@@ -5354,6 +5481,12 @@ let newWorker;
 if ('serviceWorker' in navigator) {
 
   navigator.serviceWorker.register('sw.js').then(reg => {
+
+    // Versión nueva ya descargada y esperando (p. ej. de una visita anterior)
+    if (reg.waiting && navigator.serviceWorker.controller) {
+      newWorker = reg.waiting;
+      showUpdateBar();
+    }
 
     // Detectar nueva versión disponible
     reg.addEventListener('updatefound', () => {
@@ -5377,28 +5510,41 @@ if ('serviceWorker' in navigator) {
 
 }
 
+// Ventana de actualización OBLIGATORIA: centrada, bloquea la app y no se puede cerrar
 function showUpdateBar() {
   if (document.getElementById('update-bar')) return; // evitar duplicados
-  const bar = document.createElement('div');
-  bar.id = 'update-bar';
-  bar.style.cssText = `
-    position:fixed;top:0;left:0;width:100%;
-    background:var(--red);color:white;padding:14px 20px;
-    text-align:center;z-index:9999;font-weight:800;font-size:14px;
-    box-shadow:0 2px 10px rgba(0,0,0,0.2);
-    display:flex;justify-content:center;align-items:center;gap:14px;
-    animation:slideDown 0.4s ease;
+  const bg = document.createElement('div');
+  bg.id = 'update-bar';
+  bg.style.cssText = `
+    position:fixed;inset:0;z-index:99999;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.6);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+    animation:updFade .25s ease;
   `;
-  bar.innerHTML = `
-    <span>Nueva versión disponible</span>
-    <button onclick="forceUpdate()" style="
-      background:white;color:var(--red);border:none;
-      padding:7px 16px;border-radius:20px;font-weight:800;
-      font-family:'Nunito',sans-serif;cursor:pointer;font-size:13px;">
-      ACTUALIZAR
-    </button>
+  bg.innerHTML = `
+    <style>
+      @keyframes updFade{from{opacity:0}to{opacity:1}}
+      @keyframes updPop{from{transform:scale(.9) translateY(14px)}to{transform:scale(1) translateY(0)}}
+      @keyframes updSpin{to{transform:rotate(360deg)}}
+    </style>
+    <div style="background:var(--white);border-radius:24px;width:calc(100% - 48px);max-width:340px;
+                padding:30px 24px 22px;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,.25);
+                animation:updPop .3s cubic-bezier(.34,1.4,.64,1)">
+      <div style="width:72px;height:72px;margin:0 auto 14px;border-radius:50%;background:var(--red-light);
+                  display:flex;align-items:center;justify-content:center;font-size:36px">🚀</div>
+      <div style="font-size:19px;font-weight:900;color:var(--text);margin-bottom:8px">Nueva versión disponible</div>
+      <div style="font-size:14px;font-weight:600;color:var(--muted);line-height:1.45;margin-bottom:22px">
+        Hay una actualización de Smart Alarm. Para seguir usando la app es necesario actualizar.
+      </div>
+      <button id="update-btn" onclick="forceUpdate()" style="
+        width:100%;padding:15px;border:none;border-radius:14px;background:var(--red);color:#fff;
+        font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;gap:10px">
+        Actualizar ahora
+      </button>
+    </div>
   `;
-  document.body.appendChild(bar);
+  document.body.appendChild(bg);
 }
 
 // ── MÓVIL EN SETUP DE NUEVO PERFIL ────────────────────────────────────────
@@ -5576,8 +5722,15 @@ async function applyForceChange() {
 }
 
 function forceUpdate() {
+  const btn = document.getElementById('update-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span style="width:18px;height:18px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:updSpin .8s linear infinite"></span> Actualizando…';
+  }
   if (newWorker) {
     newWorker.postMessage({ action: 'skipWaiting' });
+    // Por si el navegador no avisa del cambio, recargamos igualmente
+    setTimeout(() => window.location.reload(), 4000);
   } else {
     window.location.reload();
   }

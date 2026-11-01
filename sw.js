@@ -1,4 +1,4 @@
-const CACHE = 'mialarm-v7.6';
+const CACHE = 'mialarm-v7.8';
 const ASSETS = [
   '/',
   '/index.html',
@@ -66,25 +66,36 @@ self.addEventListener('push', e => {
       vibrate: [200, 100, 200],
       tag:     'alarm-status',
       renotify: true,
-      data:    data.data || { url: '/' }
+      timestamp: Date.now(),
+      data:    Object.assign({ url: '/' }, data.data || {}, { ts: Date.now() })
     })
   );
 });
 
-// ── Push: al pulsar la notificación, abrir la app ─────────────────────────
+// ── Push: al pulsar la notificación, abrir la app y mostrarla en una ventana ──
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = e.notification.data?.url || '/';
+  // Lo que verá la ventanita dentro de la app
+  const notif = {
+    title: e.notification.title,
+    body:  e.notification.body,
+    ts:    e.notification.data?.ts || e.notification.timestamp || Date.now()
+  };
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cls => {
-      // Si la URL es Google Maps, abrirla directamente
+      // Si la URL es Google Maps (SOS con ubicación), abrirla directamente
       if (url.includes('maps.google.com')) {
         return clients.openWindow(url);
       }
-      // Si no, foco en la app o abrir /
+      // App ya abierta: le pasamos la notificación y la traemos al frente
       const app = cls.find(c => c.url.includes(self.location.origin));
-      if (app) return app.focus();
-      return clients.openWindow('/');
+      if (app) {
+        app.postMessage({ type: 'notif-click', notif });
+        return app.focus();
+      }
+      // App cerrada: la abrimos con la notificación en la URL
+      return clients.openWindow('/?notif=' + encodeURIComponent(JSON.stringify(notif)));
     })
   );
 });
