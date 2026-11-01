@@ -656,7 +656,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
 #custom-confirm-bg.open .ccm-box{transform:scale(1) translateY(0)}
 .ccm-icon{font-size:44px;margin-bottom:10px;line-height:1}
 .ccm-title{font-size:17px;font-weight:900;color:var(--text);margin-bottom:6px}
-.ccm-msg{font-size:14px;color:var(--muted);font-weight:600;line-height:1.45;margin-bottom:22px}
+.ccm-msg{font-size:14px;color:var(--muted);font-weight:600;line-height:1.45;margin-bottom:22px;white-space:pre-line}
 .ccm-btns{display:flex;gap:10px}
 .ccm-btn{flex:1;padding:13px;border:none;border-radius:14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s}
 .ccm-btn:active{transform:scale(0.96);opacity:.8}
@@ -1519,7 +1519,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-ca
       <button class="btn-red" onclick="doLogin()">Iniciar sesión</button>
       <div id="li-err" style="font-size:13px;color:var(--red);min-height:18px;margin-top:10px;text-align:center;font-weight:700"></div>
     </div> </div> <div class="login-bottom">
-    <div class="login-register"> © 2026 Smart Alarm. Todos los derechos reservados <strong>Version v7.3</strong></div>
+    <div class="login-register"> © 2026 Smart Alarm. Todos los derechos reservados <strong>Version v7.4</strong></div>
   </div>
 </div>
 
@@ -3148,7 +3148,10 @@ async function renderUsersAdmin(){
               <div class="ur-name">${escapeHtml(u.name)}</div>
               <div class="ur-role">@${escapeHtml(u.username)} · ${u.role==='admin'?'Admin':'Usuario'}</div>
             </div>
-            ${canDelete ? `<button class="ur-del" onclick="removeUser('${escapeHtml(u.username)}')" style="flex-shrink:0;margin-top:2px">Eliminar usuario</button>` : ''}
+            ${canDelete ? `<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;margin-top:2px">
+              <button class="ur-del" onclick="removeUser('${escapeHtml(u.username)}')">Eliminar usuario</button>
+              <button class="ur-del" onclick="resetPasswordUser('${escapeHtml(u.username)}','${escapeHtml(u.name)}')" style="color:var(--text)">🔑 Restablecer contraseña</button>
+            </div>` : ''}
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
             <span style="font-size:14px;flex-shrink:0">${u.telefono ? (u.telefonoVerificado ? '✅' : '⚠️') : '📵'}</span>
@@ -3300,6 +3303,25 @@ async function removeUser(username) {
     const res = await authFetch(`/api/usuarios/${username}`, { method: 'DELETE' });
     if (res.ok) { renderUsersAdmin(); toast2('Usuario eliminado'); }
   } catch (e) {}
+}
+
+async function resetPasswordUser(username, nombre) {
+  const ok = await showConfirm({ icon: '🔑', title: 'Restablecer contraseña',
+    msg: `Se generará una contraseña temporal para ${nombre} (@${username}) y se cerrarán sus sesiones. Al entrar tendrá que elegir contraseña y PIN nuevos.`,
+    confirmLabel: 'Restablecer' });
+  if (!ok) return;
+  try {
+    const res = await authFetch(`/api/usuarios/${encodeURIComponent(username)}/reset-password`, { method: 'POST' });
+    const data = await res.json();
+    if (!data.success) { toast2(data.message || 'No se pudo restablecer'); return; }
+    const copiar = await showConfirm({ icon: '✅', title: 'Contraseña temporal',
+      msg: `Contraseña temporal de @${username}:\n\n${data.temporal}\n\nDásela para que entre; la app le pedirá cambiarla.`,
+      confirmLabel: 'Copiar', confirmCls: 'ccm-btn-confirm' });
+    if (copiar) {
+      try { await navigator.clipboard.writeText(data.temporal); toast2('📋 Copiada'); } catch (e) {}
+    }
+    renderUsersAdmin();
+  } catch (e) { toast2('Error al restablecer'); }
 }
 
 // ── App Render & Nav ────────────────────────────────────────────────────────

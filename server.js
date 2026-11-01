@@ -802,6 +802,33 @@ app.get('/api/pin-lock-status', requireAuth, (req, res) => {
   res.json({ bloqueado: true, waitMins });
 });
 
+// Admin restablece la contraseña de otro usuario: genera una temporal y marca
+// isNew=true para que, al entrar, la app le obligue a elegir contraseña y PIN nuevos.
+app.post('/api/usuarios/:username/reset-password', requireAuth, async (req, res) => {
+  try {
+    const admin = await User.findOne({ username: req.sessionUser }, 'role');
+    if (!admin || admin.role !== 'admin') return res.status(403).json({ success: false, message: 'Solo un administrador puede restablecer contraseñas' });
+    const target = await User.findOne({ username: req.params.username }, '_id');
+    if (!target) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+
+    const ALFABETO = 'abcdefghjkmnpqrstuvwxyz23456789'; // sin 0/o, 1/l/i para que se lea bien
+    const bytes = crypto.randomBytes(8);
+    let temporal = '';
+    for (const b of bytes) temporal += ALFABETO[b % ALFABETO.length];
+
+    await User.updateOne({ username: req.params.username }, { $set: {
+      password: await bcrypt.hash(temporal, 10),
+      isNew: true,
+      pinFailCount: 0, pinBlockCount: 0, pinLockEnd: 0
+    }});
+    await Session.deleteMany({ username: req.params.username }); // cierra sus sesiones abiertas
+    resetLoginRateLimit(req.headers['x-forwarded-for']?.split(',')[0].trim() || '');
+    await new Log({ usuario: req.sessionUser, accion: `🔑 Contraseña restablecida para @${req.params.username}` }).save();
+    console.log(`🔑 ${req.sessionUser} restableció la contraseña de ${req.params.username}`);
+    res.json({ success: true, temporal });
+  } catch (e) { res.status(500).json({ success: false, message: 'Error al restablecer' }); }
+});
+
 app.post('/api/change-password', requireAuth, async (req, res) => {
   try {
     const { username, currentPassword, newPassword } = req.body;
